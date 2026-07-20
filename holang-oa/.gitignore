@@ -43,3 +43,14 @@ venv/
 *.pem
 *.key
 *.crt
+
+# Database — never commit (data, not code)
+*.db
+*.db.bak
+*.db.bak*
+*.sqlite
+*.sqlite3
+
+# Local credentials / sensitive config that must stay out of git
+oa_login.json
+quotation_*.json

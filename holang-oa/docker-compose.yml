@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: holang-crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: holang2024
+      POSTGRES_DB: holang_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - holang-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: holang-crm-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:holang2024@postgres:5432/holang_crm?schema=public
+      JWT_SECRET: holang-crm-super-secret-key-2024
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - holang-network
+    command: sh -c "npx prisma migrate deploy && npm run seed && npm run start:prod"
+
+  frontend:
+    image: nginx:alpine
+    container_name: holang-crm-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - holang-network
+
+volumes:
+  postgres_data:
+
+networks:
+  holang-network:
+    driver: bridge

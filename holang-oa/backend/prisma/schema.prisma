@@ -1,0 +1,696 @@
+// Prisma Schema for HOLANG Sales CRM System
+// Updated 2026-07-02: SQLite provider for local development
+// All enums converted to String for SQLite compatibility
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// 用户表
+// ============================================================
+model User {
+  id            String    @id @default(cuid())
+  wecomUserId   String?   @unique
+  name          String
+  email         String?   @unique
+  password      String    @default("")
+  role          String    @default("SALES")
+  department    String?
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customers         Customer[] @relation("CustomerSalesOwner")
+  customersCreated  Customer[] @relation("CustomerCreator")
+  opportunities     Opportunity[]
+  quotes            Quote[]
+  orders            Order[]
+  payments          Payment[]
+  targets           SalesTarget[]
+  reports           Report[]
+  followUps         FollowUp[]
+  reviewedDealers   DealerReport[]
+  contracts         Contract[]
+
+  @@map("users")
+}
+
+// ============================================================
+// 客户表 — 含内销/外销分类
+// ============================================================
+model Customer {
+  id            String        @id @default(cuid())
+  customerCode  String?       @unique
+  companyName   String
+  industry      String?
+  industryOther String?
+  scale         String?
+  address       String?
+  addressDetail String?
+  companyPhone  String?
+  website       String?
+  creditCode    String?
+  dunsNumber    String?
+  status        String        @default("POTENTIAL")
+  source        String?
+
+  // ═══ 内销/外销分类 ═══
+  businessLine  String        @default("INDUSTRIAL") // INDUSTRIAL内销 / RETAIL外销
+  salesType     String        @default("INTERNAL")   // INTERNAL国内 / EXTERNAL海外
+
+  // ═══ 国家标签（世界地图统计用）═══
+  // 外销客户由联系人国际电话区号自动识别，内销统一为「中国」，可手动覆盖
+  country       String?       // 国家中文名，如 马来西亚 / 中国 / 美国/加拿大
+
+  // 销售信息
+  salesOwnerId  String?
+  salesPerson   String?
+  salesDept     String?
+  followStage   String?
+  level         String?
+
+  // 开票信息
+  taxTitle      String?
+  taxNumber     String?
+  invoiceType   String?
+  bankName      String?
+  bankAccount   String?
+  bankCode      String?
+
+  // 统计字段
+  dealAmount    Float         @default(0)
+  dealCount     Int           @default(0)
+  paidAmount    Float         @default(0)
+  unpaidAmount  Float         @default(0)
+
+  // 跟进状态
+  assignedAt    DateTime?
+  lastFollowAt  DateTime?
+  nextFollowAt  DateTime?
+  overdueFollow Boolean       @default(false)
+  transactedAt  DateTime?
+
+  // 备注与附件
+  remark        String?
+  attachments   String?
+  contractFile  String?
+
+  // 迁移溯源
+  huobanId      String?       @unique
+
+  // 系统字段
+  createdBy     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  salesOwner    User?         @relation("CustomerSalesOwner", fields: [salesOwnerId], references: [id])
+  creator       User?         @relation("CustomerCreator", fields: [createdBy], references: [id])
+  contacts      Contact[]
+  opportunities Opportunity[]
+  quotes        Quote[]
+  contracts     Contract[]
+  orders        Order[]
+  payments      Payment[]
+  followUps     FollowUp[]
+  invoices      Invoice[]
+  deliveries    Delivery[]
+  dealerReports DealerReport[]
+
+  @@index([status])
+  @@index([businessLine])
+  @@index([salesType])
+  @@index([salesOwnerId])
+  @@index([country])
+  @@index([companyName])
+  @@index([huobanId])
+  @@map("customers")
+}
+
+// ============================================================
+// 联系人表
+// ============================================================
+model Contact {
+  id            String      @id @default(cuid())
+  customerId    String
+  name          String
+  position      String?
+  title         String?
+  type          String      @default("PRIMARY")
+  phone         String?
+  email         String?
+  wechat        String?
+  whatsapp      String?
+  dept          String?
+  isKeyPerson   Boolean     @default(false)
+  gender        String?
+  contactType   String?
+  remark        String?
+  huobanId      String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([phone])
+  @@map("contacts")
+}
+
+// ============================================================
+// 订单表 — 内销/外销分类 + 含税/未税
+// ============================================================
+model Order {
+  id            String        @id @default(cuid())
+  orderCode     String?       @unique
+  customerId    String
+  orderDate     DateTime?
+  status        String        @default("CONFIRMED")
+
+  // ═══ 内销/外销分类 ═══
+  businessLine  String        @default("INDUSTRIAL")
+
+  // 销售信息
+  salesPerson   String?
+  salesOwnerId  String?
+  salesMode      String?       // 直销/间销
+  salesType      String?       // INTERNAL/EXTERNAL 内外销
+  contractEntity String?
+  productType   String?
+  endUser       String?
+
+  // ═══ 金额（含税/未税区分）═══
+  amount            Float     @default(0)  // 销售订单金额（含税）— 实际合同金额
+  amountOriginal    Float?    // 销售原价总额（含税）— 折扣前
+  amountWithoutTax  Float?    // 销售订单金额（未税）
+  totalCost         Float?    // 产品成本总额
+  discount          Float     @default(0) // 优惠金额
+  discountRate      Float?    // 整单折扣率(%)
+  taxRate           Float?    @default(13) // 增值税税率(%)
+  collectedAmount   Float     @default(0) // 已回款金额
+  invoicedAmount    Float     @default(0) // 已开票金额
+  grossMargin       Float?    // 毛利率(%)
+  unpaidAmount      Float     @default(0) // 待回款金额
+
+  // 发货信息
+  expectedDeliveryDate DateTime?
+  deliveryDate  DateTime?
+  receiver      String?
+  receiverPhone String?
+  receiverAddress String?
+
+  // 审批
+  approvalStatus String?
+  flowStatus    String?
+
+  // 付款信息
+  paymentMethod String?
+  notes         String?
+  specialReq    String?
+  techAgreement String?
+  contractFile  String?
+
+  // 报价/商机关联
+  quotationId   String?
+  opportunityId String?
+
+  // 迁移溯源
+  huobanId      String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  salesOwner    User?         @relation(fields: [salesOwnerId], references: [id])
+  items         OrderItem[]
+  payments      Payment[]
+  invoices      Invoice[]
+  deliveries    Delivery[]
+
+  @@index([customerId])
+  @@index([salesType])
+  @@index([businessLine])
+  @@index([status])
+  @@index([orderDate])
+  @@index([huobanId])
+  @@map("orders")
+}
+
+// ============================================================
+// 订单明细表
+// ============================================================
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String?
+  productName String?
+  productNameEn String?
+  spec        String?
+  quantity    Int     @default(1)
+  unit        String?
+  unitPrice   Float   @default(0)
+  taxRate     Float?  @default(13)
+  costPrice   Float?
+  costTotal   Float?
+  subtotal    Float   @default(0)
+  deviceCode  String?
+  currency    String?
+  exchangeRate Float?
+  huobanId    String?
+
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// ============================================================
+// 回款表
+// ============================================================
+model Payment {
+  id            String      @id @default(cuid())
+  paymentCode   String?
+  customerId    String
+  salesType     String?
+  orderId       String?
+  amount        Float       @default(0)
+  type          String      @default("PROGRESS")
+  status        String      @default("PENDING")
+
+  plannedDate   DateTime?
+  receivedDate  DateTime?
+  paymentMethod String?
+  payerAccount  String?
+  paymentRatio  Float?
+  customerAccount String?
+
+  confirmedFinance   String?
+  confirmedFinanceDate DateTime?
+  invoiceConfirm     String?
+
+  applicantId   String?
+  flowStatus    String?
+  applyDate     DateTime?
+
+  voucher       String?
+  remark        String?
+
+  huobanId      String?     @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  order         Order?      @relation(fields: [orderId], references: [id])
+  applicant     User?       @relation(fields: [applicantId], references: [id])
+
+  @@index([customerId])
+  @@index([orderId])
+  @@index([status])
+  @@index([salesType])
+  @@index([huobanId])
+  @@map("payments")
+}
+
+// ============================================================
+// 客户跟进记录表
+// ============================================================
+model FollowUp {
+  id              String      @id @default(cuid())
+  customerId      String
+  userId          String?
+  method          String      @default("OTHER")
+  content         String
+  channel         String?
+  operator        String?
+  nextFollowUpAt  DateTime?
+  huobanId        String?
+  createdAt       DateTime    @default(now())
+
+  customer        Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user            User?       @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@index([userId])
+  @@map("follow_ups")
+}
+
+// ============================================================
+// 开票申请表
+// ============================================================
+model Invoice {
+  id            String    @id @default(cuid())
+  orderId       String?
+  customerId    String?
+  salesType     String?
+  salesPerson   String?
+
+  amount        Float     @default(0)  // 本次开票金额
+  ratio         Float?    // 本次开票比例
+
+  orderStatus   String?   // 订单状态
+  productType   String?   // 产品类型
+  invoiceType   String?   // 发票类型
+
+  contractEntityId String? // 开票主体
+
+  title          String?   // 发票抬头
+  creditCode     String?   // 统一信用代码
+  companyAddress String?   // 公司地址
+  companyPhone   String?   // 电话
+  bankName       String?   // 开户银行
+  bankAccount    String?   // 银行账号
+  bankCode       String?   // 银行行号
+  billingInfo    String?   // 客户开票资料
+
+  recipient      String?   // 收件人
+  recipientPhone String?   // 联系电话
+  detailAddress  String?   // 详细地址
+
+  invoiceNumber  String?   // 发票号
+  invoiceFile    String?   // 发票附件
+  invoiceScan    String?   // 发票扫描件
+
+  approvalStatus String?   // 审批状态
+  flowStatus     String?   // 流程状态
+  applyDate      DateTime? // 申请时间
+  remark         String?
+
+  huobanId       String?   @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  order          Order?    @relation(fields: [orderId], references: [id])
+  customer       Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([orderId])
+  @@index([customerId])
+  @@index([salesType])
+  @@index([huobanId])
+  @@map("invoices")
+}
+
+// ============================================================
+// 发货申请表
+// ============================================================
+model Delivery {
+  id            String    @id @default(cuid())
+  code          String?   // 编号
+  orderId       String?
+  customerId    String?
+  salesType     String?
+
+  flowStatus    String?   // 当前流程状态
+  productType   String?   // 产品类型
+  paidAsContract String?  // 是否按照合同约定付款
+  expectedPaymentDate DateTime? // 预计回款时间
+  overdueReason String?   // 逾期回款原因
+  orderType     String?   // 订单类型(直销/间销)
+
+  endCustomerName String? // 终端客户全称
+
+  deliveryDate  DateTime? // 发货时间
+  receiver      String?   // 收货人
+  receiverPhone String?   // 联系方式
+  shippingAddress String? // 收货地址
+  detailAddress String?   // 详细地址
+  specialReq    String?   // 其他特殊要求
+
+  applicant     String?   // 申请人
+  applyDate     DateTime? // 申请时间
+  remark        String?
+
+  huobanId      String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  order          Order?    @relation(fields: [orderId], references: [id])
+  customer       Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([orderId])
+  @@index([customerId])
+  @@index([salesType])
+  @@index([huobanId])
+  @@map("deliveries")
+}
+
+// ============================================================
+// 销售线索表
+// ============================================================
+model Lead {
+  id            String    @id @default(cuid())
+  code          String?
+  customerName  String?
+  salesType     String?
+  contactName   String?
+  phone         String?
+  email         String?
+  wechat        String?
+  company       String?
+  industry      String?
+  scale         String?
+  source        String?
+  region        String?
+  status        String    @default("PENDING")
+  assignedTo    String?
+  assignedAt    DateTime?
+  lastFollowAt  DateTime?
+  nextFollowAt  DateTime?
+  followOverdue Boolean   @default(false)
+  remark        String?
+  invalidReason String?
+  huobanId      String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([salesType])
+  @@index([huobanId])
+  @@map("leads")
+}
+
+// ============================================================
+// 签约主体表
+// ============================================================
+model ContractEntity {
+  id          String    @id @default(cuid())
+  name        String
+  creditCode  String?
+  huobanId    String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([huobanId])
+  @@map("contract_entities")
+}
+
+// ============================================================
+// 销售机会表
+// ============================================================
+model Opportunity {
+  id              String           @id @default(cuid())
+  name            String
+  customerId      String
+  salesType       String?
+  productId       String?
+  expectedAmount  Float            @default(0)
+  expectedCloseDate DateTime?
+  stage           String           @default("INITIAL_CONTACT")
+  winProbability  Float            @default(0)
+  description     String?
+  salesOwnerId    String?
+  code            String?
+  collaborators   String?
+  taxRate         Float?           @default(13)
+  discount        Float?           @default(0)
+  costTotal       Float?           @default(0)
+  margin          Float?           @default(0)
+  huobanId        String?          @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  product         Product?         @relation(fields: [productId], references: [id])
+  salesOwner      User?            @relation(fields: [salesOwnerId], references: [id])
+
+  @@index([stage])
+  @@index([salesOwnerId])
+  @@index([salesType])
+  @@index([customerId])
+  @@map("opportunities")
+}
+
+// ============================================================
+// 产品表
+// ============================================================
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  model       String?
+  spec        String?
+  category    String?
+  unitPrice   Float    @default(0)
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  opportunities Opportunity[]
+  quoteItems    QuoteItem[]
+
+  @@index([category])
+  @@map("products")
+}
+
+// ============================================================
+// 报价单表
+// ============================================================
+model Quote {
+  id          String     @id @default(cuid())
+  quoteNumber String     @unique
+  customerId  String
+  salesType   String?
+  totalAmount Float      @default(0)
+  amountWithoutTax Float?
+  taxRate     Float?     @default(13) // 增值税税率(%)：13 / 6 / 0(未税)；外销统一 0
+  discount    Float      @default(0)
+  validUntil  DateTime?
+  status      String     @default("DRAFT")
+  notes       String?
+  createdById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  creator     User?       @relation(fields: [createdById], references: [id])
+  items       QuoteItem[]
+
+  @@index([status])
+  @@index([salesType])
+  @@index([customerId])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id        String  @id @default(cuid())
+  quoteId   String
+  productId String
+  quantity  Int     @default(1)
+  unitPrice Float   @default(0)
+  discount  Float   @default(0)
+  subtotal  Float   @default(0)
+
+  quote     Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+// ============================================================
+// 合同表
+// ============================================================
+model Contract {
+  id              String         @id @default(cuid())
+  contractNumber  String         @unique
+  customerId      String
+  amount          Float          @default(0)
+  signedAt        DateTime?
+  expiresAt       DateTime?
+  status          String         @default("ACTIVE")
+  filePath        String?
+  notes           String?
+  createdById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  customer        Customer       @relation(fields: [customerId], references: [id])
+  creator         User?          @relation(fields: [createdById], references: [id])
+
+  @@index([status])
+  @@index([customerId])
+  @@map("contracts")
+}
+
+// ============================================================
+// 辅助表
+// ============================================================
+model SalesTarget {
+  id          String      @id @default(cuid())
+  userId      String
+  period      String      @default("MONTHLY")
+  year        Int
+  periodValue Int
+  targetAmount Float      @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([userId, period, year, periodValue])
+  @@index([userId])
+  @@map("sales_targets")
+}
+
+model Report {
+  id          String     @id @default(cuid())
+  type        String     @default("DAILY")
+  title       String?
+  periodStart DateTime
+  periodEnd   DateTime
+  userId      String?
+  content     String?
+  status      String     @default("DRAFT")
+  generatedAt DateTime   @default(now())
+
+  user        User?      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@map("reports")
+}
+
+model DealerReport {
+  id            String          @id @default(cuid())
+  companyName   String
+  contactName   String
+  contactPhone  String
+  contactEmail  String?
+  dealerName    String
+  dealerPhone   String
+  dealerEmail   String?
+  status        String          @default("PENDING")
+  duplicateOf   String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  notes         String?
+  rejectReason  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  reviewer      User?           @relation(fields: [reviewedBy], references: [id])
+  duplicateCustomer Customer?   @relation(fields: [duplicateOf], references: [id])
+
+  @@index([status])
+  @@index([contactPhone])
+  @@map("dealer_reports")
+}
+
+model WecomDepartment {
+  id        String  @id
+  name      String
+  parentId  String?
+  orderNo   Int     @default(0)
+  leaderId  String?
+
+  children  WecomDepartment[] @relation("department_hierarchy")
+  parent    WecomDepartment?  @relation("department_hierarchy", fields: [parentId], references: [id])
+
+  @@map("wecom_departments")
+}
