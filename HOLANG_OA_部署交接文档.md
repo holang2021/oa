@@ -1,5 +1,6 @@
 # HOLANG OA 服务器部署交接文档
 
+> 路径更新：2026-07-20 已随项目迁移校正，所有本地路径统一指向 F:\HOLANGbuddy_项目资产\系统建设\holang-oa\n
 > 生成时间：2026-07-08 14:20
 > 来源：holang-oa 项目（WorkBuddy 本地开发完成，待部署上线）
 > 目标：部署到腾讯云服务器，绑定域名 oa.holangchina.com，接入企微自建应用 AgentID 1000081
@@ -25,22 +26,22 @@ Nginx (80→443, SSL)
 ## 二、需要上传的文件
 
 ### 前端（静态文件，Nginx 托管）
-- 本地路径：`C:\Users\liush\.workbuddy\skills\系统建设\holang-oa\packages\oa\dist\`
+- 本地路径：`F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\packages\oa\dist\`
 - 服务器目标：`/var/www/oa/dist/`
 - 内容：index.html + assets/（CSS + JS，打包产物）
 
 ### 后端（Node.js 应用，pm2 托管）
-- 本地路径：`F:\HOLANGbuddy\HOLANG项目\销售管理系统\holang-oa\backend\`
+- 本地路径：`F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\backend\`
 - 服务器目标：`/opt/holang-oa/`
 - 需要上传整个 backend/ 目录（含 src/、prisma/、package.json、.env、node_modules/ 可选）
 
 ### 数据库
-- 本地路径：`C:\Users\liush\.workbuddy\skills\系统建设\holang-oa.db`
+- 本地路径：`F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\backend\prisma\holang-crm.db`
 - 服务器目标：`/opt/holang-oa/data/holang-oa.db`
 - 类型：SQLite（394 客户，68 外销，完整业务数据）
 
 ### Nginx 配置
-- 本地路径：`F:\HOLANGbuddy\HOLANG项目\销售管理系统\holang-oa\deploy\nginx-oa.conf`
+- 本地路径：`F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\deploy\nginx-oa.conf`
 - 服务器目标：`/etc/nginx/sites-available/oa.holangchina.com`
 - 已配置好：SSL + API代理 + SPA fallback + gzip
 
@@ -56,16 +57,16 @@ mkdir -p /opt/holang-oa/data
 
 # 上传（在本地 Windows 执行）
 # 前端
-scp -r "C:\Users\liush\.workbuddy\skills\系统建设\holang-oa\packages\oa\dist\*" root@你的服务器IP:/var/www/oa/dist/
+scp -r "F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\packages\oa\dist\*" root@你的服务器IP:/var/www/oa/dist/
 
 # 后端
-scp -r "F:\HOLANGbuddy\HOLANG项目\销售管理系统\holang-oa\backend" root@你的服务器IP:/opt/holang-oa/
+scp -r "F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\backend" root@你的服务器IP:/opt/holang-oa/
 
 # 数据库
-scp "C:\Users\liush\.workbuddy\skills\系统建设\holang-oa.db" root@你的服务器IP:/opt/holang-oa/data/
+scp "F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\backend\prisma\holang-crm.db" root@你的服务器IP:/opt/holang-oa/data/
 
 # Nginx
-scp "F:\HOLANGbuddy\HOLANG项目\销售管理系统\holang-oa\deploy\nginx-oa.conf" root@你的服务器IP:/etc/nginx/sites-available/oa.holangchina.com
+scp "F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\deploy\nginx-oa.conf" root@你的服务器IP:/etc/nginx/sites-available/oa.holangchina.com
 ```
 
 ### Step 2: 服务器上安装依赖
@@ -201,11 +202,11 @@ curl https://oa.holangchina.com/
 
 | 用途 | 本地路径 | 服务器路径 |
 |------|----------|-----------|
-| 前端 dist | `C:\Users\liush\.workbuddy\skills\系统建设\holang-oa\packages\oa\dist\` | `/var/www/oa/dist/` |
-| 后端代码 | `F:\HOLANGbuddy\HOLANG项目\销售管理系统\holang-oa\backend\` | `/opt/holang-oa/backend/` |
-| 数据库 | `C:\Users\liush\.workbuddy\skills\系统建设\holang-oa.db` | `/opt/holang-oa/data/holang-oa.db` |
-| Nginx 配置 | `F:\HOLANGbuddy\HOLANG项目\销售管理系统\holang-oa\deploy\nginx-oa.conf` | `/etc/nginx/sites-available/oa.holangchina.com` |
-| Nginx 模板 | `C:\Users\liush\.workbuddy\skills\系统建设\holang-oa\packages\oa\public\auth-callback.html` | `/var/www/oa/dist/auth-callback.html` |
+| 前端 dist | `F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\packages\oa\dist\` | `/var/www/oa/dist/` |
+| 后端代码 | `F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\backend\` | `/opt/holang-oa/backend/` |
+| 数据库 | `F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\backend\prisma\holang-crm.db` | `/opt/holang-oa/data/holang-oa.db` |
+| Nginx 配置 | `F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\deploy\nginx-oa.conf` | `/etc/nginx/sites-available/oa.holangchina.com` |
+| Nginx 模板 | `F:\HOLANGbuddy\03_项目资产\系统建设\holang-oa\packages\oa\public\auth-callback.html` | `/var/www/oa/dist/auth-callback.html` |
 
 ---
 
