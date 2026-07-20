@@ -1,0 +1,24 @@
+[
+  {
+    "id": "2300019562502792",
+    "customerId": "2300018718327908",
+    "name": "[{'item_id': '2300019562501897', 'title': '余芳：15050380602'}]",
+    "stage": "SJ2604170001",
+    "amount": 0,
+    "expectedCloseDate": "2026-04-24 08:57:00",
+    "salesPerson": "2026-04-17",
+    "probability": 0,
+    "products": [],
+    "createdAt": "[{'id': '1', 'name': '初步交流'}]",
+    "code": "",
+    "acquiredAt": "",
+    "milestone": "",
+    "loseReason": "",
+    "collaborators": [],
+    "taxRate": 13,
+    "discount": 0,
+    "costTotal": 0,
+    "margin": 0,
+    "huobanId": "2300019562502792"
+  }
+]

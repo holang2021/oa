@@ -1,0 +1,37 @@
+{
+  "bizType": "quotation",
+  "bizRecordId": "fmrn9zouab8dl",
+  "status": "pending",
+  "processStatus": "running",
+  "initiator": {
+    "userId": "current_user",
+    "name": "当前用户"
+  },
+  "startedAt": "2026-07-16T08:57:16.951Z",
+  "currentProgress": "已提交，等待审批",
+  "levels": [
+    {
+      "level": 1,
+      "name": "销售经理审批",
+      "status": "acting",
+      "mode": "sequential",
+      "signMode": "all",
+      "allowCounterSign": true
+    }
+  ],
+  "history": [
+    {
+      "id": "init",
+      "timestamp": "2026-07-16T08:57:16.951Z",
+      "operator": {
+        "userId": "current_user",
+        "name": "当前用户"
+      },
+      "action": "submit",
+      "comment": "提交审批申请",
+      "resultStatus": "pending"
+    }
+  ],
+  "currentLevel": 1,
+  "updatedAt": "2026-07-16T08:57:16.961Z"
+}

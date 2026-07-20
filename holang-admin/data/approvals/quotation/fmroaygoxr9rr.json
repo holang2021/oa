@@ -1,0 +1,54 @@
+{
+  "bizType": "quotation",
+  "bizRecordId": "fmroaygoxr9rr",
+  "status": "approved",
+  "processStatus": "completed_agree",
+  "initiator": {
+    "userId": "current_user",
+    "name": "刘总"
+  },
+  "startedAt": "2026-07-17T02:12:05.520Z",
+  "currentProgress": "处理中",
+  "levels": [
+    {
+      "level": 1,
+      "name": "销售经理审批",
+      "status": "approved",
+      "mode": "sequential",
+      "signMode": "all",
+      "allowCounterSign": true,
+      "action": "approve",
+      "actedAt": "2026-07-17T02:41:01.643Z",
+      "approver": {
+        "userId": "current_user",
+        "name": "当前用户"
+      }
+    }
+  ],
+  "history": [
+    {
+      "id": "init",
+      "timestamp": "2026-07-17T02:12:05.520Z",
+      "operator": {
+        "userId": "current_user",
+        "name": "刘总"
+      },
+      "action": "submit",
+      "comment": "提交审批申请",
+      "resultStatus": "pending"
+    },
+    {
+      "id": "rec_1784256061643",
+      "timestamp": "2026-07-17T02:41:01.643Z",
+      "operator": {
+        "userId": "current_user",
+        "name": "当前用户"
+      },
+      "action": "approve",
+      "resultStatus": "approved"
+    }
+  ],
+  "currentLevel": 1,
+  "updatedAt": "2026-07-17T02:41:01.651Z",
+  "completedAt": "2026-07-17T02:41:01.643Z"
+}

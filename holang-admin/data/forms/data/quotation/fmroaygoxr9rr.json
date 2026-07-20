@@ -1,0 +1,23 @@
+{
+  "id": "fmroaygoxr9rr",
+  "formId": "quotation",
+  "data": {
+    "quoteNo": "HQ26072155",
+    "customerId": "c_nai",
+    "subject": "测试报价",
+    "items": [
+      {
+        "productId": "p_npl02b",
+        "qty": 1,
+        "unitPrice": 44800,
+        "subtotal": 44800,
+        "model": "NPL02B",
+        "flow": "4.4m³/h",
+        "purity": "99.999%"
+      }
+    ],
+    "total": 44800,
+    "totalCn": "肆万肆仟捌佰元整"
+  },
+  "createdAt": "2026-07-17T02:12:05.505Z"
+}

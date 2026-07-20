@@ -1,0 +1,34 @@
+# ============ 数据库（含客户 PII，禁止入库 / 禁止推送 GitHub） ============
+*.db
+*.db.bak
+*.db.bak*
+*.sqlite
+*.sqlite3
+
+# ============ 凭据 / 密钥（禁止入库） ============
+oa_login.json
+.env
+.env.*
+credentials.json
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# ============ 业务配置（含报价模板，不公开） ============
+quotation_*.json
+
+# ============ 依赖 / 构建产物 ============
+node_modules/
+dist/
+build/
+.out/
+
+# ============ 临时 / 系统 / 日志 ============
+*.bak
+tmp/
+temp/
+.DS_Store
+Thumbs.db
+*.log
+.cache/

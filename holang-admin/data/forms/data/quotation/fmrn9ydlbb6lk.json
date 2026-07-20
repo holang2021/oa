@@ -1,0 +1,19 @@
+{
+  "id": "fmrn9ydlbb6lk",
+  "formId": "quotation",
+  "data": {
+    "quoteNo": "HQ26042199",
+    "customerId": "c_nai",
+    "subject": "测试",
+    "items": [
+      {
+        "productId": "p_npl02b",
+        "qty": 1,
+        "unitPrice": 44800,
+        "subtotal": 44800
+      }
+    ],
+    "total": 44800
+  },
+  "createdAt": "2026-07-16T08:56:15.695Z"
+}

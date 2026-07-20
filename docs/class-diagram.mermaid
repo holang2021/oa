@@ -1,0 +1,159 @@
+classDiagram
+    class User {
+        +int id
+        +string username
+        +string email
+        +string password_hash
+        +string full_name
+        +enum role
+        +enum sales_type
+        +string wecom_userid
+        +string whatsapp_phone_number
+        +string whatsapp_api_key
+        +bool is_active
+        +datetime created_at
+    }
+    
+    class Customer {
+        +int id
+        +string name
+        +string company
+        +enum sales_type
+        +string tax_number
+        +string legal_representative
+        +string registered_capital
+        +date establishment_date
+        +string business_status
+        +string registered_address
+        +string social_credit_code
+        +string industry
+        +string source
+        +int owner_id
+        +datetime created_at
+    }
+    
+    class CommunicationRecord {
+        +int id
+        +int customer_id
+        +int contact_id
+        +enum communication_channel
+        +enum direction
+        +datetime communication_time
+        +text content
+        +string media_url
+        +string message_id
+        +int created_by
+        +datetime created_at
+    }
+    
+    class Workflow {
+        +int id
+        +string name
+        +enum workflow_type
+        +string business_type
+        +bool is_active
+        +jsonb config_json
+        +int created_by
+        +datetime created_at
+    }
+    
+    class WorkflowNode {
+        +int id
+        +int workflow_id
+        +enum node_type
+        +string node_name
+        +string approver_type
+        +jsonb approver_config
+        +jsonb cc_config
+        +jsonb condition_json
+        +int next_node_id
+        +datetime created_at
+    }
+    
+    class WorkflowInstance {
+        +int id
+        +int workflow_id
+        +int current_node_id
+        +int business_id
+        +int initiator_id
+        +enum status
+        +jsonb context_json
+        +datetime created_at
+    }
+    
+    class WorkflowInstanceLog {
+        +int id
+        +int workflow_instance_id
+        +int node_id
+        +string action
+        +int operator_id
+        +text comment
+        +datetime created_at
+    }
+    
+    class CustomerChangeRequest {
+        +int id
+        +int customer_id
+        +string field_name
+        +text old_value
+        +text new_value
+        +text change_reason
+        +int requested_by
+        +datetime requested_at
+        +int reviewed_by
+        +enum review_status
+        +text review_comment
+        +datetime reviewed_at
+    }
+    
+    class Contract {
+        +int id
+        +string contract_no
+        +int customer_id
+        +int opportunity_id
+        +decimal amount
+        +date start_date
+        +date end_date
+        +enum status
+        +string file_path
+        +int created_by
+        +datetime created_at
+    }
+    
+    class WeeklyReport {
+        +int id
+        +int user_id
+        +int week_number
+        +int year
+        +text content
+        +enum status
+        +bool ai_generated
+        +datetime submitted_at
+        +int approved_by
+        +datetime approved_at
+    }
+    
+    class Lead {
+        +int id
+        +string name
+        +string company
+        +string phone
+        +string email
+        +text description
+        +string source
+        +enum status
+        +int assigned_to
+        +datetime assigned_at
+        +int converted_to_customer_id
+        +datetime created_at
+    }
+    
+    User "1" --> "*" Customer : owns
+    User "1" --> "*" CommunicationRecord : creates
+    Customer "1" --> "*" CommunicationRecord : has
+    Customer "1" --> "*" CustomerChangeRequest : has
+    Workflow "1" --> "*" WorkflowNode : has
+    Workflow "1" --> "*" WorkflowInstance : has
+    WorkflowNode "1" --> "*" WorkflowInstance : next
+    WorkflowInstance "1" --> "*" WorkflowInstanceLog : has
+    CustomerChangeRequest "1" --> "1" WorkflowInstance : triggers

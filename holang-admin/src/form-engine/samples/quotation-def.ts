@@ -1,0 +1,41 @@
+// ============================================================
+// 表单引擎示例 — 报价单 schema（与 data/forms/definitions/quotation.json 同源）
+// 字段取自真实报价单 quotation_260421.json
+// ============================================================
+import type { FormDef } from "../types";
+
+export const quotationDef: FormDef = {
+  formId: "quotation",
+  name: "报价单",
+  version: 1,
+  fields: [
+    {
+      key: "quoteNo",
+      label: "报价编号",
+      type: "text",
+      auto: "rule:HQ+YYMMDD+seq",
+      readonly: true,
+    },
+    { key: "quoteDate", label: "报价日期", type: "date", default: "today" },
+    { key: "validDays", label: "有效期", type: "number", unit: "天", default: 30 },
+    { key: "customerId", label: "客户", type: "lookup", source: "customer", displayField: "name" },
+    { key: "subject", label: "主题", type: "text" },
+    {
+      key: "items",
+      label: "明细行",
+      type: "table",
+      columns: [
+        { key: "productId", label: "产品", type: "lookup", source: "product", displayField: "name" },
+        { key: "model", label: "型号", type: "text", readonly: true, fromProduct: "model" },
+        { key: "flow", label: "流量", type: "text", readonly: true, fromProduct: "flow" },
+        { key: "purity", label: "纯度", type: "text", readonly: true, fromProduct: "purity" },
+        { key: "qty", label: "数量", type: "number" },
+        { key: "unitPrice", label: "单价", type: "number", readonly: true, fromProduct: "price" },
+        { key: "subtotal", label: "小计", type: "number", readonly: true, formula: "qty*unitPrice" },
+      ],
+    },
+    { key: "total", label: "合计", type: "number", readonly: true, formula: "SUM(items.subtotal)" },
+    { key: "totalCn", label: "大写", type: "text", readonly: true, formula: "toCnMoney(total)" },
+    { key: "remarks", label: "条款备注", type: "richtext" },
+  ],
+};

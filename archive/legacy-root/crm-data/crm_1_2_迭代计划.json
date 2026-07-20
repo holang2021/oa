@@ -1,0 +1,119 @@
+[
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "序号",
+    "Unnamed: 2": "功能描述",
+    "Unnamed: 3": "迭代类型",
+    "Unnamed: 4": "贡献者",
+    "Unnamed: 5": "计划开始日期",
+    "Unnamed: 6": "用时/天"
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "1",
+    "Unnamed: 2": "集成企业微信及微信生态，实现电子邮件、WhatsApp对接，构建工具一体化的CRM系统 ☆☆☆☆☆☆",
+    "Unnamed: 3": "新增",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "2",
+    "Unnamed: 2": "系统初始化数据的导入、导出",
+    "Unnamed: 3": "新增",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "3",
+    "Unnamed: 2": "AI功能，结合知识库，使用RAG技术实现大模型的应用",
+    "Unnamed: 3": "新增",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "4",
+    "Unnamed: 2": "供应链模块、制造模块",
+    "Unnamed: 3": "新增",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "5",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "6",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "7",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "8",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "9",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "10",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "11",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  },
+  {
+    "Unnamed: 0": "",
+    "迭代计划": "12",
+    "Unnamed: 2": "",
+    "Unnamed: 3": "",
+    "Unnamed: 4": "",
+    "Unnamed: 5": "",
+    "Unnamed: 6": ""
+  }
+]

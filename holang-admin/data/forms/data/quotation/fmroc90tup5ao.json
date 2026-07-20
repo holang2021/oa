@@ -1,0 +1,23 @@
+{
+  "id": "fmroc90tup5ao",
+  "formId": "quotation",
+  "data": {
+    "quoteNo": "HQ2026071784",
+    "quoteDate": "2026-07-17",
+    "validDays": 30,
+    "customerId": "",
+    "subject": "氮气发生器 报价",
+    "items": [
+      {
+        "productId": "",
+        "model": "",
+        "flow": "",
+        "purity": "",
+        "qty": 1,
+        "unitPrice": 0,
+        "subtotal": 0
+      }
+    ]
+  },
+  "createdAt": "2026-07-17T02:48:17.778Z"
+}

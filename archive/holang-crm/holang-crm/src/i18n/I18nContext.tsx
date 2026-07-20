@@ -1,0 +1,401 @@
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+
+export type Lang = 'zh' | 'en'
+
+interface I18nContextType {
+  lang: Lang
+  t: (key: string) => string
+  toggleLang: () => void
+  setLang: (lang: Lang) => void
+}
+
+const I18nContext = createContext<I18nContextType>({
+  lang: 'zh', t: (k) => k, toggleLang: () => {}, setLang: () => {}
+})
+
+const translations: Record<Lang, Record<string, string>> = {
+  zh: {
+    // App
+    'app.name': 'HOLANG',
+    'app.subtitle': 'All In One 管理系统',
+    'app.version': 'HOLANG All In One v3.0',
+
+    // Login
+    'login.title': '登录',
+    'login.username': '用户名',
+    'login.password': '密码',
+    'login.placeholderUser': '请输入用户名',
+    'login.placeholderPwd': '请输入密码',
+    'login.errorEmpty': '请输入用户名和密码',
+    'login.errorWrong': '用户名或密码错误',
+    'login.submit': '登 录',
+    'login.demo': '演示账号：admin / admin123',
+
+    // Header
+    'header.logout': '退出登录',
+    'header.admin': '管理员',
+
+    // Domain labels
+    'domain.dashboard': '总览',
+    'domain.product': '产品',
+    'domain.marketing': 'Marketing',
+    'domain.marketing_tag': '市场',
+    'domain.crm': 'CRM',
+    'domain.aftersales': '售后',
+    'domain.aftersales_tag': '服务',
+    'domain.srm': 'SRM',
+    'domain.srm_tag': '供应商',
+    'domain.erp': 'ERP',
+    'domain.analytics': '数据分析',
+    'domain.analytics_tag': '分析',
+    'domain.tech': '技术研发',
+    'domain.tech_tag': '系统',
+    'domain.org': '组织管理',
+    'domain.org_tag': '系统',
+    'domain.tools': '系统工具',
+    'domain.tools_tag': '系统',
+    'domain.building': '基于伙伴云蓝本建设中',
+
+    // Menu items
+    'nav.dashboard': '工作台',
+    'nav.myFlows': '我的流程',
+    'nav.todos': '待办任务',
+    'nav.done': '已办任务',
+    'nav.notifications': '消息通知',
+    'nav.products': '产品管理',
+    'nav.customers': '客户管理',
+    'nav.leads': '线索管理',
+    'nav.opportunities': '商机管理',
+    'nav.quotations': '报价管理',
+    'nav.orders': '订单管理',
+    'nav.collections': '回款管理',
+    'nav.deliveries': '发货管理',
+    'nav.whatsapp': 'WhatsApp',
+    'nav.crm_domestic': 'CRM · 内销',
+    'nav.crm_export': 'CRM · 外销',
+    'nav.erp_production': 'ERP · 生产',
+    'nav.erp_warehouse': 'ERP · 仓储',
+    'nav.erp_finance': 'ERP · 财务',
+    'nav.campaigns': '市场活动',
+    'nav.leadCapture': '线索采集',
+    'nav.channels': '渠道管理',
+    'nav.seo': 'SEO 优化',
+    'nav.visits': '客户回访',
+    'nav.tickets': '售后工单',
+    'nav.returns': '退换货管理',
+    'nav.suppliers': '供应商管理',
+    'nav.inquiries': '询价管理',
+    'nav.purchaseOrders': '采购订单',
+    'nav.receive': '到货验收',
+    'nav.payables': '应付管理',
+    'nav.bom': 'BOM 管理',
+    'nav.workOrders': '工单管理',
+    'nav.schedule': '生产排程',
+    'nav.reporting': '报工管理',
+    'nav.quality': '质量检验',
+    'nav.intelligentMaterial': '智能物料',
+    'nav.inventory': '库存总览',
+    'nav.inbound': '入库管理',
+    'nav.outbound': '出库管理',
+    'nav.transfer': '调拨管理',
+    'nav.stockCheck': '盘点管理',
+    'nav.repayPlan': '回款计划',
+    'nav.ar': '应收账款',
+    'nav.ap': '应付账款',
+    'nav.invoices': '发票管理',
+    'nav.reconciliation': '销售对账',
+    'nav.expenses': '费用报销',
+    'nav.accounts': '资金账户',
+    'nav.analyticsProducts': '产品分析',
+    'nav.analyticsLeads': '线索分析',
+    'nav.analyticsROI': 'ROI 分析',
+    'nav.analyticsCustomers': '客户分析',
+    'nav.analyticsOpps': '商机分析',
+    'nav.analyticsQuotations': '报价统计',
+    'nav.analyticsContracts': '合同统计',
+    'nav.analyticsCollections': '回款统计',
+    'nav.analyticsFinance': '财务统计',
+    'nav.techDocs': '技术文件库',
+    'nav.ecn': '工程变更',
+    'nav.contacts': '通讯录',
+    'nav.roles': '角色权限',
+    'nav.approval': '审批引擎',
+    'nav.templates': '审批模板',
+    'nav.stats': '审批统计',
+    'nav.printTemplates': '打印模板',
+    'nav.trash': '回收站',
+    'nav.blueprint': '数据蓝本',
+    'nav.logs': '操作日志',
+    'nav.config': '系统配置',
+    'nav.backgroundCheck': '背景调查',
+
+    // Placeholder
+    'placeholder.crm': 'CRM',
+    'placeholder.srm': 'SRM',
+    'placeholder.erp': 'ERP',
+    'placeholder.analytics': '分析',
+    'placeholder.system': '系统',
+    'placeholder.marketing': '市场',
+    'placeholder.service': '服务',
+
+    // Dashboard
+    'dash.workbench': '工作台',
+    'dash.workbenchDesc': '根据您的角色展示个性化工作内容',
+    'dash.role_gm': '总经理',
+    'dash.role_sales': '销售员',
+    'dash.role_manager': '销售经理',
+    'dash.role_director': '销售总监',
+    'dash.role_buyer': '采购员',
+    'dash.role_warehouse': '仓管员',
+    'dash.role_finance': '财务',
+    'dash.myFlows': '我的流程',
+    'dash.todos': '待办任务',
+    'dash.done': '已办任务',
+    'dash.notifications': '消息通知',
+    'dash.flowsDesc': '我发起的审批流程',
+    'dash.todosDesc': '等待我处理的事项',
+    'dash.doneDesc': '我已完成的历史记录',
+    'dash.notificationsDesc': '系统消息和提醒',
+    'dash.viewDetails': '查看详情',
+    'dash.totalOrders': '总订单',
+    'dash.totalRevenue': '总营收',
+    'dash.totalLeads': '总线索',
+    'dash.avgConversion': '平均转化率',
+    'dash.my_leads': '我的线索',
+    'dash.my_orders': '我的订单',
+    'dash.my_revenue': '我的业绩',
+    'dash.my_customers': '我的客户',
+    'dash.vsLastMonth': '较上月',
+    'dash.monthlyTrend': '月度趋势',
+    'dash.chartPlaceholder': '图表将在此展示',
+    'dash.recentActivity': '最近动态',
+    'dash.activityItem': '报价单 HQ2607001 已审核通过',
+    'dash.hoursAgo': '小时前',
+    // Widget titles
+    'widget.todos': '待办任务',
+    'widget.flows': '我的流程',
+    'widget.activity': '最近动态',
+    'widget.messages': '消息通知',
+    'widget.stats': '数据统计',
+    'widget.pipeline': '销售漏斗',
+    'widget.customers': '我的客户',
+    'widget.leads': '我的线索',
+    'widget.opps': '我的商机',
+    'widget.quotations': '我的报价',
+    'widget.orders': '我的订单',
+    'widget.collections': '我的回款',
+    // Fixed top stats
+    'dash.pending': '待办',
+    'dash.approved': '已办',
+    'dash.overdue': '过期',
+    'dash.urged': '催办',
+    'dash.pendingDesc': '等待处理',
+    'dash.approvedDesc': '已完成审批',
+    'dash.overdueDesc': '已超期',
+    'dash.urgedDesc': '被催办',
+    // GM
+    'dash.gm_flows': '我的流程', 'dash.gm_flows_desc': '我发起的审批', 'dash.gm_todos': '待办任务', 'dash.gm_todos_desc': '等待处理', 'dash.gm_done': '已办任务', 'dash.gm_done_desc': '已完成', 'dash.gm_notifications': '消息通知', 'dash.gm_notifications_desc': '系统消息',
+    // Sales
+    'dash.sales_todos': '我的待办', 'dash.sales_todos_desc': '待处理事项', 'dash.sales_leads': '我的线索', 'dash.sales_leads_desc': '待跟进线索', 'dash.sales_customers': '我的客户', 'dash.sales_customers_desc': '负责客户', 'dash.sales_quotations': '我的报价', 'dash.sales_quotations_desc': '进行中的报价',
+    // Manager
+    'dash.manager_todos': '待审批', 'dash.manager_todos_desc': '需要我审批', 'dash.manager_team': '团队概览', 'dash.manager_team_desc': '下属工作动态', 'dash.manager_pool': '公海池', 'dash.manager_pool_desc': '待分配线索', 'dash.manager_approvals': '团队审批', 'dash.manager_approvals_desc': '等待我处理的审批',
+    // Director
+    'dash.director_flows': '我的流程', 'dash.director_flows_desc': '我发起的', 'dash.director_todos': '待办任务', 'dash.director_todos_desc': '等待处理', 'dash.director_done': '已办任务', 'dash.director_done_desc': '已完成', 'dash.director_notifications': '消息通知', 'dash.director_notifications_desc': '系统消息',
+    // Buyer
+    'dash.buyer_todos': '采购待办', 'dash.buyer_todos_desc': '待处理采购', 'dash.buyer_suppliers': '供应商', 'dash.buyer_suppliers_desc': '合作供应商', 'dash.buyer_orders': '采购订单', 'dash.buyer_orders_desc': '进行中的订单', 'dash.buyer_receive': '待收货', 'dash.buyer_receive_desc': '预计到货',
+    // Warehouse
+    'dash.wh_inbound': '今日入库', 'dash.wh_inbound_desc': '待处理入库', 'dash.wh_outbound': '今日出库', 'dash.wh_outbound_desc': '待处理出库', 'dash.wh_check': '待盘点', 'dash.wh_check_desc': '盘点任务', 'dash.wh_alerts': '库存预警', 'dash.wh_alerts_desc': '低库存提醒',
+    // Finance
+    'dash.fin_todos': '财务待办', 'dash.fin_todos_desc': '待处理事项', 'dash.fin_flows': '我的流程', 'dash.fin_flows_desc': '我发起的', 'dash.fin_done': '已办任务', 'dash.fin_done_desc': '已完成', 'dash.fin_notifications': '消息通知', 'dash.fin_notifications_desc': '系统消息',
+  },
+  en: {
+    'app.name': 'HOLANG',
+    'app.subtitle': 'All In One System',
+    'app.version': 'HOLANG All In One v3.0',
+
+    'login.title': 'Login',
+    'login.username': 'Username',
+    'login.password': 'Password',
+    'login.placeholderUser': 'Enter username',
+    'login.placeholderPwd': 'Enter password',
+    'login.errorEmpty': 'Please enter username and password',
+    'login.errorWrong': 'Invalid username or password',
+    'login.submit': 'Login',
+    'login.demo': 'Demo: admin / admin123',
+
+    'header.logout': 'Logout',
+    'header.admin': 'Admin',
+
+    'domain.dashboard': 'Dashboard',
+    'domain.product': 'Products',
+    'domain.marketing': 'Marketing',
+    'domain.marketing_tag': 'MKT',
+    'domain.crm': 'CRM',
+    'domain.aftersales': 'After-Sales',
+    'domain.aftersales_tag': 'SVC',
+    'domain.srm': 'SRM',
+    'domain.srm_tag': 'Supplier',
+    'domain.erp': 'ERP',
+    'domain.analytics': 'Analytics',
+    'domain.analytics_tag': 'BI',
+    'domain.tech': 'R&D',
+    'domain.tech_tag': 'SYS',
+    'domain.org': 'Organization',
+    'domain.org_tag': 'SYS',
+    'domain.tools': 'System Tools',
+    'domain.tools_tag': 'SYS',
+    'domain.building': 'Building from Huoban blueprint',
+
+    'nav.dashboard': 'Workbench',
+    'nav.myFlows': 'My Flows',
+    'nav.todos': 'To-Do',
+    'nav.done': 'Completed',
+    'nav.notifications': 'Notifications',
+    'nav.products': 'Products',
+    'nav.customers': 'Customers',
+    'nav.leads': 'Leads',
+    'nav.opportunities': 'Opportunities',
+    'nav.quotations': 'Quotations',
+    'nav.orders': 'Orders',
+    'nav.collections': 'Collections',
+    'nav.deliveries': 'Deliveries',
+    'nav.whatsapp': 'WhatsApp',
+    'nav.crm_domestic': 'CRM · Domestic',
+    'nav.crm_export': 'CRM · Export',
+    'nav.erp_production': 'ERP · Production',
+    'nav.erp_warehouse': 'ERP · Warehouse',
+    'nav.erp_finance': 'ERP · Finance',
+    'nav.campaigns': 'Campaigns',
+    'nav.leadCapture': 'Lead Capture',
+    'nav.channels': 'Channels',
+    'nav.seo': 'SEO',
+    'nav.visits': 'Customer Visits',
+    'nav.tickets': 'Service Tickets',
+    'nav.returns': 'Returns & Exchanges',
+    'nav.suppliers': 'Suppliers',
+    'nav.inquiries': 'Inquiries',
+    'nav.purchaseOrders': 'Purchase Orders',
+    'nav.receive': 'Receiving',
+    'nav.payables': 'Payables',
+    'nav.bom': 'BOM',
+    'nav.workOrders': 'Work Orders',
+    'nav.schedule': 'Scheduling',
+    'nav.reporting': 'Reporting',
+    'nav.quality': 'Quality',
+    'nav.intelligentMaterial': 'Smart Material',
+    'nav.inventory': 'Inventory',
+    'nav.inbound': 'Inbound',
+    'nav.outbound': 'Outbound',
+    'nav.transfer': 'Transfer',
+    'nav.stockCheck': 'Stock Check',
+    'nav.repayPlan': 'Repay Plan',
+    'nav.ar': 'Receivables',
+    'nav.ap': 'Payables',
+    'nav.invoices': 'Invoices',
+    'nav.reconciliation': 'Reconciliation',
+    'nav.expenses': 'Expenses',
+    'nav.accounts': 'Accounts',
+    'nav.analyticsProducts': 'Product Analytics',
+    'nav.analyticsLeads': 'Lead Analytics',
+    'nav.analyticsROI': 'ROI Analysis',
+    'nav.analyticsCustomers': 'Customer Analytics',
+    'nav.analyticsOpps': 'Opp Analytics',
+    'nav.analyticsQuotations': 'Quote Stats',
+    'nav.analyticsContracts': 'Contract Stats',
+    'nav.analyticsCollections': 'Collection Stats',
+    'nav.analyticsFinance': 'Finance Stats',
+    'nav.techDocs': 'Tech Docs',
+    'nav.ecn': 'ECN',
+    'nav.contacts': 'Contacts',
+    'nav.roles': 'Roles & Perms',
+    'nav.approval': 'Approval Engine',
+    'nav.templates': 'Templates',
+    'nav.stats': 'Approval Stats',
+    'nav.printTemplates': 'Print Templates',
+    'nav.trash': 'Trash',
+    'nav.blueprint': 'Data Blueprint',
+    'nav.logs': 'Audit Logs',
+    'nav.config': 'System Config',
+    'nav.backgroundCheck': 'Background Check',
+
+    'placeholder.crm': 'CRM',
+    'placeholder.srm': 'SRM',
+    'placeholder.erp': 'ERP',
+    'placeholder.analytics': 'BI',
+    'placeholder.system': 'System',
+    'placeholder.marketing': 'Marketing',
+    'placeholder.service': 'Service',
+
+    'dash.myFlows': 'My Flows',
+    'dash.todos': 'To-Do',
+    'dash.done': 'Completed',
+    'dash.notifications': 'Notifications',
+    'dash.flowsDesc': 'Approval flows I initiated',
+    'dash.todosDesc': 'Items waiting for my action',
+    'dash.doneDesc': 'My completed history',
+    'dash.notificationsDesc': 'System messages & alerts',
+    'dash.viewDetails': 'Details',
+    'dash.todayLeads': 'New Leads Today',
+    'dash.monthOrders': 'Monthly Orders',
+    'dash.monthRevenue': 'Monthly Revenue',
+    'dash.activeCustomers': 'Active Customers',
+    'dash.vsLastMonth': 'vs last month',
+    'dash.monthlyTrend': 'Monthly Trend',
+    'dash.chartPlaceholder': 'Chart will display here',
+    'dash.recentActivity': 'Recent Activity',
+    'dash.activityItem': 'Quotation HQ2607001 approved',
+    'dash.hoursAgo': 'hours ago',
+    // Widget titles
+    'widget.todos': 'To-Do Tasks',
+    'widget.flows': 'My Flows',
+    'widget.activity': 'Recent Activity',
+    'widget.messages': 'Messages',
+    'widget.stats': 'Statistics',
+    'widget.pipeline': 'Sales Pipeline',
+    'widget.customers': 'My Customers',
+    'widget.leads': 'My Leads',
+    'widget.opps': 'My Opportunities',
+    'widget.quotations': 'My Quotations',
+    'widget.orders': 'My Orders',
+    'widget.collections': 'My Collections',
+    // Fixed top stats
+    'dash.pending': 'Pending',
+    'dash.approved': 'Approved',
+    'dash.overdue': 'Overdue',
+    'dash.urged': 'Urged',
+    'dash.pendingDesc': 'Waiting for action',
+    'dash.approvedDesc': 'Completed approval',
+    'dash.overdueDesc': 'Past deadline',
+    'dash.urgedDesc': 'Being urged',
+  },
+}
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const saved = (localStorage.getItem('holang_lang') || 'zh') as Lang
+  const [lang, setLangState] = useState<Lang>(saved)
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l)
+    localStorage.setItem('holang_lang', l)
+  }, [])
+
+  const toggleLang = useCallback(() => {
+    setLang(lang === 'zh' ? 'en' : 'zh')
+  }, [lang, setLang])
+
+  const t = useCallback((key: string): string => {
+    return translations[lang]?.[key] || translations.zh[key] || key
+  }, [lang])
+
+  return (
+    <I18nContext.Provider value={{ lang, t, toggleLang, setLang }}>
+      {children}
+    </I18nContext.Provider>
+  )
+}
+
+export function useI18n() {
+  return useContext(I18nContext)
+}
+
+export { translations }

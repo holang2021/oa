@@ -1,0 +1,18 @@
+{
+  "name": "holang-wecom-callback",
+  "version": "1.0.0",
+  "description": "HOLANGbuddy 朗工企微自建应用回调服务",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "mysql2": "^3.11.0",
+    "dotenv": "^16.4.5",
+    "xml2js": "^0.6.2"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "bizType": "quotation",
+  "bizRecordId": "QTEST001",
+  "status": "approved",
+  "currentLevel": 1,
+  "levels": [
+    {
+      "level": 1,
+      "status": "approved",
+      "name": "��������"
+    }
+  ],
+  "updatedAt": "2026-07-19T04:36:55.358Z"
+}

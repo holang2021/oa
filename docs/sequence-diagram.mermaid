@@ -1,0 +1,82 @@
+sequenceDiagram
+    actor Sales as 销售
+    participant Frontend as 前端
+    participant API as 合同API
+    participant Service as 合同服务
+    participant DB as 数据库
+    participant FileStorage as 文件存储
+    
+    Sales ->> Frontend: 创建合同（草稿）
+    Frontend ->> API: POST /api/contracts/
+    API ->> Service: create_contract(data)
+    Service ->> DB: INSERT contracts
+    DB -->> Service: 合同ID
+    Service -->> API: 合同对象
+    API -->> Frontend: 201 Created
+    Frontend -->> Sales: 显示合同详情页
+    
+    Sales ->> Frontend: 上传合同PDF
+    Frontend ->> API: POST /api/contracts/{id}/upload (multipart/form-data)
+    API ->> Service: save_file(file)
+    Service ->> FileStorage: 保存到 uploads/contracts/
+    FileStorage -->> Service: 文件路径
+    Service ->> DB: UPDATE contracts SET file_path
+    API -->> Frontend: 200 OK
+    
+    Sales ->> Frontend: 提交审批（待签署）
+    Frontend ->> API: POST /api/contracts/{id}/change-status
+    API ->> Service: change_status(id, "pending_signature")
+    Service ->> DB: UPDATE contracts SET status
+    API -->> Frontend: 200 OK
+    Frontend -->> Sales: 显示"待签署"状态
+
+---
+
+sequenceDiagram
+    participant Scheduler as APScheduler
+    participant Task as 定时任务
+    participant Service as 公海池服务
+    participant DB as 数据库
+    participant Wecom as 企微通知
+    
+    Scheduler ->> Task: 每天凌晨2点触发
+    Task ->> Service: check_and_return_leads()
+    Service ->> DB: SELECT leads WHERE status='assigned' AND assigned_at < (now() - return_days)
+    DB -->> Service: 超时线索列表
+    
+    alt 有超时线索
+        loop 每个超时线索
+            Service ->> DB: UPDATE leads SET status='returned_to_pool', assigned_to=NULL
+            Service ->> Wecom: 发送通知给当事人（销售）
+            Note over Wecom: 只通知销售本人，不通知管理员
+        end
+        Service -->> Task: 回流计数
+    end
+    
+    Task -->> Scheduler: 任务完成
+
+---
+
+sequenceDiagram
+    actor Sales as 销售
+    participant Frontend as 前端
+    participant API as 周报API
+    participant Service as 周报服务
+    participant AIService as AI生成服务
+    participant DB as 数据库
+    
+    Sales ->> Frontend: 点击"AI生成周报草稿"
+    Frontend ->> API: POST /api/weekly-reports/generate-draft
+    API ->> Service: generate_draft(user_id, week, year)
+    Service ->> AIService: generate_by_rules(user_id, week, year)
+    
+    Note over AIService: Phase 1: 规则模板生成
+    AIService ->> DB: 查询本周跟进记录
+    AIService ->> DB: 查询本周商机进展
+    AIService -->> Service: 生成的周报内容（Markdown）
+    
+    Service ->> DB: INSERT weekly_reports (ai_generated=true)
+    DB -->> Service: 周报ID
+    Service -->> API: 周报对象
+    API -->> Frontend: 200 OK (周报草稿)
+    Frontend -->> Sales: 显示周报编辑页（可人工修改）

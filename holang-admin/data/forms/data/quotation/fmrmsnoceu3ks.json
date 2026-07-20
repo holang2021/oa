@@ -1,0 +1,42 @@
+{
+  "id": "fmrmsnoceu3ks",
+  "formId": "quotation",
+  "data": {
+    "quoteNo": "HQ26042105",
+    "quoteDate": "2026-04-21",
+    "customerId": "c_nai",
+    "subject": "模块式氮气发生器 报价",
+    "items": [
+      {
+        "productId": "p_npl02b",
+        "qty": 1,
+        "model": "NPL02B",
+        "flow": "4.4m³/h",
+        "purity": "99.999%（无氧含量）",
+        "unitPrice": 44800,
+        "subtotal": 44800
+      },
+      {
+        "productId": "p_npl09b",
+        "qty": 1,
+        "model": "NPL09B",
+        "flow": "36.3m³/h",
+        "purity": "99.99%（无氧含量）",
+        "unitPrice": 109800,
+        "subtotal": 109800
+      },
+      {
+        "productId": "p_freight",
+        "qty": 1,
+        "model": "",
+        "flow": "",
+        "purity": "",
+        "unitPrice": 1000,
+        "subtotal": 1000
+      }
+    ],
+    "total": 155600,
+    "totalCn": "壹拾伍万伍仟陆佰元整"
+  },
+  "createdAt": "2026-07-16T00:52:02.942Z"
+}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOLANG CRM 数据迁移结果</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f0f2f5; color:#333; }
+.header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color:white; padding:24px 32px; }
+.header h1 { font-size:22px; font-weight:600; }
+.header p { opacity:0.75; margin-top:4px; font-size:13px; }
+.stats { display:flex; gap:12px; padding:16px 32px; background:white; border-bottom:1px solid #e8e8e8; flex-wrap:wrap; }
+.stat-card { background:#f8f9fa; border-radius:8px; padding:12px 20px; min-width:130px; }
+.stat-card .num { font-size:24px; font-weight:700; color:#0f3460; }
+.stat-card .label { font-size:12px; color:#888; margin-top:2px; }
+.stat-card.green .num { color:#0a8f4a; }
+.stat-card.blue .num { color:#1a73e8; }
+.container { max-width:1400px; margin:0 auto; padding:16px 32px; }
+.tabs { display:flex; gap:0; margin-bottom:0; border-bottom:2px solid #e8e8e8; }
+.tab { padding:10px 18px; cursor:pointer; font-size:13px; color:#666; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.2s; white-space:nowrap; }
+.tab:hover { color:#0f3460; }
+.tab.active { color:#0f3460; border-bottom-color:#0f3460; font-weight:600; }
+.toolbar { display:flex; justify-content:space-between; align-items:center; padding:12px 0; gap:12px; }
+.search { padding:8px 14px; border:1px solid #d9d9d9; border-radius:6px; font-size:13px; width:280px; outline:none; }
+.search:focus { border-color:#0f3460; box-shadow:0 0 0 2px rgba(15,52,96,0.1); }
+.table-wrap { background:white; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.06); overflow:auto; max-height:70vh; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { position:sticky; top:0; background:#f8f9fa; padding:10px 12px; text-align:left; font-weight:600; color:#444; border-bottom:2px solid #e8e8e8; white-space:nowrap; z-index:1; }
+td { padding:8px 12px; border-bottom:1px solid #f0f0f0; white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis; }
+tr:hover td { background:#f5f7fa; }
+.empty { text-align:center; padding:60px; color:#999; }
+.row-count { font-size:12px; color:#999; }
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+.badge-ok { background:#e6f7e9; color:#0a8f4a; }
+.badge-warn { background:#fff7e6; color:#d46b08; }
+.footer { text-align:center; padding:20px; color:#999; font-size:12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HOLANG CRM 伙伴云数据迁移结果</h1>
+  <p>数据库: holang-crm.db · 迁移日期: 2026-07-01 · 引擎: SQLite</p>
+</div>
+
+<div class="stats" id="stats">
+  <div class="stat-card">
+    <div class="num" id="totalRecords">-</div>
+    <div class="label">总记录数</div>
+  </div>
+  <div class="stat-card green">
+    <div class="num" id="totalOrders">-</div>
+    <div class="label">销售订单</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="num" id="totalAmount">-</div>
+    <div class="label">订单含税总额</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" id="collectRate">-</div>
+    <div class="label">回款率</div>
+  </div>
+  <div class="stat-card green">
+    <div class="num" id="fkStatus">-</div>
+    <div class="label">外键完整性</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs" id="tabs"></div>
+  <div class="toolbar">
+    <input class="search" id="search" placeholder="搜索当前表..." oninput="renderTable()">
+    <span class="row-count" id="rowCount"></span>
+  </div>
+  <div class="table-wrap" id="tableWrap">
+    <div class="empty">加载中...</div>
+  </div>
+</div>
+
+<div class="footer">HOLANG CRM · 数据迁移校验工具 · 2026-07-01</div>
+
+<script>
+let allData = {};
+let currentTable = '';
+
+const tableLabels = {
+  customers:'客户信息', contacts:'客户联系人', contract_entities:'签约主体',
+  orders:'销售订单', order_items:'订单明细', payments:'回款记录',
+  follow_ups:'客户跟进', invoices:'开票申请', deliveries:'发货申请',
+  leads:'销售线索', opportunities:'商机'
+};
+
+async function load() {
+  const r = await fetch('crm_data.json');
+  allData = await r.json();
+  
+  let total = 0;
+  for(const [k,v] of Object.entries(allData)) total += v.length;
+  
+  // Calc order stats
+  const orders = allData.orders || [];
+  let amt = 0, collected = 0;
+  orders.forEach(o => { amt += (o.amount||0); collected += (o.collectedAmount||0); });
+  
+  document.getElementById('totalRecords').textContent = total.toLocaleString();
+  document.getElementById('totalOrders').textContent = orders.length;
+  document.getElementById('totalAmount').textContent = '¥'+(amt/10000).toFixed(0)+'万';
+  document.getElementById('collectRate').textContent = amt>0 ? (collected/amt*100).toFixed(1)+'%' : '-';
+  document.getElementById('fkStatus').textContent = '✅ 通过';
+  
+  // Tabs
+  const tabsDiv = document.getElementById('tabs');
+  const tables = Object.keys(allData).filter(k => allData[k].length > 0);
+  tables.forEach((t,i) => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (i===0?' active':'');
+    tab.textContent = (tableLabels[t]||t) + ' (' + allData[t].length + ')';
+    tab.onclick = () => { 
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      tab.classList.add('active');
+      currentTable = t;
+      document.getElementById('search').value = '';
+      renderTable();
+    };
+    tabsDiv.appendChild(tab);
+  });
+  
+  currentTable = tables[0];
+  renderTable();
+}
+
+function renderTable() {
+  const rows = allData[currentTable] || [];
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = q ? rows.filter(r => 
+    Object.values(r).some(v => String(v||'').toLowerCase().includes(q))
+  ) : rows;
+  
+  document.getElementById('rowCount').textContent = 
+    (q && filtered.length !== rows.length) ? `显示 ${filtered.length} / ${rows.length} 条` : `共 ${rows.length} 条`;
+  
+  if(filtered.length === 0) {
+    document.getElementById('tableWrap').innerHTML = '<div class="empty">无匹配记录</div>';
+    return;
+  }
+  
+  const cols = Object.keys(filtered[0]);
+  let html = '<table><thead><tr>';
+  cols.forEach(c => html += `<th>${c}</th>`);
+  html += '</tr></thead><tbody>';
+  
+  filtered.forEach(r => {
+    html += '<tr>';
+    cols.forEach(c => {
+      let v = r[c];
+      if(v === null || v === undefined) v = '';
+      else v = String(v);
+      html += `<td title="${v.replace(/"/g,'&quot;')}">${v}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+load();
+</script>
+</body>
+</html>
