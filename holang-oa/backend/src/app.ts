@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
-import { PrismaClient } from '@prisma/client';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -27,9 +26,12 @@ import invoiceRoutes from './routes/invoice.routes';
 import deliveryRoutes from './routes/delivery.routes';
 import leadRoutes from './routes/lead.routes';
 import contactRoutes from './routes/contact.routes';
+import rbacRoutes from './routes/rbac.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
+import { requestContext } from './middleware/requestContext';
+import { auditMiddleware } from './middleware/audit';
 
 const app: Express = express();
 
@@ -69,6 +71,12 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// ── 批次0 地基：请求上下文(traceId) + 统一审计 ──
+// requestContext 必须最早挂载，保证所有请求(含未认证)都有 traceId
+app.use(requestContext);
+// auditMiddleware 挂在路由之前：登记「响应完成」回调，authenticate 在路由内运行后才有 req.user
+app.use(auditMiddleware);
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.json({
@@ -101,12 +109,14 @@ app.use(`${API_PREFIX}/invoices`, invoiceRoutes);
 app.use(`${API_PREFIX}/deliveries`, deliveryRoutes);
 app.use(`${API_PREFIX}/leads`, leadRoutes);
 app.use(`${API_PREFIX}/contacts`, contactRoutes);
+app.use(`${API_PREFIX}/rbac`, rbacRoutes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
   res.status(404).json({
     code: 404,
     message: `Cannot ${req.method} ${req.originalUrl}`,
+    traceId: req.traceId,
     data: null,
   });
 });

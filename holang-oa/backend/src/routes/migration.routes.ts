@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../middleware/auth';
-import { authorize } from '../middleware/rbac';
+import { authorize, requireExporter } from '../middleware/rbac';
 import * as migrationController from '../controllers/migration.controller';
 
 const router = Router();
@@ -48,6 +48,6 @@ const upload = multer({
 
 router.post('/preview', authenticate, authorize(['ADMIN', 'MANAGER']), upload.single('file'), migrationController.previewImport);
 router.post('/import', authenticate, authorize(['ADMIN', 'MANAGER']), migrationController.executeImport);
-router.get('/template', authenticate, migrationController.downloadTemplate);
+router.get('/template', authenticate, requireExporter, migrationController.downloadTemplate);
 
 export default router;

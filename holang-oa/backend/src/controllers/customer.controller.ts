@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { CustomerStatus, FollowMethod, ContactType } from '../constants/enums';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
+import { isSalesOnlyRole, Role } from '../constants/roles';
 import { detectCountryFromPhones, DOMESTIC_COUNTRY } from '../utils/phoneCountry';
 
 const prisma = new PrismaClient();
@@ -103,8 +104,8 @@ export const getCustomers = async (req: AuthRequest, res: Response, next: NextFu
     // Filter by sales owner
     if (salesOwnerId) {
       where.salesOwnerId = salesOwnerId;
-    } else if (req.user?.role === 'SALES') {
-      // Sales can only see their own customers
+    } else if (req.user && isSalesOnlyRole(req.user.role as Role)) {
+      // 纯销售角色仅看本人名下客户（域隔离见 enforceSalesTypeScope）
       where.salesOwnerId = req.user.id;
     }
 

@@ -694,3 +694,30 @@ model WecomDepartment {
 
   @@map("wecom_departments")
 }
+
+// ============================================================
+// 审计日志表 —— 批次0 地基 (对应 D2)
+// 统一记录：写操作 / 导出 / 公海操作 / 客户主数据访问 / 登录 / 同步。
+// detail 以 JSON 字符串存储（SQLite 无原生 Json 类型）。
+// AI/数字员工动作同样落 audit_log（H-3）。
+// ============================================================
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String // WRITE | EXPORT | CUSTOMER_ACCESS | POOL_OP | LOGIN | SYNC | READONLY
+  entity    String? // 对象类型，如 customers/orders
+  entityId  String? // 对象主键
+  salesType String? // INTERNAL / EXTERNAL / ALL（域隔离留痕）
+  result    String   @default("SUCCESS") // SUCCESS | DENIED | FAIL
+  detail    String? // JSON 字符串
+  traceId   String? // 请求链路追踪
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([traceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+

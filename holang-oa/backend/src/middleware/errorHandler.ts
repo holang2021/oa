@@ -23,6 +23,7 @@ export const errorHandler = (
     return res.status(400).json({
       code: 400,
       message: '请求参数验证失败',
+      traceId: req.traceId,
       data: {
         errors: err.errors.map((e) => ({
           field: e.path.join('.'),
@@ -40,6 +41,7 @@ export const errorHandler = (
       return res.status(409).json({
         code: 409,
         message: '数据已存在，违反唯一约束',
+        traceId: req.traceId,
         data: null,
       });
     }
@@ -48,6 +50,7 @@ export const errorHandler = (
       return res.status(404).json({
         code: 404,
         message: '记录不存在',
+        traceId: req.traceId,
         data: null,
       });
     }
@@ -55,6 +58,7 @@ export const errorHandler = (
     return res.status(400).json({
       code: 400,
       message: '数据库操作失败',
+      traceId: req.traceId,
       data: null,
     });
   }
@@ -64,6 +68,7 @@ export const errorHandler = (
     return res.status(401).json({
       code: 401,
       message: '认证失败',
+      traceId: req.traceId,
       data: null,
     });
   }
@@ -74,6 +79,7 @@ export const errorHandler = (
     return res.status(appError.statusCode || 500).json({
       code: appError.statusCode || 500,
       message: appError.message,
+      traceId: req.traceId,
       data: appError.data || null,
     });
   }
@@ -84,6 +90,7 @@ export const errorHandler = (
   return res.status(statusCode).json({
     code: statusCode,
     message: err.message || '服务器内部错误',
+    traceId: req.traceId,
     data: process.env.NODE_ENV === 'development' ? {
       stack: err.stack,
     } : null,
@@ -98,6 +105,7 @@ export const notFoundHandler = (req: Request, res: Response) => {
   res.status(404).json({
     code: 404,
     message: `路由不存在: ${req.method} ${req.originalUrl}`,
+    traceId: req.traceId,
     data: null,
   });
 };

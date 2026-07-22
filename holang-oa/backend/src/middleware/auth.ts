@@ -1,18 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { resolveRole, deriveSalesType, SalesType } from '../constants/roles';
 
 const prisma = new PrismaClient();
 
 // Extend Express Request type to include user
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
+      // 请求链路追踪 ID（贯穿 error/trace/audit）
+      traceId?: string;
       user?: {
         id: string;
         wecomUserId?: string;
         name: string;
+        /** 权威 8 角色之一（已解析历史别名） */
         role: string;
+        /** 由角色派生的销售域隔离标签：INTERNAL / EXTERNAL / ALL */
+        salesType: SalesType;
       };
     }
   }
@@ -24,6 +31,7 @@ export interface AuthRequest extends Request {
     wecomUserId?: string;
     name: string;
     role: string;
+    salesType: SalesType;
   };
 }
 
@@ -78,12 +86,17 @@ export const authenticate = async (
       });
     }
 
+    // 解析为权威 8 角色，并派生销售域隔离标签（D1/D4）
+    const role = resolveRole(user.role);
+    const salesType = deriveSalesType(role);
+
     // Attach user to request
     req.user = {
       id: user.id,
       wecomUserId: user.wecomUserId || undefined,
       name: user.name,
-      role: user.role,
+      role,
+      salesType,
     };
 
     next();
