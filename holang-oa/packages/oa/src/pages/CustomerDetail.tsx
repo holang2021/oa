@@ -8,6 +8,8 @@ import { getOrders, type Order } from '../services/orderService'
 import { getPayments, type Payment } from '../services/paymentService'
 import { getOpportunities, type Opportunity } from '../services/opportunityService'
 import { getQuotes, type Quote } from '../services/quoteService'
+import { getContracts, type Contract } from '../services/contractService'
+import { getPis, type ProformaInvoice } from '../services/piService'
 import { getFollowUps, createFollowUp, type FollowUp } from '../services/followUpService'
 import { followStages } from '../data/mockData'
 
@@ -82,6 +84,8 @@ export default function CustomerDetail() {
   const [custPayments, setCustPayments] = useState<Payment[]>([])
   const [custOpps, setCustOpps] = useState<Opportunity[]>([])
   const [custQuotes, setCustQuotes] = useState<Quote[]>([])
+  const [custContracts, setCustContracts] = useState<Contract[]>([])
+  const [custPis, setCustPis] = useState<ProformaInvoice[]>([])
   const [custFollowUps, setCustFollowUps] = useState<FollowUp[]>([])
   const [relLoading, setRelLoading] = useState(false)
 
@@ -207,19 +211,24 @@ export default function CustomerDetail() {
     if (!id) return
     setRelLoading(true)
     try {
-      const [contactsRes, ordersRes, paymentsRes, oppsRes, followUpsRes, quotesRes] = await Promise.all([
+      const [contactsRes, ordersRes, paymentsRes, oppsRes, followUpsRes, quotesRes, contractsRes, pisRes] = await Promise.all([
         getContacts({ customerId: id, pageSize: 100 }),
         getOrders({ customerId: id, pageSize: 100 }),
         getPayments({ customerId: id, pageSize: 100 }),
         getOpportunities({ customerId: id, pageSize: 100 }),
         getFollowUps({ customerId: id, pageSize: 100 }),
         getQuotes({ customerId: id, pageSize: 100 }),
+        getContracts({ customerId: id, pageSize: 100 }),
+        getPis({ customerId: id, pageSize: 100 }),
       ])
       setCustContacts(contactsRes.list)
       setCustOrders(ordersRes.list)
       setCustPayments(paymentsRes.list)
       setCustOpps(oppsRes.list)
       setCustQuotes(quotesRes.list)
+      // 后端已按 customerId 过滤；这里二次兜底，确保只统计当前客户
+      setCustContracts(contractsRes.list.filter(c => !c.customerId || c.customerId === id))
+      setCustPis(pisRes.list.filter(p => !p.customerId || p.customerId === id))
       setCustFollowUps(followUpsRes.list)
     } catch {
       // silent fail - sub-tabs just show empty
@@ -395,7 +404,7 @@ export default function CustomerDetail() {
                     const loopStages: { key: string; label: string; count: number; done: boolean; tab: TabKey }[] = [
                       { key: 'opp', label: t('loop.opp'), count: custOpps.length, done: custOpps.some(o => o.stage === 'WON'), tab: 'opportunities' },
                       { key: 'quote', label: t('loop.quote'), count: custQuotes.length, done: custQuotes.length > 0, tab: 'quotations' },
-                      { key: 'contract', label: t('loop.contract'), count: isExternal ? custOrders.filter(o => o.piId).length : custOrders.filter(o => o.contractId).length, done: isExternal ? custOrders.some(o => o.piId) : custOrders.some(o => o.contractId), tab: 'orders' },
+                      { key: 'contract', label: t('loop.contract'), count: isExternal ? custPis.length : custContracts.length, done: isExternal ? (custPis.length > 0 || custOrders.some(o => o.piId)) : (custContracts.length > 0 || custOrders.some(o => o.contractId)), tab: 'orders' },
                       { key: 'order', label: t('loop.order'), count: custOrders.length, done: custOrders.length > 0, tab: 'orders' },
                       { key: 'payment', label: t('loop.payment'), count: custPayments.length, done: totalPaymentReceived > 0, tab: 'payments' },
                     ]
