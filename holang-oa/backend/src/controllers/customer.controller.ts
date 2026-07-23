@@ -5,6 +5,10 @@ import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
 import { isSalesOnlyRole, Role } from '../constants/roles';
 import { detectCountryFromPhones, DOMESTIC_COUNTRY } from '../utils/phoneCountry';
+import { success, paginated } from '../utils/response';
+import { toServiceContext } from '../utils/ctx';
+import * as customerGradeService from '../services/customer-grade.service';
+import * as publicPoolService from '../services/public-pool.service';
 
 const prisma = new PrismaClient();
 
@@ -19,6 +23,10 @@ const createCustomerSchema = z.object({
   source: z.string().optional(),
   salesOwnerId: z.string().optional(),
   notes: z.string().optional(),
+  // ── D1 等级：4 选择题提示分级（可选）──
+  gradeSignals: customerGradeService.gradeSignalsSchema.optional(),
+  customerGrade: z.enum(['A', 'B', 'C']).optional(),
+  salesType: z.enum(['INTERNAL', 'EXTERNAL']).optional(),
   contacts: z.array(z.object({
     name: z.string().min(1, '联系人姓名不能为空'),
     position: z.string().optional(),
@@ -285,70 +293,55 @@ export const getCustomerById = async (req: AuthRequest, res: Response, next: Nex
 };
 
 /**
- * Create new customer
+ * Create new customer（D1：4 选择题提示分级 + 自动算下次跟进）
+ * 业务经 customerGradeService；服务端销售域强制 + audit_log。
  */
 export const createCustomer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const validated = createCustomerSchema.parse(req.body);
 
-    // Check if customer code already exists
+    // 客户编号唯一校验（复用 Repository 约定：此处仅判重，写走服务）
     if (validated.customerCode) {
       const existing = await prisma.customer.findUnique({
         where: { customerCode: validated.customerCode },
       });
       if (existing) {
-        return res.status(409).json({
-          code: 409,
-          message: '客户编号已存在',
-          data: null,
-        });
+        return res.status(409).json({ code: 409, message: '客户编号已存在', data: null, traceId: req.traceId ?? null });
       }
     }
 
     // 国家标签：优先用传入值；外销客户尝试从联系人电话识别；否则留空待手动补全
     const detectedCountry =
       validated.country ||
-      detectCountryFromPhones(validated.contacts?.map((c) => c.phone))?.zh ||
+      detectCountryFromPhones(validated.contacts?.map((c) => c.phone) ?? [])?.zh ||
       null;
 
-    // Create customer with contacts
-    const customer = await prisma.customer.create({
-      data: {
+    const result = await customerGradeService.createCustomerWithGrade(
+      {
         companyName: validated.companyName,
-        customerCode: validated.customerCode,
-        industry: validated.industry,
-        address: validated.address,
+        customerCode: validated.customerCode ?? null,
+        industry: validated.industry ?? null,
+        address: validated.address ?? null,
         country: detectedCountry,
         status: validated.status,
-        source: validated.source,
-        salesOwnerId: validated.salesOwnerId || req.user?.id,
-        createdBy: req.user?.id,
-        notes: validated.notes,
-        contacts: validated.contacts
-          ? {
-              create: validated.contacts.map((contact) => ({
-                name: contact.name,
-                position: contact.position,
-                title: contact.title,
-                type: contact.type,
-                phone: contact.phone,
-                email: contact.email || null,
-                isKeyPerson: contact.isKeyPerson,
-              })),
-            }
-          : undefined,
+        source: validated.source ?? null,
+        salesOwnerId: validated.salesOwnerId ?? null,
+        notes: validated.notes ?? null,
+        contacts: validated.contacts ?? [],
+        gradeSignals: validated.gradeSignals,
+        customerGrade: validated.customerGrade ?? null,
+        salesType: validated.salesType,
       },
-      include: {
-        salesOwner: { select: { id: true, name: true } },
-        contacts: true,
-      },
-    });
+      toServiceContext(req)
+    );
 
-    res.status(201).json({
-      code: 0,
-      message: '创建成功',
-      data: customer,
-    });
+    res.status(201).json(
+      success(
+        { ...result.customer, grade: result.grade, nextFollowupAt: result.nextFollowupAt, ratioAdjusted: result.ratioAdjusted },
+        '创建成功',
+        req.traceId ?? null
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -727,6 +720,41 @@ export const exportCustomers = async (req: AuthRequest, res: Response, next: Nex
       message: '导出成功',
       data: customers,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ───────────────────────────────────────────────────────────
+// D2 客户公海：claim / return / 列表（服务端销售域强制）
+// ───────────────────────────────────────────────────────────
+export const claimCustomerPool = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const updated = await publicPoolService.claimCustomer(req.params.id, toServiceContext(req));
+    res.json(success(updated, '认领成功', req.traceId ?? null));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const returnCustomerPool = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const updated = await publicPoolService.returnCustomer(req.params.id, toServiceContext(req));
+    res.json(success(updated, '已退回公海', req.traceId ?? null));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listPoolCustomers = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const q = req.query as Record<string, string>;
+    const result = await publicPoolService.listPoolCustomers(toServiceContext(req), {
+      search: q.search,
+      skip: q.page ? (parseInt(q.page) - 1) * (parseInt(q.pageSize) || 20) : 0,
+      take: parseInt(q.pageSize) || 20,
+    });
+    res.json(paginated(result.list, parseInt(q.page) || 1, parseInt(q.pageSize) || 20, result.total, '获取成功', req.traceId ?? null));
   } catch (error) {
     next(error);
   }

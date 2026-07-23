@@ -96,6 +96,15 @@ model Customer {
   overdueFollow Boolean       @default(false)
   transactedAt  DateTime?
 
+  // ═══ 客户等级 A/B/C（按需求紧迫度，P2 · 批次1-A D1）═══
+  customerGrade String?  @map("customer_grade") // A/B/C
+  nextFollowupAt DateTime? @map("next_followup_at")
+  gradeReviewAt  DateTime? @map("grade_review_at")
+
+  // ═══ 公海（批次1-A D2：客户·商机共用机制）═══
+  inPublicPool  Boolean  @default(false) @map("in_public_pool")
+  ownerId       String?  @map("owner_id")
+
   // 备注与附件
   remark        String?
   attachments   String?
@@ -130,6 +139,8 @@ model Customer {
   @@index([country])
   @@index([companyName])
   @@index([huobanId])
+  @@index([customerGrade])
+  @@index([inPublicPool])
   @@map("customers")
 }
 
@@ -514,6 +525,10 @@ model Opportunity {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  // ═══ 公海（批次1-A D2：客户·商机共用机制）═══
+  inPublicPool  Boolean  @default(false) @map("in_public_pool")
+  ownerId       String?  @map("owner_id")
+
   customer        Customer         @relation(fields: [customerId], references: [id])
   product         Product?         @relation(fields: [productId], references: [id])
   salesOwner      User?            @relation(fields: [salesOwnerId], references: [id])
@@ -522,6 +537,7 @@ model Opportunity {
   @@index([salesOwnerId])
   @@index([salesType])
   @@index([customerId])
+  @@index([inPublicPool])
   @@map("opportunities")
 }
 
@@ -719,5 +735,25 @@ model AuditLog {
   @@index([traceId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================
+// 客户等级配置表 —— 批次1-A D1 (对应 P2)
+// 等级定义 + 跟进频次（A 每5–7天 / B 每2–3周 / C 每4–6周）
+// + A 占比控 20–30% + 复审降级规则。
+// ============================================================
+model CustomerGradeConfig {
+  id              String   @id @default(cuid())
+  grade           String   @unique // A / B / C
+  label           String?
+  followupMinDays Int      // 跟进频次下限（天）
+  followupMaxDays Int      // 跟进频次上限（天）
+  reviewDays      Int      // 复审周期（天）
+  maxRatioPct     Int      @default(30) // A 等级占比上限（%）；仅 A 档生效
+  downgradeRule   String?  // 复审降级规则描述
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("customer_grade_config")
 }
 

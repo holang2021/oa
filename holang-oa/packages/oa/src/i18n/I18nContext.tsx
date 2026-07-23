@@ -141,6 +141,14 @@ const translations: Record<Lang, Record<string, string>> = {
     // Dashboard
     'dash.workbench': '工作台',
     'dash.workbenchDesc': '根据您的角色展示个性化工作内容',
+    'dash.customizeWorkbench': '自定义工作台',
+    'dash.customizeTitle': '自定义工作台布局',
+    'dash.customizeSub': '选择要显示的组件并调整顺序',
+    'dash.customizeHint': '点击添加组件，拖动或使用箭头调整顺序',
+    'dash.resetDefault': '恢复默认',
+    'dash.allWidgetsAdded': '所有可用组件已添加',
+    'dash.noData': '暂无数据',
+    'dash.role_': '未知角色',
     'dash.role_gm': '总经理',
     'dash.role_sales': '销售员',
     'dash.role_manager': '销售经理',
@@ -326,6 +334,24 @@ const translations: Record<Lang, Record<string, string>> = {
     'placeholder.marketing': 'Marketing',
     'placeholder.service': 'Service',
 
+    'dash.workbench': 'Workbench',
+    'dash.workbenchDesc': 'Personalized workspace based on your role',
+    'dash.customizeWorkbench': 'Customize Workbench',
+    'dash.customizeTitle': 'Customize Workbench Layout',
+    'dash.customizeSub': 'Choose widgets and adjust their order',
+    'dash.customizeHint': 'Click to add widgets, drag or use arrows to reorder',
+    'dash.resetDefault': 'Reset to Default',
+    'dash.allWidgetsAdded': 'All available widgets added',
+    'dash.noData': 'No data',
+    'dash.role_': 'Unknown Role',
+    'dash.role_gm': 'General Manager',
+    'dash.role_sales': 'Sales',
+    'dash.role_manager': 'Sales Manager',
+    'dash.role_director': 'Sales Director',
+    'dash.role_buyer': 'Buyer',
+    'dash.role_warehouse': 'Warehouse',
+    'dash.role_finance': 'Finance',
+
     'dash.myFlows': 'My Flows',
     'dash.todos': 'To-Do',
     'dash.done': 'Completed',
@@ -335,6 +361,14 @@ const translations: Record<Lang, Record<string, string>> = {
     'dash.doneDesc': 'My completed history',
     'dash.notificationsDesc': 'System messages & alerts',
     'dash.viewDetails': 'Details',
+    'dash.totalOrders': 'Total Orders',
+    'dash.totalRevenue': 'Total Revenue',
+    'dash.totalLeads': 'Total Leads',
+    'dash.avgConversion': 'Avg Conversion',
+    'dash.my_leads': 'My Leads',
+    'dash.my_orders': 'My Orders',
+    'dash.my_revenue': 'My Revenue',
+    'dash.my_customers': 'My Customers',
     'dash.todayLeads': 'New Leads Today',
     'dash.monthOrders': 'Monthly Orders',
     'dash.monthRevenue': 'Monthly Revenue',
@@ -367,6 +401,20 @@ const translations: Record<Lang, Record<string, string>> = {
     'dash.approvedDesc': 'Completed approval',
     'dash.overdueDesc': 'Past deadline',
     'dash.urgedDesc': 'Being urged',
+    // GM
+    'dash.gm_flows': 'My Flows', 'dash.gm_flows_desc': 'Flows I initiated', 'dash.gm_todos': 'To-Do', 'dash.gm_todos_desc': 'Waiting for action', 'dash.gm_done': 'Completed', 'dash.gm_done_desc': 'Completed', 'dash.gm_notifications': 'Notifications', 'dash.gm_notifications_desc': 'System messages',
+    // Sales
+    'dash.sales_todos': 'My To-Do', 'dash.sales_todos_desc': 'To-do items', 'dash.sales_leads': 'My Leads', 'dash.sales_leads_desc': 'Leads to follow up', 'dash.sales_customers': 'My Customers', 'dash.sales_customers_desc': 'Assigned customers', 'dash.sales_quotations': 'My Quotations', 'dash.sales_quotations_desc': 'Quotations in progress',
+    // Manager
+    'dash.manager_todos': 'Pending Approval', 'dash.manager_todos_desc': 'Awaiting my approval', 'dash.manager_team': 'Team Overview', 'dash.manager_team_desc': 'Team activity', 'dash.manager_pool': 'Public Pool', 'dash.manager_pool_desc': 'Leads to assign', 'dash.manager_approvals': 'Team Approvals', 'dash.manager_approvals_desc': 'Pending my approval',
+    // Director
+    'dash.director_flows': 'My Flows', 'dash.director_flows_desc': 'I initiated', 'dash.director_todos': 'To-Do', 'dash.director_todos_desc': 'Waiting for action', 'dash.director_done': 'Completed', 'dash.director_done_desc': 'Completed', 'dash.director_notifications': 'Notifications', 'dash.director_notifications_desc': 'System messages',
+    // Buyer
+    'dash.buyer_todos': 'Purchase To-Do', 'dash.buyer_todos_desc': 'Purchase tasks', 'dash.buyer_suppliers': 'Suppliers', 'dash.buyer_suppliers_desc': 'Partner suppliers', 'dash.buyer_orders': 'Purchase Orders', 'dash.buyer_orders_desc': 'Orders in progress', 'dash.buyer_receive': 'Pending Receipt', 'dash.buyer_receive_desc': 'Expected arrival',
+    // Warehouse
+    'dash.wh_inbound': 'Inbound Today', 'dash.wh_inbound_desc': 'Pending inbound', 'dash.wh_outbound': 'Outbound Today', 'dash.wh_outbound_desc': 'Pending outbound', 'dash.wh_check': 'Pending Stock Check', 'dash.wh_check_desc': 'Stock check tasks', 'dash.wh_alerts': 'Stock Alerts', 'dash.wh_alerts_desc': 'Low stock reminders',
+    // Finance
+    'dash.fin_todos': 'Finance To-Do', 'dash.fin_todos_desc': 'Finance tasks', 'dash.fin_flows': 'My Flows', 'dash.fin_flows_desc': 'I initiated', 'dash.fin_done': 'Completed', 'dash.fin_done_desc': 'Completed', 'dash.fin_notifications': 'Notifications', 'dash.fin_notifications_desc': 'System messages',
   },
 }
 

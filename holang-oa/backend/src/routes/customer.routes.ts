@@ -25,6 +25,31 @@ router.get('/', authenticate, enforceSalesTypeScope, customerController.getCusto
  */
 router.get('/geo', authenticate, enforceSalesTypeScope, customerController.getGeoStats);
 
+// ───────────────────────────────────────────────────────────
+// D2 客户公海：列表 / 认领 / 退回（服务端销售域强制，复用 salesType.ts）
+// 必须在 /:id 形路由之前定义，避免 GET /pool 被 /:id 先捕获。
+// ───────────────────────────────────────────────────────────
+/**
+ * @route   GET /api/v1/customers/pool
+ * @desc    公海客户列表（服务端域强制：非全域只列其域）
+ * @access  Private（域隔离）
+ */
+router.get('/pool', authenticate, enforceSalesTypeScope, customerController.listPoolCustomers);
+
+/**
+ * @route   POST /api/v1/customers/:id/claim
+ * @desc    认领客户出公海（越权服务端拦截）
+ * @access  Private（域隔离）
+ */
+router.post('/:id/claim', authenticate, enforceSalesTypeScope, customerController.claimCustomerPool);
+
+/**
+ * @route   POST /api/v1/customers/:id/return
+ * @desc    退回客户到公海
+ * @access  Private（域隔离）
+ */
+router.post('/:id/return', authenticate, enforceSalesTypeScope, customerController.returnCustomerPool);
+
 /**
  * @route   GET /api/v1/customers/:id
  * @desc    Get customer by ID
