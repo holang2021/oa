@@ -1,180 +1,103 @@
+// ============================================================
+// Contract Controller —— 批次1-B D1/D3 (内销商务合同 · 分层)
+// 仅接参 / 返响应；业务经 contract.service；写经 Repository（门禁规则1/2）。
+// 去除了旧版 new PrismaClient() / as any；统一 zod 入参 + 统一响应(utils/response)。
+// ============================================================
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { ContractStatus } from '../constants/enums';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
-
-const prisma = new PrismaClient();
+import { success, paginated } from '../utils/response';
+import { toServiceContext } from '../utils/ctx';
+import * as contractService from '../services/contract.service';
 
 const createContractSchema = z.object({
-  contractNumber: z.string().min(1, '合同编号不能为空'),
+  contractNumber: z.string().min(1, '合同编号不能为空').optional(),
   customerId: z.string().min(1, '客户ID不能为空'),
-  amount: z.number().min(0, '金额不能为负数'),
+  quoteRef: z.string().min(1, '必须关联报价单').optional(),
+  opportunityRef: z.string().optional(),
+  piRef: z.string().optional(),
+  amount: z.number().min(0, '金额不能为负数').optional(),
   signedAt: z.string().datetime().optional(),
   expiresAt: z.string().datetime().optional(),
-  status: z.string().default('ACTIVE'),
+  status: z.string().optional(),
   filePath: z.string().optional(),
   notes: z.string().optional(),
 });
 
-/**
- * Get all contracts
- */
+const updateContractSchema = z.object({
+  amount: z.number().min(0).optional(),
+  signedAt: z.string().datetime().optional(),
+  expiresAt: z.string().datetime().optional(),
+  status: z.string().optional(),
+  filePath: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const getContracts = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { page = '1', pageSize = '20', search = '', status = '' } = req.query as any;
-    const pageNum = parseInt(page);
-    const pageSizeNum = parseInt(pageSize);
-    const skip = (pageNum - 1) * pageSizeNum;
-
-    const where: any = {};
-
-    if (search) {
-      where.OR = [
-        { contractNumber: { contains: search } },
-        { customer: { companyName: { contains: search } } },
-      ];
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    const total = await prisma.contract.count({ where });
-
-    const contracts = await prisma.contract.findMany({
-      where,
-      include: {
-        customer: { select: { id: true, companyName: true } },
-        creator: { select: { id: true, name: true } },
+    const q = req.query as Record<string, string>;
+    const result = await contractService.listContracts(
+      {
+        search: q.search,
+        status: q.status,
+        customerId: q.customerId,
+        quoteRef: q.quoteRef,
+        salesType: q.salesType,
+        skip: q.page ? (parseInt(q.page) - 1) * (parseInt(q.pageSize) || 20) : 0,
+        take: parseInt(q.pageSize) || 20,
       },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: pageSizeNum,
-    });
-
-    res.json({
-      code: 0,
-      message: '获取成功',
-      data: {
-        list: contracts,
-        pagination: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) },
-      },
-    });
-  } catch (error) {
-    next(error);
+      toServiceContext(req)
+    );
+    res.json(paginated(result.list, parseInt(q.page) || 1, parseInt(q.pageSize) || 20, result.total, '获取成功', req.traceId ?? null));
+  } catch (err) {
+    next(err);
   }
 };
 
-/**
- * Get contract by ID
- */
 export const getContractById = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-
-    const contract = await prisma.contract.findUnique({
-      where: { id },
-      include: {
-        customer: true,
-        creator: { select: { id: true, name: true } },
-      },
-    });
-
-    if (!contract) {
-      return res.status(404).json({ code: 404, message: '合同不存在', data: null });
-    }
-
-    res.json({ code: 0, message: '获取成功', data: contract });
-  } catch (error) {
-    next(error);
+    const contract = await contractService.getContract(req.params.id, toServiceContext(req));
+    res.json(success(contract, '获取成功', req.traceId ?? null));
+  } catch (err) {
+    next(err);
   }
 };
 
-/**
- * Create new contract
- */
 export const createContract = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const validated = createContractSchema.parse(req.body);
-
-    // Check if contract number already exists
-    const existing = await prisma.contract.findUnique({
-      where: { contractNumber: validated.contractNumber },
-    });
-
-    if (existing) {
-      return res.status(409).json({ code: 409, message: '合同编号已存在', data: null });
-    }
-
-    const contract = await prisma.contract.create({
-      data: {
-        ...validated,
-        signedAt: validated.signedAt ? new Date(validated.signedAt) : undefined,
-        expiresAt: validated.expiresAt ? new Date(validated.expiresAt) : undefined,
-        createdById: req.user!.id,
-      },
-      include: {
-        customer: { select: { id: true, companyName: true } },
-        creator: { select: { id: true, name: true } },
-      },
-    });
-
-    // Update customer status to WON
-    await prisma.customer.update({
-      where: { id: validated.customerId },
-      data: { status: 'WON' as any },
-    });
-
-    res.status(201).json({ code: 0, message: '创建成功', data: contract });
-  } catch (error) {
-    next(error);
+    const contract = await contractService.createContract(validated, toServiceContext(req));
+    res.status(201).json(success(contract, '创建成功', req.traceId ?? null));
+  } catch (err) {
+    next(err);
   }
 };
 
-/**
- * Update contract
- */
+/** 确认合同（签署）：DRAFT → CONFIRMED */
+export const confirmContract = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const contract = await contractService.confirmContract(req.params.id, toServiceContext(req));
+    res.json(success(contract, '合同已确认', req.traceId ?? null));
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateContract = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-    const validated = createContractSchema.partial().parse(req.body);
-
-    const contract = await prisma.contract.update({
-      where: { id },
-      data: {
-        ...(validated.contractNumber !== undefined && { contractNumber: validated.contractNumber }),
-        ...(validated.customerId !== undefined && { customerId: validated.customerId }),
-        ...(validated.amount !== undefined && { amount: validated.amount }),
-        ...(validated.signedAt !== undefined && { signedAt: validated.signedAt ? new Date(validated.signedAt) : null }),
-        ...(validated.expiresAt !== undefined && { expiresAt: validated.expiresAt ? new Date(validated.expiresAt) : null }),
-        ...(validated.status !== undefined && { status: validated.status }),
-        ...(validated.filePath !== undefined && { filePath: validated.filePath }),
-        ...(validated.notes !== undefined && { notes: validated.notes }),
-      },
-      include: {
-        customer: { select: { id: true, companyName: true } },
-        creator: { select: { id: true, name: true } },
-      },
-    });
-
-    res.json({ code: 0, message: '更新成功', data: contract });
-  } catch (error) {
-    next(error);
+    const validated = updateContractSchema.partial().parse(req.body);
+    const contract = await contractService.updateContract(req.params.id, validated, toServiceContext(req));
+    res.json(success(contract, '更新成功', req.traceId ?? null));
+  } catch (err) {
+    next(err);
   }
 };
 
-/**
- * Delete contract
- */
 export const deleteContract = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-
-    await prisma.contract.delete({ where: { id } });
-
-    res.json({ code: 0, message: '删除成功', data: null });
-  } catch (error) {
-    next(error);
+    const result = await contractService.deleteContract(req.params.id, toServiceContext(req));
+    res.json(success(result, '删除成功', req.traceId ?? null));
+  } catch (err) {
+    next(err);
   }
 };

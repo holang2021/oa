@@ -25,6 +25,7 @@ const createQuoteSchema = z.object({
   validUntil: z.string().datetime().optional(),
   notes: z.string().optional(),
   taxRate: z.number().min(0).max(100).optional().default(13),
+  opportunityId: z.string().optional(), // 批次1-B D1：关联商机（商机 WIN 才可建报价）
 });
 
 export const getQuotes = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -74,6 +75,16 @@ export const updateStatus = async (req: AuthRequest, res: Response, next: NextFu
     if (!status || typeof status !== 'string') throw new z.ZodError([]);
     const updated = await quoteService.updateQuoteStatus(req.params.id, status, toServiceContext(req));
     res.json(success(updated, '状态更新成功', req.traceId ?? null));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/** 接受报价（D1 状态机：DRAFT/SENT → ACCEPTED；接受后才可建合同/PI） */
+export const acceptQuote = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const updated = await quoteService.acceptQuote(req.params.id, toServiceContext(req));
+    res.json(success(updated, '报价已接受', req.traceId ?? null));
   } catch (err) {
     next(err);
   }

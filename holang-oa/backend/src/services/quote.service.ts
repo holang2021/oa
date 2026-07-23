@@ -7,6 +7,7 @@ import * as quoteRepo from '../repositories/quote.repository';
 import * as productRepo from '../repositories/product.repository';
 import { createAuditLog } from '../repositories/audit-log.repository';
 import { AppError } from '../middleware/errorHandler';
+import { OpportunityStage } from '../constants/enums';
 import type { ServiceContext } from './types';
 
 export interface QuoteItemInput {
@@ -22,6 +23,7 @@ export interface CreateQuoteInput {
   validUntil?: string | null;
   notes?: string | null;
   taxRate?: number;
+  opportunityId?: string | null; // 批次1-B D1：关联商机（商机 WIN 才可建报价）
 }
 
 /** 计算报价金额（内外销计税规则） */
@@ -45,6 +47,20 @@ export async function createQuote(input: CreateQuoteInput, ctx: ServiceContext) 
   if (!cust) throw new AppError('客户不存在', 404);
   if (ctx.scope !== 'ALL' && (cust.salesType ?? '').toUpperCase() !== ctx.scope) {
     throw new AppError('无权在该销售域下创建报价', 403);
+  }
+
+  // 闭环校验：若关联商机，商机必须 WIN(WON) 才可建报价（D1 状态机）
+  let opportunityId: string | null = input.opportunityId ?? null;
+  if (opportunityId) {
+    const oppRepo = await import('../repositories/opportunity.repository');
+    const opp = await oppRepo.findOpportunityById(opportunityId);
+    if (!opp) throw new AppError('关联的商机不存在', 404);
+    if (ctx.scope !== 'ALL' && (opp.salesType ?? '').toUpperCase() !== ctx.scope) {
+      throw new AppError('无权关联该域的商机', 403);
+    }
+    if (opp.stage !== OpportunityStage.WON) {
+      throw new AppError(`商机尚未赢单(当前阶段:${opp.stage})，只有 WIN(WON) 商机才可建报价`, 409);
+    }
   }
 
   // 取产品单价并计算行小计
@@ -71,6 +87,7 @@ export async function createQuote(input: CreateQuoteInput, ctx: ServiceContext) 
     taxRate: totals.taxRate,
     discount: input.discount ?? 0,
     validUntil: input.validUntil ? new Date(input.validUntil) : null,
+    opportunityId,
     notes: input.notes ?? null,
     createdById: ctx.userId,
     items: lineItems.map((li, idx) => ({
@@ -127,6 +144,36 @@ export async function updateQuoteStatus(id: string, status: string, ctx: Service
     salesType: existing.salesType,
     result: 'SUCCESS',
     detail: { op: 'updateStatus', status },
+    traceId: ctx.traceId ?? null,
+  });
+  return updated;
+}
+
+/**
+ * 接受报价（D1 状态机：DRAFT/SENT → ACCEPTED）。
+ * 接受后的报价才可建合同(内销)/PI(外销)。已接受/已拒绝的报价不可重复接受。
+ */
+export async function acceptQuote(id: string, ctx: ServiceContext) {
+  const existing = await quoteRepo.findQuoteById(id);
+  if (!existing) throw new AppError('报价单不存在', 404);
+  if (ctx.scope !== 'ALL' && (existing.salesType ?? '').toUpperCase() !== ctx.scope) {
+    throw new AppError('无权操作该报价单', 403);
+  }
+  if (existing.status === 'ACCEPTED') {
+    return existing; // 幂等
+  }
+  if (existing.status === 'REJECTED') {
+    throw new AppError('已拒绝的报价单不可接受', 409);
+  }
+  const updated = await quoteRepo.acceptQuote(id);
+  await createAuditLog({
+    userId: ctx.userId,
+    action: 'WRITE',
+    entity: 'quotes',
+    entityId: id,
+    salesType: existing.salesType,
+    result: 'SUCCESS',
+    detail: { op: 'accept' },
     traceId: ctx.traceId ?? null,
   });
   return updated;

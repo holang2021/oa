@@ -11,6 +11,7 @@ import opportunityRoutes from './opportunity.routes';
 import productRoutes from './product.routes';
 import quoteRoutes from './quote.routes';
 import contractRoutes from './contract.routes';
+import piRoutes from './pi.routes';
 import followUpRoutes from './followUp.routes';
 import dashboardRoutes from './dashboard.routes';
 import reportRoutes from './report.routes';
@@ -30,6 +31,7 @@ export {
   productRoutes,
   quoteRoutes,
   contractRoutes,
+  piRoutes,
   followUpRoutes,
   dashboardRoutes,
   reportRoutes,

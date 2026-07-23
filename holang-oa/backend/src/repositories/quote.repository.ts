@@ -21,6 +21,7 @@ export interface CreateQuoteInput {
   taxRate: number;
   discount: number;
   validUntil?: Date | null;
+  opportunityId?: string | null; // 批次1-B D1：关联商机（商机 WIN 才可建报价）
   notes?: string | null;
   createdById: string;
   items: QuoteItemInput[];
@@ -47,6 +48,7 @@ export async function createQuote(data: CreateQuoteInput) {
       taxRate: data.taxRate,
       discount: data.discount,
       validUntil: data.validUntil ?? null,
+      opportunityId: data.opportunityId ?? null,
       notes: data.notes ?? null,
       // 标量 createdById：当前生成的 Prisma client（v5.22.0）在 Quote create 的 data
       // 类型中仅认标量 createdById（关系名 creator 在 create 阶段不被接受）。
@@ -149,4 +151,17 @@ export async function updateQuoteFields(
 export async function nextQuoteNumber(): Promise<string> {
   const count = await prisma.quote.count();
   return `QT${new Date().getFullYear()}${String(count + 1).padStart(6, '0')}`;
+}
+
+/** 接受报价（D1 状态机：DRAFT/SENT → ACCEPTED；接受后才可建合同/PI） */
+export async function acceptQuote(id: string) {
+  return prisma.quote.update({
+    where: { id },
+    data: { status: 'ACCEPTED' },
+    include: {
+      customer: { select: { id: true, companyName: true } },
+      creator: { select: { id: true, name: true } },
+      items: { include: { product: true } },
+    },
+  });
 }

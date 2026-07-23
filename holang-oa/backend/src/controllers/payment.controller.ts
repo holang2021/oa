@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
+import { assertOrderConfirmed } from '../services/deal-flow.service';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +19,7 @@ export const getPayments = async (req: AuthRequest, res: Response, next: NextFun
       businessLine = '',
       customerId = '',
       salesType = '',
-    } = req.query as any;
+    } = req.query as Record<string, string>;
 
     const pageNum = parseInt(page);
     const pageSizeNum = parseInt(pageSize);
@@ -125,16 +127,17 @@ const toNum = (v: any, fallback: number | null) =>
 
 function buildPaymentData(body: any, isUpdate: boolean) {
   const data: any = {};
+  // 未提供的字段跳过：创建时由 DB 默认值/约束决定（避免对 status 等非空列写入 null）；更新时保持不变
   for (const f of PAYMENT_FIELDS) {
-    if (isUpdate && body[f] === undefined) continue;
-    data[f] = body[f] ?? null;
+    if (body[f] === undefined) continue;
+    data[f] = body[f];
   }
   for (const f of PAYMENT_DATE) {
-    if (isUpdate && body[f] === undefined) continue;
+    if (body[f] === undefined) continue;
     data[f] = toDate(body[f]);
   }
   for (const f of PAYMENT_NUM) {
-    if (isUpdate && body[f] === undefined) continue;
+    if (body[f] === undefined) continue;
     data[f] = toNum(body[f], f === 'amount' ? 0 : null);
   }
   return data;
@@ -147,6 +150,14 @@ export const createPayment = async (req: AuthRequest, res: Response, next: NextF
       return res.status(400).json({ code: 400, message: '客户ID不能为空', data: null });
     }
     const data: any = { customerId: body.customerId, ...buildPaymentData(body, false) };
+
+    // 闭环校验：订单 CONFIRMED 后才可登记回款（D1 状态机）
+    if (!body.orderId) {
+      throw new AppError('登记回款必须关联一份订单(orderId)', 400);
+    }
+    const _order = await prisma.order.findUnique({ where: { id: body.orderId } });
+    assertOrderConfirmed(_order);
+
     const payment = await prisma.payment.create({
       data,
       include: {

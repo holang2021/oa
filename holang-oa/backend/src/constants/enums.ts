@@ -18,8 +18,17 @@ export const ContractStatus = {
   EXPIRED: 'EXPIRED',
   TERMINATED: 'TERMINATED',
   DRAFT: 'DRAFT',
+  CONFIRMED: 'CONFIRMED', // 批次1-B D1：合同签署确认（闭环校验：CONFIRMED 后才可建订单）
 } as const;
 export type ContractStatus = (typeof ContractStatus)[keyof typeof ContractStatus];
+
+/** 外销 PI 状态（批次1-B D2） */
+export const PiStatus = {
+  DRAFT: 'DRAFT',
+  CONFIRMED: 'CONFIRMED', // PI 确认（闭环校验：CONFIRMED 后才可建订单）
+  CANCELLED: 'CANCELLED',
+} as const;
+export type PiStatus = (typeof PiStatus)[keyof typeof PiStatus];
 
 export const QuoteStatus = {
   DRAFT: 'DRAFT',

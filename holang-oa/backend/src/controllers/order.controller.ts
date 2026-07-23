@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
+import { assertContractConfirmed, assertPiConfirmed } from '../services/deal-flow.service';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +19,7 @@ export const getOrders = async (req: AuthRequest, res: Response, next: NextFunct
       businessLine = '',
       customerId = '',
       salesType = '',
-    } = req.query as any;
+    } = req.query as Record<string, string>;
 
     const pageNum = parseInt(page);
     const pageSizeNum = parseInt(pageSize);
@@ -115,7 +117,7 @@ const ORDER_FIELDS = [
   'totalCost', 'discount', 'discountRate', 'taxRate', 'collectedAmount', 'invoicedAmount', 'grossMargin',
   'unpaidAmount', 'expectedDeliveryDate', 'deliveryDate', 'receiver', 'receiverPhone', 'receiverAddress',
   'approvalStatus', 'flowStatus', 'paymentMethod', 'notes', 'specialReq', 'techAgreement', 'contractFile',
-  'quotationId', 'opportunityId',
+  'quotationId', 'opportunityId', 'contractId', 'piId',
 ] as const;
 const ORDER_DATE = new Set(['orderDate', 'expectedDeliveryDate', 'deliveryDate']);
 const ORDER_NUM = new Set([
@@ -129,12 +131,13 @@ const toNum = (v: any, fallback: number | null) =>
 function buildOrderData(body: any, isUpdate: boolean) {
   const data: any = {};
   for (const f of ORDER_FIELDS) {
-    if (isUpdate && body[f] === undefined) continue;
     if (f === 'customerId') continue;
     const v = body[f];
+    // 未提供的字段跳过：创建时由 DB 默认值/约束决定（避免对 status 等非空列写入 null）；更新时保持不变
+    if (v === undefined) continue;
     if (ORDER_DATE.has(f)) data[f] = toDate(v);
     else if (ORDER_NUM.has(f)) data[f] = toNum(v, f === 'amount' ? 0 : null);
-    else data[f] = v ?? null;
+    else data[f] = v;
   }
   return data;
 }
@@ -148,6 +151,22 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
     const data: any = { customerId: body.customerId, ...buildOrderData(body, false) };
     const _cust = await prisma.customer.findUnique({ where: { id: body.customerId } });
     data.salesType = _cust?.salesType ?? 'INTERNAL';
+
+    // 闭环校验：合同/PI 确认后才可建订单（D1 状态机）
+    if (data.salesType === 'INTERNAL') {
+      if (!body.contractId) {
+        throw new AppError('内销订单必须关联一份已确认的内销商务合同(contractId)', 400);
+      }
+      const contract = await prisma.contract.findUnique({ where: { id: body.contractId } });
+      assertContractConfirmed(contract);
+    } else if (data.salesType === 'EXTERNAL') {
+      if (!body.piId) {
+        throw new AppError('外销订单必须关联一份已确认的外销 PI(piId)', 400);
+      }
+      const pi = await prisma.pi.findUnique({ where: { id: body.piId } });
+      assertPiConfirmed(pi);
+    }
+
     const order = await prisma.order.create({
       data,
       include: {

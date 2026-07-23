@@ -37,6 +37,7 @@ model User {
   followUps         FollowUp[]
   reviewedDealers   DealerReport[]
   contracts         Contract[]
+  pis               Pi[]          @relation("UserPis")
 
   @@map("users")
 }
@@ -125,6 +126,7 @@ model Customer {
   opportunities Opportunity[]
   quotes        Quote[]
   contracts     Contract[]
+  pis           Pi[]          @relation("CustomerPis")
   orders        Order[]
   payments      Payment[]
   followUps     FollowUp[]
@@ -231,6 +233,10 @@ model Order {
   quotationId   String?
   opportunityId String?
 
+  // ═══ 批次1-B D1：合同/PI 关联（闭环校验：合同/PI CONFIRMED 才可建订单）═══
+  contractId    String? // 内销：关联商务合同(Contract)
+  piId          String? // 外销：关联 PI(Pi)
+
   // 迁移溯源
   huobanId      String?       @unique
   createdAt     DateTime      @default(now())
@@ -250,6 +256,8 @@ model Order {
   @@index([status])
   @@index([orderDate])
   @@index([huobanId])
+  @@index([contractId])
+  @@index([piId])
   @@map("orders")
 }
 
@@ -577,6 +585,7 @@ model Quote {
   taxRate     Float?     @default(13) // 增值税税率(%)：13 / 6 / 0(未税)；外销统一 0
   discount    Float      @default(0)
   validUntil  DateTime?
+  opportunityId String? // 批次1-B D1：关联商机（闭环校验：商机 WIN 才可建报价）
   status      String     @default("DRAFT")
   notes       String?
   createdById String?
@@ -590,6 +599,7 @@ model Quote {
   @@index([status])
   @@index([salesType])
   @@index([customerId])
+  @@index([opportunityId])
   @@map("quotes")
 }
 
@@ -610,16 +620,24 @@ model QuoteItem {
 }
 
 // ============================================================
-// 合同表
+// 合同表 — 内销商务合同承载（外销走 Pi 表，统一由「合同」概念聚合）
+// 批次1-B D1/D3：扩展销售域/报价引用/订单引用/PI引用，支撑 MVP 闭环状态机。
 // ============================================================
 model Contract {
   id              String         @id @default(cuid())
   contractNumber  String         @unique
   customerId      String
+  // ═══ 批次1-B 闭环支撑字段 ═══
+  salesType       String?        // INTERNAL 内销商务合同 / EXTERNAL（极少，外销通常走 PI）
+  quoteRef        String?        // 关联报价单(Quote)——报价 ACCEPTED 才可建合同
+  opportunityRef  String?        // 关联商机(Opportunity)
+  orderRef        String?        // 关联订单(Order)——合同 CONFIRMED 后才可建订单
+  piRef           String?        // 外销场景下本商务合同关联的 PI 编号（统一聚合用）
+  contractType    String?        @default("COMMERCIAL") // COMMERCIAL 内销商务合同
   amount          Float          @default(0)
   signedAt        DateTime?
   expiresAt       DateTime?
-  status          String         @default("ACTIVE")
+  status          String         @default("DRAFT") // DRAFT / CONFIRMED / ACTIVE / EXPIRED / TERMINATED
   filePath        String?
   notes           String?
   createdById     String?
@@ -631,7 +649,39 @@ model Contract {
 
   @@index([status])
   @@index([customerId])
+  @@index([salesType])
+  @@index([quoteRef])
   @@map("contracts")
+}
+
+// ============================================================
+// PI 表（Proforma Invoice）— 外销分支承载（参考询盘云：PI/PL/合同统一模板）
+// 批次1-B D2：外销 PI 生成骨架。内销不生成 PI（返回 403）。
+// ═══════════════════════════════════════════════════════════
+model Pi {
+  id          String    @id @default(cuid())
+  piNo        String    @unique // PI 编号，如 PI2026xxxxxx
+  customerId  String
+  salesType   String?   // EXTERNAL 外销专用
+  quoteRef    String?   // 关联报价单(Quote)——复用其金额/明细
+  amount      Float     @default(0) // 复用 Quote.totalAmount
+  currency    String?   @default("USD")
+  status      String    @default("DRAFT") // DRAFT / CONFIRMED / CANCELLED
+  issuedAt    DateTime?
+  confirmedAt DateTime?
+  expiresAt   DateTime?
+  notes       String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  customer    Customer  @relation("CustomerPis", fields: [customerId], references: [id])
+  creator     User?     @relation("UserPis", fields: [createdById], references: [id])
+
+  @@index([customerId])
+  @@index([salesType])
+  @@index([quoteRef])
+  @@map("pis")
 }
 
 // ============================================================

@@ -50,6 +50,13 @@ router.delete('/:id', authenticate, enforceSalesTypeScope, quoteController.delet
 router.put('/:id/status', authenticate, enforceSalesTypeScope, quoteController.updateStatus);
 
 /**
+ * @route   PUT /api/v1/quotes/:id/accept
+ * @desc    Accept quote (DRAFT/SENT → ACCEPTED)
+ * @access  Private（域隔离）
+ */
+router.put('/:id/accept', authenticate, enforceSalesTypeScope, quoteController.acceptQuote);
+
+/**
  * @route   GET /api/v1/quotes/:id/preview
  * @desc    Preview quote (HTML for PDF)
  * @access  Private（域隔离）
