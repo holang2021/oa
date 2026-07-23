@@ -23,6 +23,7 @@ export interface CustomerRaw {
   salesType: string
   country: string | null
   salesOwnerId: string | null
+  inPublicPool?: boolean
   salesPerson: string | null
   salesDept: string | null
   followStage: string | null
@@ -113,6 +114,8 @@ export interface Customer {
   transactedAt: string
   contractFile: string
   status: string
+  inPublicPool?: boolean
+  salesOwnerId?: string | null
 }
 
 // 将 Prisma 数据映射为前端兼容格式
@@ -159,6 +162,8 @@ export function mapCustomer(raw: CustomerRaw): Customer {
     transactedAt: raw.transactedAt || '',
     contractFile: raw.attachments || '',
     status: raw.status || '',
+    inPublicPool: raw.inPublicPool ?? false,
+    salesOwnerId: raw.salesOwnerId ?? null,
   }
 }
 
@@ -214,4 +219,31 @@ export async function createCustomer(data: Partial<CustomerRaw>) {
 // 更新客户
 export async function updateCustomer(id: string, data: Partial<CustomerRaw>) {
   return api.put<CustomerRaw>(`/customers/${id}`, data)
+}
+
+// 获取公海客户列表（服务端按 salesType 域强制隔离）
+export async function getPoolCustomers(params: CustomerQuery = {}) {
+  const res = await api.get<PaginatedData<CustomerRaw>>('/customers/pool', {
+    page: params.page || 1,
+    pageSize: params.pageSize || 50,
+    salesType: params.salesType,
+    search: params.search,
+  })
+  if (res.code === 0 && res.data) {
+    return {
+      list: res.data.list.map(mapCustomer),
+      pagination: res.data.pagination,
+    }
+  }
+  return { list: [], pagination: { page: 1, pageSize: 50, total: 0, totalPages: 0 } }
+}
+
+// 认领客户
+export async function claimCustomer(id: string) {
+  return api.post(`/customers/${id}/claim`)
+}
+
+// 退回客户到公海
+export async function returnCustomer(id: string) {
+  return api.post(`/customers/${id}/return`)
 }

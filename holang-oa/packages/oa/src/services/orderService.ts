@@ -42,6 +42,8 @@ export interface OrderRaw {
   remark: string | null
   attachments: string | null
   quotationId: string | null
+  contractId?: string | null
+  piId?: string | null
   createdAt: string
   updatedAt: string
   createdById: string | null
@@ -110,6 +112,8 @@ export interface Order {
   discount: number
   items: OrderItem[]
   customerName?: string
+  contractId?: string | null
+  piId?: string | null
 }
 
 // 将 Prisma 数据映射为前端兼容格式
@@ -158,6 +162,8 @@ export function mapOrder(raw: OrderRaw): Order {
       subtotal: item.subtotal || 0,
     })),
     customerName: raw.customer?.companyName || '',
+    contractId: raw.contractId ?? null,
+    piId: raw.piId ?? null,
   }
 }
 

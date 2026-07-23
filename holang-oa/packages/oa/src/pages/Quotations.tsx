@@ -40,7 +40,7 @@ export default function Quotations() {
     setLoading(true)
     setError('')
     try {
-      const res = await getQuotes({ pageSize: 500, salesType })
+      const res = await getQuotes({ pageSize: 500, salesType, search: kw })
       setList(res.list)
     } catch {
       setError('加载报价单失败')
@@ -51,7 +51,7 @@ export default function Quotations() {
 
   useEffect(() => {
     load()
-  }, [salesType])
+  }, [salesType, kw])
 
   const filtered = list.filter(q => {
     if (status && (q.status || '').toUpperCase() !== status.toUpperCase()) return false

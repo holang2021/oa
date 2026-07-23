@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Phone, Mail, MapPin, User, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send } from 'lucide-react'
 import { useI18n } from '../i18n/I18nContext'
@@ -7,6 +7,7 @@ import { getContacts, createContact, type Contact } from '../services/contactSer
 import { getOrders, type Order } from '../services/orderService'
 import { getPayments, type Payment } from '../services/paymentService'
 import { getOpportunities, type Opportunity } from '../services/opportunityService'
+import { getQuotes, type Quote } from '../services/quoteService'
 import { getFollowUps, createFollowUp, type FollowUp } from '../services/followUpService'
 import { followStages } from '../data/mockData'
 
@@ -80,6 +81,7 @@ export default function CustomerDetail() {
   const [custOrders, setCustOrders] = useState<Order[]>([])
   const [custPayments, setCustPayments] = useState<Payment[]>([])
   const [custOpps, setCustOpps] = useState<Opportunity[]>([])
+  const [custQuotes, setCustQuotes] = useState<Quote[]>([])
   const [custFollowUps, setCustFollowUps] = useState<FollowUp[]>([])
   const [relLoading, setRelLoading] = useState(false)
 
@@ -205,17 +207,19 @@ export default function CustomerDetail() {
     if (!id) return
     setRelLoading(true)
     try {
-      const [contactsRes, ordersRes, paymentsRes, oppsRes, followUpsRes] = await Promise.all([
+      const [contactsRes, ordersRes, paymentsRes, oppsRes, followUpsRes, quotesRes] = await Promise.all([
         getContacts({ customerId: id, pageSize: 100 }),
         getOrders({ customerId: id, pageSize: 100 }),
         getPayments({ customerId: id, pageSize: 100 }),
         getOpportunities({ customerId: id, pageSize: 100 }),
         getFollowUps({ customerId: id, pageSize: 100 }),
+        getQuotes({ customerId: id, pageSize: 100 }),
       ])
       setCustContacts(contactsRes.list)
       setCustOrders(ordersRes.list)
       setCustPayments(paymentsRes.list)
       setCustOpps(oppsRes.list)
+      setCustQuotes(quotesRes.list)
       setCustFollowUps(followUpsRes.list)
     } catch {
       // silent fail - sub-tabs just show empty
@@ -382,6 +386,38 @@ export default function CustomerDetail() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {/* 销售闭环 stepper */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('loop.title')}</h3>
+                <div className="flex items-stretch gap-1 overflow-x-auto pb-1">
+                  {(() => {
+                    const isExternal = customer.salesType === 'EXTERNAL'
+                    const loopStages: { key: string; label: string; count: number; done: boolean; tab: TabKey }[] = [
+                      { key: 'opp', label: t('loop.opp'), count: custOpps.length, done: custOpps.some(o => o.stage === 'WON'), tab: 'opportunities' },
+                      { key: 'quote', label: t('loop.quote'), count: custQuotes.length, done: custQuotes.length > 0, tab: 'quotations' },
+                      { key: 'contract', label: t('loop.contract'), count: isExternal ? custOrders.filter(o => o.piId).length : custOrders.filter(o => o.contractId).length, done: isExternal ? custOrders.some(o => o.piId) : custOrders.some(o => o.contractId), tab: 'orders' },
+                      { key: 'order', label: t('loop.order'), count: custOrders.length, done: custOrders.length > 0, tab: 'orders' },
+                      { key: 'payment', label: t('loop.payment'), count: custPayments.length, done: totalPaymentReceived > 0, tab: 'payments' },
+                    ]
+                    return loopStages.map((s, i) => (
+                      <Fragment key={s.key}>
+                        <button
+                          onClick={() => setActiveTab(s.tab)}
+                          className={`flex-1 min-w-[120px] rounded-lg border p-3 text-left transition-colors ${s.done ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-xs font-medium ${s.done ? 'text-green-700' : 'text-gray-500'}`}>{s.label}</span>
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${s.done ? 'bg-green-500 text-white' : 'bg-gray-300 text-white'}`}>{s.count}</span>
+                          </div>
+                          <div className={`mt-1.5 text-[10px] ${s.done ? 'text-green-600' : 'text-gray-400'}`}>{s.done ? '已完成' : '未完成'}</div>
+                        </button>
+                        {i < loopStages.length - 1 && <ChevronRight size={16} className="self-center text-gray-300 shrink-0" />}
+                      </Fragment>
+                    ))
+                  })()}
+                </div>
+              </div>
+
               {/* Follow Stage Progress — 色框线式 */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">跟进阶段</h3>
@@ -632,7 +668,26 @@ export default function CustomerDetail() {
           {/* Quotations Tab */}
           {activeTab === 'quotations' && (
             <div className="space-y-3">
-              <div className="text-center py-12 text-gray-400">暂无报价</div>
+              {relLoading ? (
+                <div className="flex items-center justify-center py-12 text-gray-400"><Loader2 size={20} className="animate-spin mr-2" /> 加载中...</div>
+              ) : custQuotes.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">暂无报价</div>
+              ) : (
+                custQuotes.map((q) => (
+                  <div key={q.id} onClick={() => navigate(`${basePath}/quotations/${q.id}`)} className="card cursor-pointer hover:shadow-md hover:border-gray-300 transition-all">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-gray-500">{q.code}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${quotationStatusColors[q.status] || 'bg-gray-50 text-gray-600'}`}>{quotationStatusLabels[q.status] || q.status}</span>
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 mt-1">{q.customerName}</div>
+                      </div>
+                      <span className="text-lg font-bold text-brand-600">{fmtMoney(q.amount)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 

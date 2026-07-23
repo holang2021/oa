@@ -214,7 +214,22 @@ const translations: Record<Lang, Record<string, string>> = {
     // Warehouse
     'dash.wh_inbound': '今日入库', 'dash.wh_inbound_desc': '待处理入库', 'dash.wh_outbound': '今日出库', 'dash.wh_outbound_desc': '待处理出库', 'dash.wh_check': '待盘点', 'dash.wh_check_desc': '盘点任务', 'dash.wh_alerts': '库存预警', 'dash.wh_alerts_desc': '低库存提醒',
     // Finance
-    'dash.fin_todos': '财务待办', 'dash.fin_todos_desc': '待处理事项', 'dash.fin_flows': '我的流程', 'dash.fin_flows_desc': '我发起的', 'dash.fin_done': '已办任务', 'dash.fin_done_desc': '已完成', 'dash.fin_notifications': '消息通知', 'dash.fin_notifications_desc': '系统消息',
+    'dash.fin_todos': '财务待办', 'dash.fin_todos_desc': '待处理事项', 'dash.fin_flows': '我的流程', 'dash.fin_flows_desc': '我发起的', 'dash.fin_done': '已办任务', 'dash.fin_done_desc': '已完成', 'dash.fin_notifications': '消息通知',     'dash.fin_notifications_desc': '系统消息',
+
+    // 公海 / 认领退回
+    'pool.mine': '我的客户',
+    'pool.public': '公海客户',
+    'pool.claim': '认领',
+    'pool.return': '退回',
+    'pool.claimed': '认领成功',
+    'pool.returned': '已退回公海',
+    // 销售闭环
+    'loop.title': '销售闭环',
+    'loop.opp': '商机',
+    'loop.quote': '报价',
+    'loop.contract': '合同/PI',
+    'loop.order': '订单',
+    'loop.payment': '回款',
   },
   en: {
     'app.name': 'HOLANG',
@@ -414,7 +429,22 @@ const translations: Record<Lang, Record<string, string>> = {
     // Warehouse
     'dash.wh_inbound': 'Inbound Today', 'dash.wh_inbound_desc': 'Pending inbound', 'dash.wh_outbound': 'Outbound Today', 'dash.wh_outbound_desc': 'Pending outbound', 'dash.wh_check': 'Pending Stock Check', 'dash.wh_check_desc': 'Stock check tasks', 'dash.wh_alerts': 'Stock Alerts', 'dash.wh_alerts_desc': 'Low stock reminders',
     // Finance
-    'dash.fin_todos': 'Finance To-Do', 'dash.fin_todos_desc': 'Finance tasks', 'dash.fin_flows': 'My Flows', 'dash.fin_flows_desc': 'I initiated', 'dash.fin_done': 'Completed', 'dash.fin_done_desc': 'Completed', 'dash.fin_notifications': 'Notifications', 'dash.fin_notifications_desc': 'System messages',
+    'dash.fin_todos': 'Finance To-Do', 'dash.fin_todos_desc': 'Finance tasks', 'dash.fin_flows': 'My Flows', 'dash.fin_flows_desc': 'I initiated', 'dash.fin_done': 'Completed', 'dash.fin_done_desc': 'Completed', 'dash.fin_notifications': 'Notifications',     'dash.fin_notifications_desc': 'System messages',
+
+    // 公海 / 认领退回
+    'pool.mine': 'My Customers',
+    'pool.public': 'Public Pool',
+    'pool.claim': 'Claim',
+    'pool.return': 'Return',
+    'pool.claimed': 'Claimed',
+    'pool.returned': 'Returned to pool',
+    // 销售闭环
+    'loop.title': 'Sales Pipeline',
+    'loop.opp': 'Opportunity',
+    'loop.quote': 'Quotation',
+    'loop.contract': 'Contract/PI',
+    'loop.order': 'Order',
+    'loop.payment': 'Payment',
   },
 }
 
