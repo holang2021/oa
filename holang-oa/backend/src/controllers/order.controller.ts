@@ -58,7 +58,7 @@ export const getOrders = async (req: AuthRequest, res: Response, next: NextFunct
     const orders = await prisma.order.findMany({
       where,
       include: {
-        customer: { select: { id: true, companyName: true } },
+        customer: { select: { id: true, companyName: true, country: true } },
         salesOwner: { select: { id: true, name: true } },
         items: true,
       },
@@ -95,7 +95,7 @@ export const getOrderById = async (req: AuthRequest, res: Response, next: NextFu
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        customer: { select: { id: true, companyName: true } },
+        customer: { select: { id: true, companyName: true, country: true } },
         salesOwner: { select: { id: true, name: true } },
         items: true,
       },
@@ -170,7 +170,7 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
     const order = await prisma.order.create({
       data,
       include: {
-        customer: { select: { id: true, companyName: true } },
+        customer: { select: { id: true, companyName: true, country: true } },
         salesOwner: { select: { id: true, name: true } },
       },
     });
@@ -195,7 +195,7 @@ export const updateOrder = async (req: AuthRequest, res: Response, next: NextFun
       where: { id },
       data,
       include: {
-        customer: { select: { id: true, companyName: true } },
+        customer: { select: { id: true, companyName: true, country: true } },
         salesOwner: { select: { id: true, name: true } },
       },
     });

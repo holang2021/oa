@@ -49,7 +49,7 @@ export interface OrderRaw {
   createdById: string | null
 
   // include 关系
-  customer?: { id: string; companyName: string } | null
+  customer?: { id: string; companyName: string; country?: string | null } | null
   salesOwner?: { id: string; name: string } | null
   items?: Array<{
     id: string
@@ -112,6 +112,8 @@ export interface Order {
   discount: number
   items: OrderItem[]
   customerName?: string
+  country?: string
+  orderDate?: string
   contractId?: string | null
   piId?: string | null
 }
@@ -162,6 +164,8 @@ export function mapOrder(raw: OrderRaw): Order {
       subtotal: item.subtotal || 0,
     })),
     customerName: raw.customer?.companyName || '',
+    country: raw.customer?.country || '',
+    orderDate: raw.orderDate || '',
     contractId: raw.contractId ?? null,
     piId: raw.piId ?? null,
   }

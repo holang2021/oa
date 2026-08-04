@@ -92,9 +92,9 @@ NODE_ENV=production
 JWT_SECRET=holang-crm-dev-secret-2026
 
 # 企微 OAuth 2.0 (AgentID 1000081)
-WECOM_OAUTH_SECRET=wLHXr64De3g...           # ← 真实 Secret，已填入
+WECOM_OAUTH_SECRET=<已存入 credentials.json（wecom.app_1000081.oauth_secret）>
 WECOM_CORPID=wwe74343b7a90d201f
-WECOM_CORPSECRET=LTDZ1C1bajHveiKxjesWxJ5wed6YRw9Gm7SmFXZJzNo   # 通讯录用 1000078
+WECOM_CORPSECRET=<已存入 credentials.json（wecom.app_1000078.secret）>   # 通讯录用 1000078
 OAUTH_REDIRECT_URI=https://oa.holangchina.com/auth-callback.html
 ```
 
@@ -213,3 +213,30 @@ curl https://oa.holangchina.com/
 ## 九、一句话总结
 
 > 把 4 样东西传到服务器（前端 dist、后端 backend、数据库 holang-oa.db、Nginx 配置），改一下 .env 里的数据库路径，npm install + prisma generate，pm2 启动，Nginx 配好 SSL，企微后台填上回调域名和主页 URL，就上线了。
+
+---
+
+## 十、2026-08-04 收口补充（tech-lead）
+
+### 本次收口新增功能（已随代码提交 system-build）
+- **订单管理**：内销/外销双视图；按订单年度卡片分组（逐年单独显示）；公司名/订单号快速筛选；外销按国家筛选；卡片点击跳转详情页。
+- **工作台 Dashboard**：卡片可拖拽排序、宽度 1–4 列、高度 4 档；可增删组件；可添加自定义页面（iframe 嵌入内部/外部 URL）；个人布局存 localStorage；管理员可存角色默认布局。
+- **后端**：订单接口 `include customer.country` 透出国家字段。
+
+### ⛔ 部署前置（必须完成，否则生产库报 no such column）
+- 本地生产库 `backend/prisma/holang-crm.db` 的 `orders` 表缺 `contractId`/`piId` 列（批次1-B 新增字段）。
+- 部署前必须先在本地对齐 schema（仅加列，不丢数据）：
+  ```bash
+  cd holang-oa/backend
+  cp prisma/holang-crm.db prisma/holang-crm.db.bak-$(date +%Y%m%d)
+  DATABASE_URL="file:./prisma/holang-crm.db" npx prisma db push --skip-generate
+  ```
+- 对齐后再打包上传，否则生产环境订单接口会报 `no such column: contractId`。
+
+### ⛔ 隔离红线（不影响 ai.holangchina.com）
+- OA 使用独立目录 `/opt/holang-oa/` 与独立 nginx 站点 `oa.holangchina.com`，**不得改动**现有 `ai.holangchina.com` 的站点配置与进程。
+- 仅在 `nginx/sites-available` 新增 OA 站点并软链，不触碰其他站点。
+- 部署前/后均需健康检查 `ai.holangchina.com` 仍可访问。
+
+### 回滚预案
+- 见 `docs/OA部署回滚预案-2026-08-04.md`（部署前必读，含备份/回退步骤）。
