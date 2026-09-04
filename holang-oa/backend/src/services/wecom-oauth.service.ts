@@ -17,18 +17,24 @@ const prisma = new PrismaClient()
 
 // ── 企微配置 ──
 const CORPID = process.env.WECOM_CORPID || 'wwe74343b7a90d201f'
-const CORPSECRET = process.env.WECOM_CORPSECRET || 'LTDZ1C1bajHveiKxjesWxJ5wed6YRw9Gm7SmFXZJzNo'
+const CORPSECRET = process.env.WECOM_CORPSECRET
+if (!CORPSECRET) throw new Error('WECOM_CORPSECRET is not configured')
 
 // AgentID 1000081 的 Secret（用于 OAuth 登录）
-// ⚠️ 请在企微后台 → 应用管理 → AgentID 1000081 → Secret 复制后填入 .env 的 WECOM_OAUTH_SECRET
-const OAUTH_SECRET = process.env.WECOM_OAUTH_SECRET || 'PLACEHOLDER_REPLACE_WITH_AGENT_1000081_SECRET'
+// ⚠️ 真实 Secret 仅存于 gitignored 的 backend/.env（WECOM_OAUTH_SECRET），绝不写入代码
+const OAUTH_SECRET = process.env.WECOM_OAUTH_SECRET
+if (!OAUTH_SECRET) throw new Error('WECOM_OAUTH_SECRET is not configured')
 const AGENT_ID = 1000081
 
 // OAuth 回调地址
 const REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || 'https://oa.holangchina.com/auth-callback.html'
 
-// JWT 配置
-const JWT_SECRET = () => process.env.JWT_SECRET || 'holang-crm-dev-secret-2026'
+// JWT 配置（密钥缺失即启动失败，杜绝静默降级）
+const JWT_SECRET = () => {
+  const s = process.env.JWT_SECRET
+  if (!s) throw new Error('JWT_SECRET is not configured')
+  return s
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
 
 const API_BASE = 'https://qyapi.weixin.qq.com/cgi-bin'
