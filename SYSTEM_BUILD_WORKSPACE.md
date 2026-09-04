@@ -114,7 +114,8 @@ docs:      文档
 > 暂存区未提交，一周成果无任何 commit 保护。现已重新落地为 **4 个正式提交**：
 > `5ed90d8`（security 密钥 fail-fast）、`f8a7e36`（chore .gitignore 补强）、
 > `eb8f80e`（chore 全量收口）、`f3b435c`（fix 类型错误）。
-> 当前本地 `system-build` 分支**领先 origin 4 个提交**。
+> 当前本地 `system-build` 分支**领先 origin**（不写死数量以免随后续提交失真，
+> 实际提交清单以 `git log --oneline origin/system-build..HEAD` 为准）。
 - 推送前必须：① 刘总明确授权 ② 确认历史无密钥残留 ③ 确认无协作者正在基于旧历史工作。
 - **在刘总授权前，不得执行 `git push`。**
 
