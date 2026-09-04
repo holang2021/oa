@@ -49,3 +49,22 @@ holang-oa/backend/o.json
 holang-oa/backend/p.json
 holang-oa/backend/_debug_opp.ts
 holang-oa/backend/debug_opp.ts
+
+# ============ 服务器异地备份落地点（2026-09-04 补） ============
+# 内含明文 .env 与生产库副本，整目录禁止入库；即使目录里混入未被
+# *.db / .env 规则覆盖的新文件（如 api-configs.json、tar.gz），也一并挡住。
+server_backup/
+
+# ============ Windows 保留名文件（2026-09-04 补） ============
+# git 无法处理 nul，且会导致 git add -A 静默失败（暂存 0 文件）。
+nul
+
+# ============ 一次性调试 / 探针脚本（2026-09-04 补，待清理） ============
+.tmp_*.py
+check_integrity.py
+fix_batch1a.py
+fix_customer_repo.py
+fix_repo_fields.py
+holang-oa/backend/probe*.cjs
+holang-oa/backend/verify.cjs
+holang-admin/.vite-preview/
