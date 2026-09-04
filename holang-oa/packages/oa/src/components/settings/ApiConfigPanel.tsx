@@ -2,7 +2,7 @@
 // API 配置面板（系统设置 Tab）
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Wifi, WifiOff, Clock, Settings, RotateCw } from 'lucide-react'
 import {
   ApiConfig,
@@ -14,6 +14,7 @@ import {
   isApiConfigured,
   maskCredential,
   resetApiConfig,
+  loadApiConfigsFromBackend,
 } from '../../services/apiConfigStore'
 import ApiConfigDialog from './ApiConfigDialog'
 import ConnectionTestButton from './ConnectionTestButton'
@@ -28,14 +29,29 @@ const STATUS_BADGE: Record<ConnectionStatus, { label: string; className: string 
 export default function ApiConfigPanel() {
   const [configs, setConfigs] = useState<ApiConfig[]>(() => getAllApiConfigs())
   const [editTarget, setEditTarget] = useState<ApiConfig | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    loadApiConfigsFromBackend().then((loaded) => {
+      if (mounted) {
+        setConfigs(loaded)
+        setLoading(false)
+      }
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const refreshConfigs = () => {
     setConfigs(getAllApiConfigs())
   }
 
-  const handleSaved = () => {
+  const handleSaved = async () => {
     setEditTarget(null)
-    refreshConfigs()
+    const loaded = await loadApiConfigsFromBackend()
+    setConfigs(loaded)
   }
 
   const handleStatusChange = (id: string) => {
@@ -51,6 +67,7 @@ export default function ApiConfigPanel() {
             统一管理所有第三方 API 的连接凭证，配置后系统所有模块可复用
           </p>
         </div>
+        {loading && <span className="text-xs text-gray-400">加载中...</span>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -126,9 +143,10 @@ export default function ApiConfigPanel() {
                   />
                 )}
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     resetApiConfig(config.id)
-                    refreshConfigs()
+                    const loaded = await loadApiConfigsFromBackend()
+                    setConfigs(loaded)
                   }}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-400 text-sm rounded-md hover:text-gray-600 transition-colors"
                   title="重置为默认"

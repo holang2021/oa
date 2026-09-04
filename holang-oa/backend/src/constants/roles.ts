@@ -9,7 +9,7 @@
 // ============================================================
 import { z } from 'zod';
 
-/** 8 个权威角色 */
+/** 权威角色集合：销售 8 角色 + 职能部门 7 角色 = 15 角色 */
 export const ROLES = {
   ADMIN: 'ADMIN', // 管理员
   FINANCE: 'FINANCE', // 财务
@@ -19,11 +19,19 @@ export const ROLES = {
   EXTERNAL_LEAD: 'EXTERNAL_LEAD', // 外销主管
   AFTER_SALES: 'AFTER_SALES', // 售后
   READONLY_AUDIT: 'READONLY_AUDIT', // 只读审计
+  // ── 职能部门角色（2026-08-21 新增，刘总拍板按部门建角色）──
+  MARKETING: 'MARKETING', // 市场
+  TECHNOLOGY: 'TECHNOLOGY', // 技术/研发
+  PRODUCTION: 'PRODUCTION', // 生产/PMC
+  ADMINISTRATION: 'ADMINISTRATION', // 行政/人事
+  PROCUREMENT: 'PROCUREMENT', // 采购/供应链
+  INTERNAL_SUPPORT: 'INTERNAL_SUPPORT', // 内销支持（看内销客户，非归属销售）
+  EXTERNAL_SUPPORT: 'EXTERNAL_SUPPORT', // 外销支持（看外销客户，非归属销售）
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
-/** zod 入参校验：角色必须是 8 个权威角色之一 */
+/** zod 入参校验：角色必须是权威角色之一（15 个） */
 export const RoleSchema = z.enum([
   ROLES.ADMIN,
   ROLES.FINANCE,
@@ -33,10 +41,17 @@ export const RoleSchema = z.enum([
   ROLES.EXTERNAL_LEAD,
   ROLES.AFTER_SALES,
   ROLES.READONLY_AUDIT,
+  ROLES.MARKETING,
+  ROLES.TECHNOLOGY,
+  ROLES.PRODUCTION,
+  ROLES.ADMINISTRATION,
+  ROLES.PROCUREMENT,
+  ROLES.INTERNAL_SUPPORT,
+  ROLES.EXTERNAL_SUPPORT,
 ]);
 
-/** 销售域：内销 / 外销 / 全域(跨域可见) */
-export type SalesType = 'INTERNAL' | 'EXTERNAL' | 'ALL';
+/** 销售域：内销 / 外销 / 全域(跨域可见) / 职能(NONE，无销售域权限) */
+export type SalesType = 'INTERNAL' | 'EXTERNAL' | 'ALL' | 'NONE';
 
 /**
  * 历史角色 -> 权威角色 的向后兼容映射。
@@ -54,6 +69,24 @@ const ROLE_ALIASES: Record<string, Role> = {
   AFTER_SALES: ROLES.AFTER_SALES,
   VIEWER: ROLES.READONLY_AUDIT, // 历史只读 -> 只读审计
   READONLY_AUDIT: ROLES.READONLY_AUDIT,
+  // 职能部门别名
+  MARKET: ROLES.MARKETING,
+  MARKETING: ROLES.MARKETING,
+  MKT: ROLES.MARKETING,
+  TECH: ROLES.TECHNOLOGY,
+  TECHNOLOGY: ROLES.TECHNOLOGY,
+  RD: ROLES.TECHNOLOGY,
+  PROD: ROLES.PRODUCTION,
+  PRODUCTION: ROLES.PRODUCTION,
+  PMC: ROLES.PRODUCTION,
+  ADMIN_DEPT: ROLES.ADMINISTRATION,
+  ADMINISTRATION: ROLES.ADMINISTRATION,
+  HR: ROLES.ADMINISTRATION,
+  PURCHASE: ROLES.PROCUREMENT,
+  PROCUREMENT: ROLES.PROCUREMENT,
+  SUPPLY: ROLES.PROCUREMENT,
+  INTERNAL_SUPPORT: ROLES.INTERNAL_SUPPORT,
+  EXTERNAL_SUPPORT: ROLES.EXTERNAL_SUPPORT,
 };
 
 /**
@@ -73,15 +106,25 @@ export function isCanonicalRole(value: string): value is Role {
 /**
  * 由角色派生销售域隔离标签(salesType)。
  * 主管(LEAD)跟随其负责域；全域角色(ADMIN/FINANCE/AFTER_SALES/READONLY_AUDIT)可见全部。
+ * 职能角色(MARKETING/TECHNOLOGY/PRODUCTION/ADMINISTRATION/PROCUREMENT)返回 NONE（无销售域权限）。
+ * 支持角色(INTERNAL_SUPPORT/EXTERNAL_SUPPORT)跟随其对应销售域。
  */
 export function deriveSalesType(role: Role): SalesType {
   switch (role) {
     case ROLES.INTERNAL_SALES:
     case ROLES.INTERNAL_LEAD:
+    case ROLES.INTERNAL_SUPPORT:
       return 'INTERNAL';
     case ROLES.EXTERNAL_SALES:
     case ROLES.EXTERNAL_LEAD:
+    case ROLES.EXTERNAL_SUPPORT:
       return 'EXTERNAL';
+    case ROLES.MARKETING:
+    case ROLES.TECHNOLOGY:
+    case ROLES.PRODUCTION:
+    case ROLES.ADMINISTRATION:
+    case ROLES.PROCUREMENT:
+      return 'NONE';
     default:
       return 'ALL';
   }
@@ -185,6 +228,63 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermission> = {
     label: '只读审计',
     description: '审计只读，跨域可见全部，不可写不可导出',
     salesType: 'ALL',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  // ── 职能部门角色（2026-08-21 新增）──
+  [ROLES.MARKETING]: {
+    role: ROLES.MARKETING,
+    label: '市场',
+    description: '市场/运营职能，仅看公共模块，不碰客户与订单数据',
+    salesType: 'NONE',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  [ROLES.TECHNOLOGY]: {
+    role: ROLES.TECHNOLOGY,
+    label: '技术',
+    description: '技术/研发职能，仅看公共模块，不碰客户与订单数据',
+    salesType: 'NONE',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  [ROLES.PRODUCTION]: {
+    role: ROLES.PRODUCTION,
+    label: '生产',
+    description: '生产/PMC 职能，仅看公共模块，不碰客户与订单数据',
+    salesType: 'NONE',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  [ROLES.ADMINISTRATION]: {
+    role: ROLES.ADMINISTRATION,
+    label: '行政',
+    description: '行政/人事职能，仅看公共模块，不碰客户与订单数据',
+    salesType: 'NONE',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  [ROLES.PROCUREMENT]: {
+    role: ROLES.PROCUREMENT,
+    label: '采购',
+    description: '采购/供应链职能，仅看公共模块，不碰客户与订单数据',
+    salesType: 'NONE',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  [ROLES.INTERNAL_SUPPORT]: {
+    role: ROLES.INTERNAL_SUPPORT,
+    label: '内销支持',
+    description: '内销支持岗（跟单/客服等），可见内销客户但非归属销售',
+    salesType: 'INTERNAL',
+    canExport: false,
+    isSuperAdmin: false,
+  },
+  [ROLES.EXTERNAL_SUPPORT]: {
+    role: ROLES.EXTERNAL_SUPPORT,
+    label: '外销支持',
+    description: '外销支持岗（跟单/单证等），可见外销客户但非归属销售',
+    salesType: 'EXTERNAL',
     canExport: false,
     isSuperAdmin: false,
   },

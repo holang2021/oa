@@ -3,7 +3,7 @@
 // 整合：编码规则 / 币种汇率 / WhatsApp / API 配置 / 字段配置
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Hash,
   Coins,
@@ -19,6 +19,9 @@ import CodeRulePanel from '../components/settings/CodeRulePanel'
 import CurrencyPanel from '../components/settings/CurrencyPanel'
 import RbacSettings from './RbacSettings'
 import DocTemplateSettings from './settings/DocTemplateSettings'
+import { initCurrencies } from '../services/currencyStore'
+import { initCodeRules } from '../services/codeRuleStore'
+import { initFieldConfigs } from '../services/fieldConfigStore'
 
 type TabKey = 'codeRule' | 'currency' | 'whatsapp' | 'api' | 'field' | 'rbac' | 'docTemplate'
 
@@ -51,6 +54,11 @@ function PlaceholderTab({ title, description }: { title: string; description: st
 
 export default function SystemSettings() {
   const [activeTab, setActiveTab] = useState<TabKey>('api')
+
+  // 进入系统配置页：预热三个配置模块（币种/编码规则/字段配置），使其从后端加载
+  useEffect(() => {
+    Promise.allSettled([initCurrencies(), initCodeRules(), initFieldConfigs()])
+  }, [])
 
   return (
     <div className="max-w-6xl mx-auto">

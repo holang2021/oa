@@ -2,7 +2,7 @@
 // 编码规则配置面板
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Hash,
   Plus,
@@ -16,6 +16,7 @@ import {
   X,
   Check,
   RefreshCw,
+  Copy,
 } from 'lucide-react'
 import {
   type CodeRule,
@@ -23,9 +24,11 @@ import {
   type Separator,
   type SerialReset,
   getAllCodeRules,
+  initCodeRules,
   addCodeRule,
   updateCodeRule,
   deleteCodeRule,
+  duplicateCodeRule,
   generateCode,
   previewCode,
   DATE_FORMAT_OPTIONS,
@@ -55,6 +58,7 @@ const CODE_RULE_TYPE_OPTIONS = [
 
 export default function CodeRulePanel() {
   const [rules, setRules] = useState<CodeRule[]>(() => getAllCodeRules())
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [editing, setEditing] = useState<CodeRule | null>(null)
   const [previewRule, setPreviewRule] = useState<CodeRule | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -73,16 +77,31 @@ export default function CodeRulePanel() {
 
   const refresh = () => setRules(getAllCodeRules())
 
-  const handleToggleActive = (rule: CodeRule) => {
-    updateCodeRule(rule.id, { isActive: !rule.isActive })
-    refresh()
+  // 进入面板：从后端预热编码规则
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      setErrorMsg(null)
+      await initCodeRules()
+      if (active) refresh()
+    })()
+    return () => { active = false }
+  }, [])
+
+  const handleToggleActive = async (rule: CodeRule) => {
+    try {
+      await updateCodeRule(rule.id, { isActive: !rule.isActive })
+      refresh()
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
   }
 
-  const handleReset = () => {
-    if (window.confirm('确定要重置为默认编码规则吗？所有自定义修改将丢失。')) {
-      resetCodeRules()
+  const handleReset = async () => {
+    if (!window.confirm('确定要重置为默认编码规则吗？所有自定义修改将丢失。')) return
+    try {
+      await resetCodeRules()
       refresh()
-    }
+      setErrorMsg(null)
+    } catch (e: any) { setErrorMsg(e?.message || '重置失败') }
   }
 
   const handleNew = () => {
@@ -107,7 +126,7 @@ export default function CodeRulePanel() {
     setForm({ ...rule })
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.prefix) return
 
     const data = {
@@ -119,20 +138,25 @@ export default function CodeRulePanel() {
       lastResetKey: form.lastResetKey || '',
     } as CodeRule
 
-    if (editing) {
-      updateCodeRule(editing.id, data)
-    } else {
-      addCodeRule(data as CodeRule)
-    }
-    refresh()
-    setShowNew(false)
-    setEditing(null)
+    try {
+      if (editing) {
+        await updateCodeRule(editing.id, data)
+      } else {
+        await addCodeRule(data as CodeRule)
+      }
+      refresh()
+      setShowNew(false)
+      setEditing(null)
+      setErrorMsg(null)
+    } catch (e: any) { setErrorMsg(e?.message || '保存失败') }
   }
 
-  const handleDelete = (id: string) => {
-    deleteCodeRule(id)
-    setConfirmDelete(null)
-    refresh()
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCodeRule(id)
+      setConfirmDelete(null)
+      refresh()
+    } catch (e: any) { setErrorMsg(e?.message || '删除失败'); setConfirmDelete(null) }
   }
 
   const handlePreview = (rule: CodeRule) => {
@@ -145,11 +169,28 @@ export default function CodeRulePanel() {
     refresh()
   }
 
-  const handleSerialReset = (rule: CodeRule) => {
+  const handleDuplicate = async (rule: CodeRule) => {
+    try {
+      const copy = await duplicateCodeRule(rule.id)
+      if (!copy) return
+      setEditing(copy)
+      setShowNew(false)
+      setForm({ ...copy })
+      refresh()
+      // 滚动到编辑区
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+      }, 50)
+    } catch (e: any) { setErrorMsg(e?.message || '复制失败') }
+  }
+
+  const handleSerialReset = async (rule: CodeRule) => {
     const next = window.prompt(`重置 ${rule.name} 流水号起始值:`, String(rule.serialStart))
     if (next !== null && !isNaN(Number(next))) {
-      updateCodeRule(rule.id, { currentSerial: Number(next) })
-      refresh()
+      try {
+        await updateCodeRule(rule.id, { currentSerial: Number(next) })
+        refresh()
+      } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
     }
   }
 
@@ -177,6 +218,19 @@ export default function CodeRulePanel() {
           共 {rules.length} 条规则，{rules.filter(r => r.isActive).length} 条启用
         </div>
       </div>
+
+      {/* 错误提示 */}
+      {errorMsg && (
+        <div className="relative p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">
+          <div className="font-medium">{errorMsg}</div>
+          <button
+            onClick={() => setErrorMsg(null)}
+            className="absolute top-2 right-2 text-current opacity-50 hover:opacity-100"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* 规则列表 */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -253,6 +307,13 @@ export default function CodeRulePanel() {
                       <Pencil size={14} />
                     </button>
                     <button
+                      onClick={() => handleDuplicate(rule)}
+                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded"
+                      title="复制规则"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button
                       onClick={() => handleGenerate(rule)}
                       className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-gray-100 rounded"
                       title="生成编号"
@@ -317,13 +378,21 @@ export default function CodeRulePanel() {
                     <option key={o.id} value={o.label}>{o.label} ({o.labelEn})</option>
                   ))}
                 </select>
-              ) : (
+              ) : editing && CODE_RULE_TYPE_OPTIONS.some(o => o.id === editing.id) ? (
                 <input
                   type="text"
                   value={form.name || ''}
                   onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   readOnly
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={form.name || ''}
+                  onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  placeholder="如 报价编号-海外版"
                 />
               )}
             </div>

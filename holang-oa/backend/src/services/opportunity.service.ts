@@ -30,6 +30,7 @@ export interface CreateOpportunityInput {
   expectedCloseDate?: string | null;
   stage?: string;
   description?: string | null;
+  customerContactId?: string | null;
 }
 
 /** 新建商机（D3 核心）：透传 salesType + 服务端域强制 + audit_log */
@@ -57,6 +58,7 @@ export async function createOpportunity(input: CreateOpportunityInput, ctx: Serv
     winProbability,
     salesType: cust.salesType ?? 'INTERNAL',
     salesOwnerId: ctx.userId,
+    customerContactId: input.customerContactId ?? null,
   });
 
   // 客户状态推进（POTENTIAL → INTERESTED），与既有逻辑一致
@@ -105,6 +107,7 @@ export async function updateOpportunity(
     expectedCloseDate?: string | null;
     stage?: string;
     description?: string | null;
+    customerContactId?: string | null;
   },
   ctx: ServiceContext
 ) {
@@ -124,6 +127,7 @@ export async function updateOpportunity(
     }),
     ...(data.stage !== undefined && { stage: data.stage }),
     ...(data.description !== undefined && { description: data.description }),
+    ...(data.customerContactId !== undefined && { customerContactId: data.customerContactId }),
     winProbability,
   });
 

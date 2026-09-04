@@ -16,6 +16,7 @@ export interface CreatePiInput {
   issuedAt?: Date | null;
   expiresAt?: Date | null;
   notes?: string | null;
+  customerContactId?: string | null;
   createdById: string;
 }
 
@@ -42,6 +43,7 @@ export async function createPi(data: CreatePiInput) {
       issuedAt: data.issuedAt ?? null,
       expiresAt: data.expiresAt ?? null,
       notes: data.notes ?? null,
+      customerContactId: data.customerContactId ?? null,
       // 标量 createdById：与 1-A 既有约定一致（关系名 creator 仅在 include 阶段使用）
       createdById: data.createdById,
     },
@@ -111,6 +113,18 @@ export async function updatePiStatus(id: string, status: string) {
   return prisma.pi.update({
     where: { id },
     data: { status },
+    include: {
+      customer: { select: { id: true, companyName: true } },
+      creator: { select: { id: true, name: true } },
+    },
+  });
+}
+
+/** 仅更新 PI 关联联系人（轻量端点，不影响状态机） */
+export async function updatePiContact(id: string, customerContactId: string | null) {
+  return prisma.pi.update({
+    where: { id },
+    data: { customerContactId },
     include: {
       customer: { select: { id: true, companyName: true } },
       creator: { select: { id: true, name: true } },

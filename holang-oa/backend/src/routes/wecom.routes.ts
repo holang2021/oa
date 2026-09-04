@@ -5,9 +5,10 @@ import * as wecomController from '../controllers/wecom.controller';
 
 const router = Router();
 
-router.get('/departments', authenticate, wecomController.getDepartments);
+router.get('/departments', authenticate, authorize(['ADMIN']), wecomController.getDepartments);
 router.post('/sync', authenticate, authorize(['ADMIN']), wecomController.syncDepartments);
-router.get('/users', authenticate, wecomController.getWecomUsers);
+router.get('/users', authenticate, authorize(['ADMIN']), wecomController.getWecomUsers);
 router.get('/contacts', authenticate, wecomController.getContacts);
+router.post('/test-connection', authenticate, authorize(['ADMIN']), wecomController.testConnection);
 
 export default router;

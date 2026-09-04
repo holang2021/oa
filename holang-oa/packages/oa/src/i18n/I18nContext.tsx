@@ -119,6 +119,8 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.ecn': '工程变更',
     'nav.contacts': '通讯录',
     'nav.roles': '角色权限',
+    'nav.offboarding': '离职交接',
+    'nav.offboardingTodos': '离职交接待办',
     'nav.approval': '审批引擎',
     'nav.templates': '审批模板',
     'nav.stats': '审批统计',
@@ -127,6 +129,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.blueprint': '数据蓝本',
     'nav.logs': '操作日志',
     'nav.config': '系统配置',
+    'nav.feishuWiki': '飞书知识库',
     'nav.backgroundCheck': '背景调查',
 
     // Placeholder
@@ -331,6 +334,8 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.ecn': 'ECN',
     'nav.contacts': 'Contacts',
     'nav.roles': 'Roles & Perms',
+    'nav.offboarding': 'Offboarding',
+    'nav.offboardingTodos': 'Offboarding Todos',
     'nav.approval': 'Approval Engine',
     'nav.templates': 'Templates',
     'nav.stats': 'Approval Stats',
@@ -339,6 +344,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.blueprint': 'Data Blueprint',
     'nav.logs': 'Audit Logs',
     'nav.config': 'System Config',
+    'nav.feishuWiki': 'Feishu Wiki',
     'nav.backgroundCheck': 'Background Check',
 
     'placeholder.crm': 'CRM',

@@ -5,7 +5,7 @@
 // - requireExporter：仅 ADMIN / FINANCE 可批量导出（H-2 防下载硬约束）。
 // - isSalesOnlyRole / isLeadRole / isCrossDomainRole：域判断辅助。
 // ============================================================
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import type { ParsedQs } from 'qs';
 import { AuthRequest } from './auth';
 import {
@@ -22,17 +22,18 @@ const FORBIDDEN_BODY = { code: 403, message: '权限不足', data: null };
  * 角色鉴权中间件工厂。
  * @param allowedRoles 允许访问的权威角色（可含历史别名，会自动解析）
  */
-export const authorize = (allowedRoles: Role | Role[]) => {
+export const authorize = (allowedRoles: Role | Role[] | string | string[]) => {
   const allowed = (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]).map((r) =>
-    resolveRole(r)
+    resolveRole(r as string)
   );
 
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
       return res.status(401).json({ code: 401, message: '未认证', data: null });
     }
 
-    const userRole = resolveRole(req.user.role);
+    const userRole = resolveRole(authReq.user.role);
 
     // 管理员绕过一切 RBAC
     if (userRole === 'ADMIN') {

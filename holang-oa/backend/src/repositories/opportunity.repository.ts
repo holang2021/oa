@@ -15,6 +15,7 @@ export interface CreateOpportunityInput {
   winProbability: number;
   salesType: string;
   salesOwnerId: string;
+  customerContactId?: string | null;
 }
 
 export interface OpportunityFilter {
@@ -44,6 +45,7 @@ export async function createOpportunity(data: CreateOpportunityInput) {
       winProbability: data.winProbability,
       salesType: data.salesType,
       salesOwnerId: data.salesOwnerId,
+      customerContactId: data.customerContactId ?? null,
       inPublicPool: false,
       ownerId: data.salesOwnerId,
     },
@@ -109,6 +111,7 @@ export async function updateOpportunity(
     stage?: string;
     description?: string | null;
     winProbability?: number;
+    customerContactId?: string | null;
   }
 ) {
   return prisma.opportunity.update({

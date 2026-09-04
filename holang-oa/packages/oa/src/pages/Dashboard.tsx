@@ -196,7 +196,7 @@ export default function Dashboard() {
       h: 'lg',
       customTitle: customForm.title.trim(),
       customUrl: url.startsWith('http') ? url : 'https://' + url,
-    }]
+    } as LayoutItem]
     persist(next)
     setCustomForm({ open: false, title: '', url: '' })
   }

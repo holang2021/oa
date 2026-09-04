@@ -27,9 +27,34 @@ function getToken(): string | null {
   return localStorage.getItem('oa_token')
 }
 
-// 存储 token
+// 存储 token，同时从 JWT 解析用户基础信息写入 oa_user，保证 getCurrentUser 可靠
 export function setToken(token: string) {
   localStorage.setItem('oa_token', token)
+  try {
+    const base64Url = token.split('.')[1]
+    if (!base64Url) return
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    const payload = JSON.parse(jsonPayload)
+    localStorage.setItem(
+      'oa_user',
+      JSON.stringify({
+        id: payload.id,
+        name: payload.name,
+        email: payload.email || null,
+        role: payload.role,
+        department: payload.department || null,
+        wecomUserId: payload.wecomUserId || null,
+      })
+    )
+  } catch {
+    // 解析失败不阻塞登录
+  }
 }
 
 // 清除 token

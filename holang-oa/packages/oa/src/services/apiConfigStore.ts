@@ -1,15 +1,15 @@
 // ============================================================
 // API 配置存储层
 // 管理员可在系统设置页面配置所有第三方 API
-// 存储到 localStorage，runtime 不用重新配置
+// 服务端源：/api/v1/api-configs；本地 localStorage 作为缓存兜底。
 // ============================================================
 
 import {
   ApiConfig,
   ApiProvider,
-  AuthType,
   ConnectionStatus,
 } from '../types/apiConfig'
+import { api } from './api'
 
 const STORAGE_KEY = 'holang_api_configs'
 
@@ -129,7 +129,7 @@ const DEFAULT_API_CONFIGS: ApiConfig[] = [
 ]
 
 // ============================================================
-// 存储操作
+// 本地缓存操作
 // ============================================================
 
 function loadConfigs(): ApiConfig[] {
@@ -155,8 +155,61 @@ function saveConfigs(configs: ApiConfig[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(configs))
 }
 
+function mergeAndSave(configs: ApiConfig[]) {
+  saveConfigs(configs)
+}
+
 // ============================================================
-// 公开 API
+// 后端同步
+// ============================================================
+
+/**
+ * 从后端拉取最新配置。后端是数据源，拉取后覆盖本地缓存。
+ */
+export async function loadApiConfigsFromBackend(): Promise<ApiConfig[]> {
+  try {
+    const res = await api.get<ApiConfig[]>('/api-configs')
+    if (res.code === 0 && Array.isArray(res.data)) {
+      // 用默认模板兜底字段
+      const merged = DEFAULT_API_CONFIGS.map((def) => {
+        const found = res.data!.find((s) => s.id === def.id)
+        return found ? { ...def, ...found, provider: def.provider } : def
+      })
+      saveConfigs(merged)
+      return merged
+    }
+  } catch (err) {
+    console.error('loadApiConfigsFromBackend failed', err)
+  }
+  return loadConfigs()
+}
+
+/**
+ * 把单个配置保存到后端。这是持久化入口。
+ */
+export async function saveApiConfigToBackend(
+  provider: ApiProvider,
+  patch: Partial<ApiConfig>
+): Promise<ApiConfig | null> {
+  try {
+    const res = await api.put<ApiConfig>(`/api-configs/${provider}`, patch)
+    if (res.code === 0 && res.data) {
+      const configs = loadConfigs()
+      const idx = configs.findIndex((c) => c.provider === provider)
+      if (idx !== -1) {
+        configs[idx] = { ...configs[idx], ...res.data }
+        saveConfigs(configs)
+      }
+      return res.data
+    }
+  } catch (err) {
+    console.error('saveApiConfigToBackend failed', err)
+  }
+  return null
+}
+
+// ============================================================
+// 公开 API（保持旧签名，内部同步后端）
 // ============================================================
 
 export function getAllApiConfigs(): ApiConfig[] {
@@ -180,6 +233,10 @@ export function updateApiConfig(
     updatedAt: new Date().toISOString(),
   }
   saveConfigs(configs)
+
+  // 同步后端（不 await，失败也有本地缓存兜底）
+  const provider = configs[idx].provider
+  saveApiConfigToBackend(provider, patch).catch(() => {})
 }
 
 export function updateApiCredentials(
@@ -205,6 +262,10 @@ export function updateApiCredentials(
     updatedAt: new Date().toISOString(),
   }
   saveConfigs(configs)
+
+  // 同步后端
+  const provider = configs[idx].provider
+  saveApiConfigToBackend(provider, { credentials: masked }).catch(() => {})
 }
 
 export function updateApiStatus(
@@ -232,6 +293,9 @@ export function resetApiConfig(id: string) {
   if (idx === -1) return
   configs[idx] = { ...def, updatedAt: new Date().toISOString() }
   saveConfigs(configs)
+
+  // 同步后端
+  saveApiConfigToBackend(def.provider, configs[idx]).catch(() => {})
 }
 
 /**

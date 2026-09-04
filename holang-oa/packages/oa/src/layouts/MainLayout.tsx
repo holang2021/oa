@@ -1,4 +1,4 @@
-import { useState, ReactNode, useMemo } from 'react'
+import { useState, useEffect, ReactNode, useMemo } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, Users, ShieldCheck, FileText,
@@ -8,10 +8,13 @@ import {
   Palette, CreditCard, HardDrive, Boxes, Settings, History,
   Bell, Target, BarChart3, Clock, Cpu, Shield, RefreshCw,
   Megaphone, PieChart, Languages, MessageCircle, Trash2,
-  ArrowLeft, Printer
+  ArrowLeft, Printer, UserCog, User, ShieldAlert, BookOpen, UserX, Inbox
 } from 'lucide-react'
 import { useI18n } from '../i18n/I18nContext'
-import { getCurrentRole } from '../services/rbacStore'
+import { getCurrentRole, canAccessPage } from '../services/rbacStore'
+import { getCurrentUser, UserInfo } from '../services/authService'
+import { api } from '../services/api'
+import { getViewMode, setViewMode, subscribeViewMode, ADMIN_ONLY_PATHS, type ViewMode } from '../services/viewModeStore'
 import type { Role } from '../types/rbac'
 
 interface NavGroup {
@@ -19,13 +22,14 @@ interface NavGroup {
   items: { to: string; labelKey: string; icon: any }[]
 }
 
-function buildNavGroups(t: (k: string) => string, currentRole: Role | null): NavGroup[] {
+function buildNavGroups(t: (k: string) => string, currentRole: Role | null, viewMode: ViewMode): NavGroup[] {
   const domestic = t('nav.domestic')
 
   // 权限过滤函数：只返回当前角色有权限的菜单项
+  // 直接复用 canAccessPage（与路由守卫同一判定源），保证「导航可见」与「实际可访问」严格一致，
+  // 杜绝角色缺失时降级为「显示全部」的安全反模式。
   const filterItems = (items: { to: string; labelKey: string; icon: any }[]) => {
-    if (!currentRole) return items // 未登录或角色未找到，降级显示全部
-    return items.filter(item => currentRole.menuPermissions.includes(item.to as any))
+    return items.filter(item => canAccessPage(item.to))
   }
 
   const allGroups: NavGroup[] = [
@@ -127,6 +131,8 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null): Nav
       items: filterItems([
         { to: '/org/contacts', labelKey: 'nav.contacts', icon: BookUser },
         { to: '/org/roles', labelKey: 'nav.roles', icon: ShieldCheck },
+        { to: '/org/offboarding', labelKey: 'nav.offboarding', icon: UserX },
+        { to: '/org/offboarding-todos', labelKey: 'nav.offboardingTodos', icon: Inbox },
       ])
     },
     {
@@ -138,6 +144,7 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null): Nav
         { to: '/tools/print-templates', labelKey: 'nav.printTemplates', icon: Printer },
         { to: '/tools/trash', labelKey: 'nav.trash', icon: Trash2 },
         { to: '/tools/config', labelKey: 'nav.config', icon: Settings },
+        { to: '/tools/feishu-wiki', labelKey: 'nav.feishuWiki', icon: BookOpen },
       ])
     },
   ]
@@ -159,6 +166,59 @@ export default function MainLayout({ children, onLogout }: { children: ReactNode
   const isRoot = location.pathname === '/dashboard'
 
   const currentRole = useMemo(() => getCurrentRole(), [])
+  // currentUser 用 state：登录/刷新后 oa_user 会更新，需响应变化
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(() => getCurrentUser())
+  // 以 JWT/后端真实角色为准（前端 mock employee 表可能未同步）
+  const isAdmin = currentUser?.role === 'ADMIN'
+  const [confirmAdminOpen, setConfirmAdminOpen] = useState(false)
+
+  // 监听 localStorage 变化，刷新当前用户
+  useEffect(() => {
+    const refreshUser = () => setCurrentUser(getCurrentUser())
+    refreshUser()
+    window.addEventListener('storage', refreshUser)
+    return () => window.removeEventListener('storage', refreshUser)
+  }, [])
+
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => getViewMode())
+  useEffect(() => subscribeViewMode(() => setViewModeState(getViewMode())), [])
+
+  // 安全兜底：非管理员身份时，强制切回用户身份，防止 localStorage 残留 admin 视图
+  useEffect(() => {
+    if (!isAdmin && viewMode === 'admin') {
+      setViewMode('user')
+      setViewModeState('user')
+      navigate('/dashboard')
+    }
+  }, [isAdmin, viewMode, navigate])
+
+  // 身份切换写审计（后端 /rbac/view-mode，仅 ADMIN 可记录）
+  const recordSwitchAudit = (mode: ViewMode, from: ViewMode) => {
+    api.post('/rbac/view-mode', { mode, from }).catch(() => {})
+  }
+
+  const applyViewMode = (mode: ViewMode) => {
+    if (mode === viewMode) return
+    const from = viewMode
+    setViewMode(mode)
+    setViewModeState(mode)
+    recordSwitchAudit(mode, from)
+    // 切到用户身份时若停留在配置层页面，跳回工作台避免迷路
+    if (mode === 'user' && ADMIN_ONLY_PATHS.has(location.pathname)) {
+      navigate('/dashboard')
+    }
+  }
+
+  // 进入管理员身份需二次确认（防误触）
+  const requestAdminMode = () => {
+    if (viewMode === 'admin') return
+    setConfirmAdminOpen(true)
+  }
+
+  const confirmSwitchToAdmin = () => {
+    setConfirmAdminOpen(false)
+    applyViewMode('admin')
+  }
 
   const toggleSidebar = () => {
     const next = !sidebarCollapsed
@@ -166,7 +226,7 @@ export default function MainLayout({ children, onLogout }: { children: ReactNode
     try { localStorage.setItem('sidebarCollapsed', String(next)) } catch {}
   }
 
-  const navGroups = buildNavGroups(t, currentRole)
+  const navGroups = buildNavGroups(t, currentRole, viewMode)
   const toggleGroup = (id: string) => setCollapsed(prev => ({ ...prev, [id]: !prev[id] }))
   const isGroupActive = (group: NavGroup) =>
     group.items.some(item => location.pathname === item.to || location.pathname.startsWith(item.to + '/'))
@@ -240,6 +300,10 @@ export default function MainLayout({ children, onLogout }: { children: ReactNode
           {currentRole && (
             <div className="mt-1 text-brand-300">角色：{currentRole.name}</div>
           )}
+          <div className="mt-0.5 text-brand-300">
+            身份：{viewMode === 'admin' ? '管理员身份' : '用户身份'}
+            {viewMode === 'user' && <span className="ml-1 opacity-60">（使用层·防误改）</span>}
+          </div>
         </div>
       </aside>
 
@@ -272,16 +336,70 @@ export default function MainLayout({ children, onLogout }: { children: ReactNode
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                  <div className="px-3 py-2 text-xs text-gray-400 border-b">{t('header.admin')}</div>
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                  <div className="px-3 py-2 text-xs text-gray-400 border-b">{currentUser?.name || t('header.admin')} · {currentUser?.role || currentRole?.name || '未知角色'}</div>
+                  {/* 身份切换：仅管理员可见，独立分区 + 二次确认防误触 */}
+                  {isAdmin && (
+                    <div className="px-3 py-2.5 border-b border-gray-100">
+                      <div className="text-[11px] text-gray-400 mb-1.5">身份切换（防误操作）</div>
+                      <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-100 border border-gray-200">
+                        <button
+                          onClick={() => { setUserMenuOpen(false); applyViewMode('user') }}
+                          className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'user' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                          <User size={13} />用户身份
+                        </button>
+                        <button
+                          onClick={() => { setUserMenuOpen(false); requestAdminMode() }}
+                          className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'admin' ? 'bg-amber-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                          <UserCog size={13} />管理员身份
+                        </button>
+                      </div>
+                      <div className="mt-1.5 text-[10px] text-gray-400 leading-tight">
+                        {viewMode === 'admin'
+                          ? '当前：配置层（可改设置/角色/权限）'
+                          : '当前：使用层（按本人业务角色操作）'}
+                      </div>
+                    </div>
+                  )}
                   <button onClick={() => { setUserMenuOpen(false); onLogout() }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"><LogOut size={14} />{t('header.logout')}</button>
                 </div>
               </>
             )}
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
+          {isAdmin && viewMode === 'admin' && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-800">
+              <ShieldAlert size={16} className="shrink-0" />
+              <span className="text-xs font-medium flex-1">
+                管理员身份 · 配置层：您正在后台，可修改系统设置 / 角色权限 / 组织结构。误操作可能影响系统，完成后请及时切回「用户身份」。
+              </span>
+              <button onClick={() => applyViewMode('user')} className="px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500 text-white hover:bg-amber-600 shrink-0">切回用户身份</button>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
+      {confirmAdminOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmAdminOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 text-amber-600 mb-2">
+              <ShieldAlert size={18} />
+              <span className="text-sm font-semibold">进入管理员身份（配置层）</span>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed mb-4">
+              管理员身份下您可修改系统设置、角色与权限、组织结构和数据。误操作可能影响系统运行。
+              如仅日常使用，请停留在「用户身份」。确认进入？
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setConfirmAdminOpen(false)} className="px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-gray-100 border border-gray-200">取消</button>
+              <button onClick={confirmSwitchToAdmin} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-amber-500 hover:bg-amber-600">确认进入</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -243,30 +243,27 @@ export const aftersaleVisitConfig: PageConfig = {
 }
 
 export const aftersaleTicketConfig: PageConfig = {
-  title: '售后工单', subtitle: '售后工单处理与闭环跟踪',
-  searchPlaceholder: '搜索工单号/客户/问题描述',
-  searchFields: ['code', 'name', 'desc'],
-  filters: [{ key: 'status', label: '状态', options: [{ label: '待处理', value: '待审核' }, { label: '处理中', value: '进行中' }, { label: '已完成', value: '已完成' }, { label: '已关闭', value: '已关闭' }] }],
+  title: '售后工单', subtitle: '售后工单处理与闭环跟踪（来源：伙伴云售后宝 134 条）',
+  searchPlaceholder: '搜索工单号/客户/问题描述/产品型号',
+  searchFields: ['code', 'name', 'desc', 'productName', 'model', 'serialNo'],
+  dataUrl: '/aftersale-tickets-mock.json',
+  filters: [{ key: 'status', label: '状态', options: [{ label: '待处理', value: '待处理' }, { label: '处理中', value: '进行中' }, { label: '已完成', value: '已完成' }, { label: '已关闭', value: '已关闭' }] }],
   columns: [
     { label: '工单号', key: 'code' },
     { label: '客户', key: 'name' },
-    { label: '问题描述', key: 'desc' },
-    { label: '处理人', key: 'contact' },
-    { label: '优先级', key: 'qty', render: (v) => {
-      const n = Number(v) % 3
-      const l = ['低', '中', '高'][n]
-      const c = ['bg-gray-50 text-gray-500', 'bg-yellow-50 text-yellow-700', 'bg-red-50 text-red-700'][n]
-      return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c}`}>{l}</span>
-    }},
+    { label: '产品', key: 'productName' },
+    { label: '型号', key: 'model' },
+    { label: '序列号', key: 'serialNo' },
+    { label: '服务类型', key: 'serviceType' },
+    { label: '问题描述', key: 'desc', className: 'max-w-xs truncate' },
     { label: '状态', key: 'status', render: (v) => {
       const s = String(v || '')
-      const c: Record<string, string> = { '待审核': 'bg-red-50 text-red-700', '进行中': 'bg-yellow-50 text-yellow-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
+      const c: Record<string, string> = { '待处理': 'bg-red-50 text-red-700', '进行中': 'bg-yellow-50 text-yellow-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500', '待审核': 'bg-blue-50 text-blue-700' }
       return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c[s] || ''}`}>{s}</span>
     }},
-    { label: '创建时间', key: 'date' },
+    { label: '申请时间', key: 'date' },
   ],
   emptyMessage: '暂无工单数据',
-  comingSoon: true,
 }
 
 // ====== SRM (Supplier Relationship Management) ======

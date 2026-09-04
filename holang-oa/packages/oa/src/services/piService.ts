@@ -1,6 +1,7 @@
 // ============================================================
 // 形式发票 (PI) API 服务（外销 EXTERNAL）
-// 消费已有 GET /pi，按 customerId 过滤
+// 消费 GET /pi（列表/详情）、POST /pi（创建）、PUT /pi/:id（状态更新）
+// 后端约束：仅 EXTERNAL 外销域、客户须外销、须关联 ACCEPTED 外销报价
 // ============================================================
 import api, { PaginatedData } from './api'
 
@@ -70,4 +71,37 @@ export async function getPis(params: PiQuery = {}) {
     }
   }
   return { list: [], pagination: { page: 1, pageSize: 50, total: 0, totalPages: 0 } }
+}
+
+// 获取单个 PI 详情
+export async function getPiById(id: string) {
+  const res = await api.get<any>(`/pi/${id}`)
+  if (res.code === 0 && res.data) return res.data
+  return null
+}
+
+// 创建 PI（POST /pi）
+export interface CreatePiInput {
+  piNo?: string
+  customerId: string
+  quoteRef: string
+  amount?: number
+  currency?: string
+  issuedAt?: string
+  expiresAt?: string
+  notes?: string
+  customerContactId?: string
+}
+
+export async function createPi(input: CreatePiInput) {
+  const res = await api.post<any>('/pi', input)
+  if (res.code === 0 && res.data) return res.data
+  throw new Error(res.message || 'PI 生成失败')
+}
+
+// 更新 PI 状态（PUT /pi/:id，后端仅接收 status）
+export async function updatePiStatus(id: string, status: string) {
+  const res = await api.put<any>(`/pi/${id}`, { status })
+  if (res.code === 0 && res.data) return res.data
+  throw new Error(res.message || '更新失败')
 }

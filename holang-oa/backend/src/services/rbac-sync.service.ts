@@ -4,7 +4,7 @@
 // 角色从企微同步；OA 本地可自定义，并可给企微回流建议。
 // 系统记录源(SoR) = OA（见 constants/sor.ts）：同步写入以 OA 为准，
 // 仅当企微侧角色与 OA 冲突且 OA 未自定义时，才以企微覆盖 OA。
-// 本文件不依赖真实企微凭证；提供：① 企微用户→8角色 映射逻辑
+// 本文件不依赖真实企微凭证；提供：① 企微用户→15角色 映射逻辑
 // ② 基于本地 WecomDepartment/User 的 dry-run 同步 ③ 向企微回流建议。
 // ============================================================
 import {
@@ -37,11 +37,16 @@ const DEPARTMENT_ROLE_RULES: Array<{ test: RegExp; role: Role }> = [
   { test: /财务|finance/i, role: ROLES.FINANCE },
   { test: /内销主管|内销经理|国内销售主管/i, role: ROLES.INTERNAL_LEAD },
   { test: /外销主管|外销经理|海外销售主管/i, role: ROLES.EXTERNAL_LEAD },
+  { test: /市场|marketing|运营|品牌/i, role: ROLES.MARKETING },
+  { test: /技术|研发|technolog|r&d|rd\b|工程/i, role: ROLES.TECHNOLOGY },
+  { test: /生产|制造|pmc|车间/i, role: ROLES.PRODUCTION },
+  { test: /行政|人事|hr|总经办|管理部/i, role: ROLES.ADMINISTRATION },
+  { test: /采购|供应链|supply|sourcing/i, role: ROLES.PROCUREMENT },
   { test: /内销|国内销售|industrial/i, role: ROLES.INTERNAL_SALES },
   { test: /外销|海外销售|export|retail/i, role: ROLES.EXTERNAL_SALES },
   { test: /售后|服务/i, role: ROLES.AFTER_SALES },
   { test: /审计|合规/i, role: ROLES.READONLY_AUDIT },
-  { test: / admin|管理员|总经办|管理/i, role: ROLES.ADMIN },
+  { test: / admin|管理员|管理/i, role: ROLES.ADMIN },
 ];
 
 const POSITION_ROLE_RULES: Array<{ test: RegExp; role: Role }> = [
@@ -49,6 +54,11 @@ const POSITION_ROLE_RULES: Array<{ test: RegExp; role: Role }> = [
   // 外销主管优先于通用「主管」规则，避免误归内销域
   { test: /外销主管|海外销售主管/i, role: ROLES.EXTERNAL_LEAD },
   { test: /内销主管|国内销售主管/i, role: ROLES.INTERNAL_LEAD },
+  { test: /市场|marketing|运营/i, role: ROLES.MARKETING },
+  { test: /技术|研发|r&d|rd\b|工程/i, role: ROLES.TECHNOLOGY },
+  { test: /生产|制造|pmc/i, role: ROLES.PRODUCTION },
+  { test: /行政|人事|hr/i, role: ROLES.ADMINISTRATION },
+  { test: /采购|供应链|sourcing/i, role: ROLES.PROCUREMENT },
   { test: /主管|经理|leader|manager/i, role: ROLES.INTERNAL_LEAD }, // 通用主管默认内销域
   { test: /售后|服务/i, role: ROLES.AFTER_SALES },
   { test: /审计|合规/i, role: ROLES.READONLY_AUDIT },
@@ -116,7 +126,7 @@ export async function syncRolesFromWecom(apply: boolean = false): Promise<RoleSy
   const backflowSuggestions: RoleSyncResult['backflowSuggestions'] = [];
 
   for (const u of users) {
-    const deptNames = u.department ? [u.department] : [];
+    const deptNames = (u as any).departments ? JSON.parse((u as any).departments) : (u.department ? [u.department] : []);
     const suggested = mapWecomUserToRole(deptNames, u.department || '');
     const current = resolveRole(u.role);
 

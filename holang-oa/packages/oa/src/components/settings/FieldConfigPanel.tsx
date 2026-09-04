@@ -3,7 +3,7 @@
 // 管理员可配置每个模块的表单字段属性
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Eye,
   EyeOff,
@@ -14,6 +14,7 @@ import {
   Pencil,
   ChevronDown,
   ChevronRight,
+  X,
 } from 'lucide-react'
 import {
   FieldMeta,
@@ -26,6 +27,7 @@ import {
   updateField,
   resetToDefault,
   getFieldConfig,
+  initFieldConfigs,
 } from '../../services/fieldConfigStore'
 import FieldConfigDialog from './FieldConfigDialog'
 
@@ -34,6 +36,7 @@ export default function FieldConfigPanel() {
   const [fields, setFields] = useState<FieldMeta[]>(() => getFieldConfig('customer'))
   const [editField, setEditField] = useState<FieldMeta | null>(null)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const reloadFields = (module: ModuleName) => {
     setSelectedModule(module)
@@ -41,49 +44,68 @@ export default function FieldConfigPanel() {
     setEditField(null)
   }
 
-  const toggleRequired = (fieldId: string) => {
+  // 进入面板：从后端预热字段配置
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      setErrorMsg(null)
+      await initFieldConfigs()
+      if (active) reloadFields('customer')
+    })()
+    return () => { active = false }
+  }, [])
+
+  const toggleRequired = async (fieldId: string) => {
     const field = fields.find((f) => f.id === fieldId)
-    if (field) {
-      updateField(selectedModule, fieldId, { required: !field.required })
+    if (!field) return
+    try {
+      await updateField(selectedModule, fieldId, { required: !field.required })
       reloadFields(selectedModule)
-    }
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
   }
 
-  const toggleVisible = (fieldId: string) => {
+  const toggleVisible = async (fieldId: string) => {
     const field = fields.find((f) => f.id === fieldId)
-    if (field) {
-      updateField(selectedModule, fieldId, { visible: !field.visible })
+    if (!field) return
+    try {
+      await updateField(selectedModule, fieldId, { visible: !field.visible })
       reloadFields(selectedModule)
-    }
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
   }
 
-  const moveUp = (index: number) => {
+  const moveUp = async (index: number) => {
     if (index <= 0) return
     const newFields = [...fields]
     const temp = newFields[index].order
     newFields[index] = { ...newFields[index], order: newFields[index - 1].order }
     newFields[index - 1] = { ...newFields[index - 1], order: temp }
-    updateField(selectedModule, newFields[index].id, { order: newFields[index].order })
-    updateField(selectedModule, newFields[index - 1].id, { order: newFields[index - 1].order })
-    reloadFields(selectedModule)
+    try {
+      await updateField(selectedModule, newFields[index].id, { order: newFields[index].order })
+      await updateField(selectedModule, newFields[index - 1].id, { order: newFields[index - 1].order })
+      reloadFields(selectedModule)
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
   }
 
-  const moveDown = (index: number) => {
+  const moveDown = async (index: number) => {
     if (index >= fields.length - 1) return
     const newFields = [...fields]
     const temp = newFields[index].order
     newFields[index] = { ...newFields[index], order: newFields[index + 1].order }
     newFields[index + 1] = { ...newFields[index + 1], order: temp }
-    updateField(selectedModule, newFields[index].id, { order: newFields[index].order })
-    updateField(selectedModule, newFields[index + 1].id, { order: newFields[index + 1].order })
-    reloadFields(selectedModule)
+    try {
+      await updateField(selectedModule, newFields[index].id, { order: newFields[index].order })
+      await updateField(selectedModule, newFields[index + 1].id, { order: newFields[index + 1].order })
+      reloadFields(selectedModule)
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
   }
 
-  const handleReset = () => {
-    if (confirm(`确认重置「${MODULE_LABELS[selectedModule]}」的字段配置为默认值？`)) {
-      resetToDefault(selectedModule)
+  const handleReset = async () => {
+    if (!confirm(`确认重置「${MODULE_LABELS[selectedModule]}」的字段配置为默认值？`)) return
+    try {
+      await resetToDefault(selectedModule)
       reloadFields(selectedModule)
-    }
+      setErrorMsg(null)
+    } catch (e: any) { setErrorMsg(e?.message || '重置失败') }
   }
 
   const handleSaved = () => {
@@ -118,6 +140,17 @@ export default function FieldConfigPanel() {
             配置各模块表单的字段属性（必填/显示/排序/默认值），无需修改代码
           </p>
         </div>
+        {errorMsg && (
+          <div className="relative p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">
+            <div className="font-medium">{errorMsg}</div>
+            <button
+              onClick={() => setErrorMsg(null)}
+              className="absolute top-2 right-2 text-current opacity-50 hover:opacity-100"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 模块选择器 */}

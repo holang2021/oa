@@ -21,6 +21,7 @@ export interface CreatePiInput {
   issuedAt?: string | null;
   expiresAt?: string | null;
   notes?: string | null;
+  customerContactId?: string | null;
 }
 
 /** 生成外销 PI 记录（D2 核心）：仅 EXTERNAL 域；复用 ACCEPTED 报价数据 */
@@ -66,6 +67,7 @@ export async function createPi(input: CreatePiInput, ctx: ServiceContext) {
     issuedAt: input.issuedAt ? new Date(input.issuedAt) : null,
     expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
     notes: input.notes ?? null,
+    customerContactId: input.customerContactId ?? null,
     createdById: ctx.userId,
   });
 
@@ -136,6 +138,27 @@ export async function updatePi(id: string, status: string, ctx: ServiceContext) 
     salesType: existing.salesType,
     result: 'SUCCESS',
     detail: { op: 'updateStatus', status },
+    traceId: ctx.traceId ?? null,
+  });
+  return updated;
+}
+
+/** 仅更新 PI 关联联系人（轻量，不影响状态机；域强制） */
+export async function updatePiContact(id: string, customerContactId: string | null, ctx: ServiceContext) {
+  const existing = await piRepo.findPiById(id);
+  if (!existing) throw new AppError('PI 不存在', 404);
+  if (ctx.scope !== 'ALL' && (existing.salesType ?? '').toUpperCase() !== ctx.scope) {
+    throw new AppError('无权操作该 PI', 403);
+  }
+  const updated = await piRepo.updatePiContact(id, customerContactId);
+  await createAuditLog({
+    userId: ctx.userId,
+    action: 'WRITE',
+    entity: 'pis',
+    entityId: id,
+    salesType: existing.salesType,
+    result: 'SUCCESS',
+    detail: { op: 'updateContact', customerContactId },
     traceId: ctx.traceId ?? null,
   });
   return updated;

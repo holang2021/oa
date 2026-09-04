@@ -20,6 +20,7 @@ import targetRoutes from './target.routes';
 import wecomRoutes from './wecom.routes';
 import migrationRoutes from './migration.routes';
 import dealerRoutes from './dealer.routes';
+import apiConfigRoutes from './api-config.routes';
 
 // This file aggregates all routes for easier management
 // Actual route registration happens in app.ts
@@ -40,6 +41,7 @@ export {
   wecomRoutes,
   migrationRoutes,
   dealerRoutes,
+  apiConfigRoutes,
 };
 
 export default router;

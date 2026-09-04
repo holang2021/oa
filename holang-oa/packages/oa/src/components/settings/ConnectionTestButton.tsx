@@ -1,11 +1,13 @@
 // ============================================================
 // API 连通性测试按钮
+// 所有 provider 统一走后端代理测试，避免浏览器 CORS 限制。
 // ============================================================
 
 import { useState } from 'react'
 import { Zap, CheckCircle, XCircle } from 'lucide-react'
 import { ApiConfig } from '../../types/apiConfig'
 import { updateApiStatus } from '../../services/apiConfigStore'
+import { api } from '../../services/api'
 
 interface Props {
   config: ApiConfig
@@ -23,30 +25,14 @@ export default function ConnectionTestButton({ config, onStatusChange }: Props) 
     updateApiStatus(config.id, 'testing')
 
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), config.timeout)
-
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (config.authType === 'bearer') {
-        headers['Authorization'] = `Bearer ${config.credentials.appSecret}`
-      } else if (config.authType === 'api_key') {
-        headers['Authorization'] = `Bearer ${config.credentials.apiKey}`
-      }
-
-      const url = config.baseUrl.replace(/\/$/, '') + config.testEndpoint
-      const resp = await fetch(url, {
-        method: 'GET',
-        headers,
-        signal: controller.signal,
+      const res = await api.post(`/api-configs/${config.provider}/test`, {
+        credentials: config.credentials,
       })
-      clearTimeout(timeoutId)
-
-      if (resp.ok || resp.status === 200) {
-        setResult({ ok: true, message: `连接成功 (${resp.status})` })
+      if (res.code === 0) {
+        setResult({ ok: true, message: res.message || '连接成功' })
         updateApiStatus(config.id, 'connected', new Date().toISOString())
       } else {
-        setResult({ ok: false, message: `返回 ${resp.status}` })
-        updateApiStatus(config.id, 'failed', new Date().toISOString())
+        throw new Error(res.message || '连接失败')
       }
     } catch (err: any) {
       const msg = err.name === 'AbortError' ? '连接超时' : `连接失败: ${err.message}`

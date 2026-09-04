@@ -1471,7 +1471,7 @@ v2.0新增了多个模块（低代码审批流、沟通记录统一视图、离�
 5. 配置Redis（会话缓存、DeepSeek查询结果缓存）
 6. 实现Redis客户端工具（`utils/redis_client.py`）
 7. 配置Docker Compose（前端 + 后端 + PostgreSQL + Redis）
-8. 配置企微自建应用（AgentID=1000081, Secret=wLHXr64De3gZO4lj9Ca-GjGMT1zRbBkl7AHode4Capo）
+8. 配置企微自建应用（AgentID=1000081, Secret=<见 holang-oa/backend/.env 的 WECOM_OAUTH_SECRET，禁止明文记录>）
 
 **验收标准**:
 - [ ] 访问 `/` 显示官网首页

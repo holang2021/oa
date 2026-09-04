@@ -1,10 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, BusinessLine, SalesType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import fs from 'fs';
 import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
+
+type BusinessLine = 'RETAIL' | 'INDUSTRIAL';
+type SalesType = 'INTERNAL' | 'EXTERNAL';
 
 /**
  * 伙伴云字段 → CRM 字段映射配置（完整版，含内销/外销分类）

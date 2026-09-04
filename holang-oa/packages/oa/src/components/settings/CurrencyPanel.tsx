@@ -21,6 +21,7 @@ import {
   type Currency,
   getAllCurrencies,
   getDefaultCurrency,
+  initCurrencies,
   addCurrency,
   updateCurrency,
   deleteCurrency,
@@ -33,6 +34,7 @@ import {
 
 export default function CurrencyPanel() {
   const [currencies, setCurrencies] = useState<Currency[]>(() => getAllCurrencies())
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [editing, setEditing] = useState<Currency | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -50,54 +52,60 @@ export default function CurrencyPanel() {
 
   const refresh = () => setCurrencies(getAllCurrencies())
 
-  // 页面加载时自动检测汇率更新
+  // 进入面板：从后端预热币种，成功后按需自动更新汇率
   useEffect(() => {
-    const checkUpdate = async () => {
+    let active = true
+    ;(async () => {
+      setErrorMsg(null)
+      await initCurrencies()
+      if (!active) return
+      refresh()
       if (shouldAutoUpdate()) {
         setIsUpdating(true)
         const result = await autoUpdateRatesIfNeeded()
-        if (result) {
-          setUpdateResult(result)
-          refresh()
-        }
+        if (active && result) { setUpdateResult(result); refresh() }
         setIsUpdating(false)
       }
-    }
-    checkUpdate()
+    })()
+    return () => { active = false }
   }, [])
 
   // 手动获取最新汇率
   const handleFetchRates = async () => {
     setIsUpdating(true)
     setUpdateResult(null)
+    setErrorMsg(null)
     const result = await fetchLatestRates()
     setUpdateResult(result)
     if (result.success) {
       refresh()
+    } else if (!result.message.includes('成功更新')) {
+      setErrorMsg(result.message)
     }
     setIsUpdating(false)
   }
 
-  const handleToggleActive = (c: Currency) => {
-    updateCurrency(c.id, { isActive: !c.isActive })
-    refresh()
-  }
-
-  const handleToggleDefault = (c: Currency) => {
-    // 取消其他默认
-    const all = getAllCurrencies()
-    all.forEach(other => {
-      if (other.isDefault) updateCurrency(other.id, { isDefault: false })
-    })
-    updateCurrency(c.id, { isDefault: true })
-    refresh()
-  }
-
-  const handleReset = () => {
-    if (window.confirm('确定要重置为默认币种配置吗？所有自定义修改将丢失。')) {
-      resetCurrencies()
+  const handleToggleActive = async (c: Currency) => {
+    try {
+      await updateCurrency(c.id, { isActive: !c.isActive })
       refresh()
-    }
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
+  }
+
+  const handleToggleDefault = async (c: Currency) => {
+    try {
+      await updateCurrency(c.id, { isDefault: true })
+      refresh()
+    } catch (e: any) { setErrorMsg(e?.message || '操作失败') }
+  }
+
+  const handleReset = async () => {
+    if (!window.confirm('确定要重置为默认币种配置吗？所有自定义修改将丢失。')) return
+    try {
+      await resetCurrencies()
+      refresh()
+      setErrorMsg(null)
+    } catch (e: any) { setErrorMsg(e?.message || '重置失败') }
   }
 
   const handleNew = () => {
@@ -120,27 +128,32 @@ export default function CurrencyPanel() {
     setForm({ ...c })
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.id || !form.name || !form.symbol) return
     const data = {
       ...form,
       rate: Number(form.rate) || 1,
     } as Currency
 
-    if (editing) {
-      updateCurrency(editing.id, data)
-    } else {
-      addCurrency(data)
-    }
-    refresh()
-    setShowNew(false)
-    setEditing(null)
+    try {
+      if (editing) {
+        await updateCurrency(editing.id, data)
+      } else {
+        await addCurrency(data)
+      }
+      refresh()
+      setShowNew(false)
+      setEditing(null)
+      setErrorMsg(null)
+    } catch (e: any) { setErrorMsg(e?.message || '保存失败') }
   }
 
-  const handleDelete = (id: string) => {
-    deleteCurrency(id)
-    setConfirmDelete(null)
-    refresh()
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCurrency(id)
+      setConfirmDelete(null)
+      refresh()
+    } catch (e: any) { setErrorMsg(e?.message || '删除失败'); setConfirmDelete(null) }
   }
 
   const defaultCurrency = getDefaultCurrency()
@@ -199,6 +212,19 @@ export default function CurrencyPanel() {
           )}
           <button
             onClick={() => setUpdateResult(null)}
+            className="absolute top-2 right-2 text-current opacity-50 hover:opacity-100"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* 错误提示 */}
+      {errorMsg && (
+        <div className="relative p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">
+          <div className="font-medium">{errorMsg}</div>
+          <button
+            onClick={() => setErrorMsg(null)}
             className="absolute top-2 right-2 text-current opacity-50 hover:opacity-100"
           >
             <X size={14} />

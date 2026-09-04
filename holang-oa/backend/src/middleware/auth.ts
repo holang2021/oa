@@ -26,7 +26,7 @@ declare global {
 }
 
 export interface AuthRequest extends Request {
-  user: {
+  user?: {
     id: string;
     wecomUserId?: string;
     name: string;

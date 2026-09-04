@@ -35,6 +35,16 @@ const orderStatusLabels: Record<string, string> = {
   cancelled: '已取消',
 }
 
+// 内销/外销 域标识徽章（逐条清晰可辨，避免混淆）
+const salesTypeBadge = (st: string) => {
+  const isExport = st === 'EXTERNAL'
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${isExport ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+      {isExport ? '外销' : '内销'}
+    </span>
+  )
+}
+
 // 入职年限 → 可见年数（null 表示不受限，显示全部历史年份）
 // 规则：第1年看当年；第2年看当年+去年；第3年+看最近「工龄」年（依此逐年回溯，最终覆盖全部历史）
 // 注：User.hireDate（入职时间）字段待补，当前无数据 → 返回 null（显示全部），补字段后传 user?.hireDate 即自动生效
@@ -276,10 +286,11 @@ export default function Orders() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-sm text-gray-500">{o.code}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${orderStatusColors[getStatusKey(o.status)]}`}>
-                        {orderStatusLabels[getStatusKey(o.status)]}
-                      </span>
-                      {o.country && (
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${orderStatusColors[getStatusKey(o.status)]}`}>
+                    {orderStatusLabels[getStatusKey(o.status)]}
+                  </span>
+                  {salesTypeBadge(salesType)}
+                  {o.country && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-500">{o.country}</span>
                       )}
                     </div>

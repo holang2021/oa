@@ -60,6 +60,7 @@ export const ALL_MENU_PERMISSIONS = [
   { route: '/tools/stats', label: '审批统计', labelEn: 'Approval Stats' },
   { route: '/tools/trash', label: '回收站', labelEn: 'Trash' },
   { route: '/tools/config', label: '系统配置', labelEn: 'System Config' },
+  { route: '/tools/feishu-wiki', label: '飞书知识库', labelEn: 'Feishu Wiki' },
   { route: '/tools/doc-templates', label: '单证模板', labelEn: 'Doc Templates' },
 ] as const
 
@@ -99,7 +100,7 @@ export interface Employee {
   nameEn: string
   email: string
   phone: string
-  department: string    // 所属部门（对应企微部门）
+  departments: string[]  // 所属部门（可多个，对应企微部门）
   roleId: string         // 分配的角色 ID
   status: 'active' | 'inactive'  // 在职/离职
   wecomUserId: string    // 企微 UserID（用于同步）
@@ -222,6 +223,145 @@ export const DEFAULT_ROLES: Role[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ── 职能部门角色（2026-08-21 新增，刘总拍板按部门建角色）──
+  // 纯职能：仅公共模块，不碰客户/订单/公海/回款/发货（数据安全）
+  {
+    id: 'marketing',
+    name: '市场',
+    nameEn: 'Marketing',
+    description: '市场/运营职能，仅看公共模块',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view'],
+    dataScope: 'none',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'technology',
+    name: '技术',
+    nameEn: 'Technology',
+    description: '技术/研发职能，仅看公共模块',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view'],
+    dataScope: 'none',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'production',
+    name: '生产',
+    nameEn: 'Production',
+    description: '生产/PMC 职能，仅看公共模块',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view'],
+    dataScope: 'none',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'administration',
+    name: '行政',
+    nameEn: 'Administration',
+    description: '行政/人事职能，仅看公共模块',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view'],
+    dataScope: 'none',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'procurement',
+    name: '采购',
+    nameEn: 'Procurement',
+    description: '采购/供应链职能，仅看公共模块',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view'],
+    dataScope: 'none',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // 支持岗：可见对应销售域客户但非归属销售
+  {
+    id: 'internal_support',
+    name: '内销支持',
+    nameEn: 'Internal Support',
+    description: '内销支持岗，可见内销客户/订单',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/domestic/customers',
+      '/domestic/leads',
+      '/domestic/opportunities',
+      '/domestic/orders',
+      '/domestic/collections',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view', 'create', 'edit'],
+    dataScope: 'department',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'external_support',
+    name: '外销支持',
+    nameEn: 'External Support',
+    description: '外销支持岗，可见外销客户/订单',
+    menuPermissions: [
+      '/dashboard',
+      '/products',
+      '/export/customers',
+      '/export/leads',
+      '/export/opportunities',
+      '/export/orders',
+      '/export/collections',
+      '/org/contacts',
+      '/org/roles',
+      '/tools/feishu-wiki',
+    ],
+    actionPermissions: ['view', 'create', 'edit'],
+    dataScope: 'department',
+    canManageRoles: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ]
 
 // 默认员工（预置管理员）
@@ -233,7 +373,7 @@ export const DEFAULT_EMPLOYEES: Employee[] = [
     nameEn: 'Liu Shiguang',
     email: 'liu@holangchina.com',
     phone: '138****1234',
-    department: '管理部',
+    departments: ['管理部'],
     roleId: 'admin',
     status: 'active',
     wecomUserId: 'Holang',

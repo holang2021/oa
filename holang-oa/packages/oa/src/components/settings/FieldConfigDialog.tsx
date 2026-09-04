@@ -41,7 +41,7 @@ export default function FieldConfigDialog({ field, onClose, onSaved }: Props) {
   const [helpText, setHelpText] = useState(field.helpText || '')
   const [saving, setSaving] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
     try {
       const patch: Partial<FieldMeta> = {
@@ -63,8 +63,10 @@ export default function FieldConfigDialog({ field, onClose, onSaved }: Props) {
       } else {
         patch.defaultValue = undefined
       }
-      updateField(field.module, field.id, patch)
+      await updateField(field.module, field.id, patch)
       onSaved()
+    } catch (e: any) {
+      window.alert(e?.message || '保存失败')
     } finally {
       setSaving(false)
     }

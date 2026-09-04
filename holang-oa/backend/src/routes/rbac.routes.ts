@@ -11,11 +11,14 @@ import * as rbacController from '../controllers/rbac.controller';
 
 const router = Router();
 
-// 8 角色权限矩阵（已认证即可查看）
-router.get('/roles', authenticate, rbacController.getRoles);
+// 8 角色权限矩阵（配置层：仅 ADMIN 可读）
+router.get('/roles', authenticate, authorize([ROLES.ADMIN]), rbacController.getRoles);
 
 // 当前用户角色/销售域/权限
 router.get('/me', authenticate, rbacController.getMe);
+
+// 身份/视图模式切换审计（配置层：仅 ADMIN 可记录，普通用户无此入口）
+router.post('/view-mode', authenticate, authorize([ROLES.ADMIN]), rbacController.recordViewMode);
 
 // 触发企微(1000081)角色同步骨架（仅 ADMIN）
 router.post('/sync', authenticate, authorize([ROLES.ADMIN]), rbacController.syncRoles);

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { isAuthenticated } from './services/api'
 import MainLayout from './layouts/MainLayout'
@@ -45,9 +45,13 @@ import TodoTasks from './pages/TodoTasks'
 import DoneTasks from './pages/DoneTasks'
 import SystemSettings from './pages/SystemSettings'
 import RbacSettings from './pages/RbacSettings'
+import Offboarding from './pages/Offboarding'
+import OffboardingTodos from './pages/OffboardingTodos'
+import FeishuWiki from './pages/FeishuWiki'
 import DocTemplateSettings from './pages/settings/DocTemplateSettings'
 import PrintTemplates from './pages/PrintTemplates'
 import GenericListPage from './components/GenericListPage'
+import RouteGuard from './components/RouteGuard'
 import {
   marketingCampaignConfig, marketingLeadConfig, marketingChannelConfig, marketingSEOConfig,
   aftersaleVisitConfig, aftersaleTicketConfig,
@@ -62,9 +66,11 @@ import {
   techDocsConfig, techECNConfig,
   operationLogConfig, notificationConfig,
 } from './configs/pageConfigs'
-import { I18nProvider } from './i18n/I18nContext'
 
 const G = GenericListPage
+
+// 路由守卫包装：对每条业务路由强制做角色权限校验
+const Guard = ({ children }: { children: ReactNode }) => <RouteGuard>{children}</RouteGuard>
 
 function App() {
   const { isLoggedIn, logout } = useAuth()
@@ -80,152 +86,154 @@ function App() {
   if (!loggedIn) return <Login onLogin={handleLogin} />
 
   return (
-    <I18nProvider>
-      <MainLayout onLogout={handleLogout}>
+    <MainLayout onLogout={handleLogout}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         {/* 总览 */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/my-flows" element={<MyFlows />} />
-        <Route path="/dashboard/todos" element={<TodoTasks />} />
-        <Route path="/dashboard/done" element={<DoneTasks />} />
-        <Route path="/dashboard/notifications" element={<G config={notificationConfig} />} />
+        <Route path="/dashboard" element={<Guard><Dashboard /></Guard>} />
+        <Route path="/dashboard/my-flows" element={<Guard><MyFlows /></Guard>} />
+        <Route path="/dashboard/todos" element={<Guard><TodoTasks /></Guard>} />
+        <Route path="/dashboard/done" element={<Guard><DoneTasks /></Guard>} />
+        <Route path="/dashboard/notifications" element={<Guard><G config={notificationConfig} /></Guard>} />
 
         {/* 产品 */}
-        <Route path="/products" element={<Products />} />
-        <Route path="/products/new" element={<ProductForm />} />
-        <Route path="/products/:id/edit" element={<ProductForm />} />
+        <Route path="/products" element={<Guard><Products /></Guard>} />
+        <Route path="/products/new" element={<Guard><ProductForm /></Guard>} />
+        <Route path="/products/:id/edit" element={<Guard><ProductForm /></Guard>} />
 
         {/* CRM · 内销 */}
-        <Route path="/domestic/customers" element={<Customers />} />
-        <Route path="/domestic/customers/new" element={<CustomerForm />} />
-        <Route path="/domestic/customers/:id/edit" element={<CustomerForm />} />
-        <Route path="/domestic/customers/:id" element={<CustomerDetail />} />
-        <Route path="/domestic/contacts/:contactId" element={<ContactDetail />} />
-        <Route path="/domestic/leads" element={<LeadPool />} />
-        <Route path="/domestic/leads/:id" element={<LeadDetail />} />
-        <Route path="/domestic/opportunities" element={<OppPool />} />
-        <Route path="/domestic/opportunities/new" element={<OpportunityForm />} />
-        <Route path="/domestic/opportunities/:id/edit" element={<OpportunityForm />} />
-        <Route path="/domestic/quotations" element={<Quotations />} />
-        <Route path="/domestic/quotations/new" element={<QuotationForm />} />
-        <Route path="/domestic/quotations/:id/edit" element={<QuotationForm />} />
-        <Route path="/domestic/orders" element={<Orders />} />
-        <Route path="/domestic/orders/new" element={<OrderForm />} />
-        <Route path="/domestic/orders/:id/edit" element={<OrderForm />} />
-        <Route path="/domestic/orders/:id" element={<OrderDetail />} />
-        <Route path="/domestic/deliveries" element={<Deliveries />} />
-        <Route path="/domestic/deliveries/new" element={<DeliveryForm />} />
-        <Route path="/domestic/deliveries/:id/edit" element={<DeliveryForm />} />
-        <Route path="/domestic/deliveries/:id" element={<DeliveryDetail />} />
-        <Route path="/domestic/invoices" element={<Invoices />} />
-        <Route path="/domestic/invoices/new" element={<InvoiceForm />} />
-        <Route path="/domestic/invoices/:id/edit" element={<InvoiceForm />} />
-        <Route path="/domestic/collections" element={<Payments />} />
-        <Route path="/domestic/collections/new" element={<PaymentForm />} />
-        <Route path="/domestic/collections/:id/edit" element={<PaymentForm />} />
-        <Route path="/domestic/collections/:id" element={<PaymentDetail />} />
+        <Route path="/domestic/customers" element={<Guard><Customers /></Guard>} />
+        <Route path="/domestic/customers/new" element={<Guard><CustomerForm /></Guard>} />
+        <Route path="/domestic/customers/:id/edit" element={<Guard><CustomerForm /></Guard>} />
+        <Route path="/domestic/customers/:id" element={<Guard><CustomerDetail /></Guard>} />
+        <Route path="/domestic/contacts/:contactId" element={<Guard><ContactDetail /></Guard>} />
+        <Route path="/domestic/leads" element={<Guard><LeadPool /></Guard>} />
+        <Route path="/domestic/leads/:id" element={<Guard><LeadDetail /></Guard>} />
+        <Route path="/domestic/opportunities" element={<Guard><OppPool /></Guard>} />
+        <Route path="/domestic/opportunities/new" element={<Guard><OpportunityForm /></Guard>} />
+        <Route path="/domestic/opportunities/:id/edit" element={<Guard><OpportunityForm /></Guard>} />
+        <Route path="/domestic/quotations" element={<Guard><Quotations /></Guard>} />
+        <Route path="/domestic/quotations/new" element={<Guard><QuotationForm /></Guard>} />
+        <Route path="/domestic/quotations/:id/edit" element={<Guard><QuotationForm /></Guard>} />
+        <Route path="/domestic/orders" element={<Guard><Orders /></Guard>} />
+        <Route path="/domestic/orders/new" element={<Guard><OrderForm /></Guard>} />
+        <Route path="/domestic/orders/:id/edit" element={<Guard><OrderForm /></Guard>} />
+        <Route path="/domestic/orders/:id" element={<Guard><OrderDetail /></Guard>} />
+        <Route path="/domestic/deliveries" element={<Guard><Deliveries /></Guard>} />
+        <Route path="/domestic/deliveries/new" element={<Guard><DeliveryForm /></Guard>} />
+        <Route path="/domestic/deliveries/:id/edit" element={<Guard><DeliveryForm /></Guard>} />
+        <Route path="/domestic/deliveries/:id" element={<Guard><DeliveryDetail /></Guard>} />
+        <Route path="/domestic/invoices" element={<Guard><Invoices /></Guard>} />
+        <Route path="/domestic/invoices/new" element={<Guard><InvoiceForm /></Guard>} />
+        <Route path="/domestic/invoices/:id/edit" element={<Guard><InvoiceForm /></Guard>} />
+        <Route path="/domestic/collections" element={<Guard><Payments /></Guard>} />
+        <Route path="/domestic/collections/new" element={<Guard><PaymentForm /></Guard>} />
+        <Route path="/domestic/collections/:id/edit" element={<Guard><PaymentForm /></Guard>} />
+        <Route path="/domestic/collections/:id" element={<Guard><PaymentDetail /></Guard>} />
 
         {/* CRM · 外销 */}
-        <Route path="/export/customers" element={<Customers />} />
-        <Route path="/export/customers/new" element={<CustomerForm />} />
-        <Route path="/export/customers/:id/edit" element={<CustomerForm />} />
-        <Route path="/export/customers/:id" element={<CustomerDetail />} />
-        <Route path="/export/leads" element={<LeadPool />} />
-        <Route path="/export/opportunities" element={<OppPool />} />
-        <Route path="/export/quotations" element={<Quotations />} />
-        <Route path="/export/quotations/new" element={<QuotationForm />} />
-        <Route path="/export/quotations/:id/edit" element={<QuotationForm />} />
-        <Route path="/export/orders" element={<Orders />} />
-        <Route path="/export/orders/:id" element={<OrderDetail />} />
-        <Route path="/export/collections" element={<Payments />} />
-        <Route path="/export/collections/:id" element={<PaymentDetail />} />
-        <Route path="/export/deliveries" element={<Deliveries />} />
-        <Route path="/export/deliveries/:id" element={<DeliveryDetail />} />
-        <Route path="/export/deliveries/:id/edit" element={<DeliveryForm />} />
-        <Route path="/export/whatsapp" element={<WhatsAppPage />} />
-        <Route path="/export/proforma-invoices" element={<ProformaInvoices />} />
-        <Route path="/export/proforma-invoices/new" element={<ProformaInvoiceForm />} />
-        <Route path="/export/proforma-invoices/:id/edit" element={<ProformaInvoiceForm />} />
+        <Route path="/export/customers" element={<Guard><Customers /></Guard>} />
+        <Route path="/export/customers/new" element={<Guard><CustomerForm /></Guard>} />
+        <Route path="/export/customers/:id/edit" element={<Guard><CustomerForm /></Guard>} />
+        <Route path="/export/customers/:id" element={<Guard><CustomerDetail /></Guard>} />
+        <Route path="/export/contacts/:contactId" element={<Guard><ContactDetail /></Guard>} />
+        <Route path="/export/leads" element={<Guard><LeadPool /></Guard>} />
+        <Route path="/export/opportunities" element={<Guard><OppPool /></Guard>} />
+        <Route path="/export/quotations" element={<Guard><Quotations /></Guard>} />
+        <Route path="/export/quotations/new" element={<Guard><QuotationForm /></Guard>} />
+        <Route path="/export/quotations/:id/edit" element={<Guard><QuotationForm /></Guard>} />
+        <Route path="/export/orders" element={<Guard><Orders /></Guard>} />
+        <Route path="/export/orders/:id" element={<Guard><OrderDetail /></Guard>} />
+        <Route path="/export/collections" element={<Guard><Payments /></Guard>} />
+        <Route path="/export/collections/:id" element={<Guard><PaymentDetail /></Guard>} />
+        <Route path="/export/deliveries" element={<Guard><Deliveries /></Guard>} />
+        <Route path="/export/deliveries/:id" element={<Guard><DeliveryDetail /></Guard>} />
+        <Route path="/export/deliveries/:id/edit" element={<Guard><DeliveryForm /></Guard>} />
+        <Route path="/export/whatsapp" element={<Guard><WhatsAppPage /></Guard>} />
+        <Route path="/export/proforma-invoices" element={<Guard><ProformaInvoices /></Guard>} />
+        <Route path="/export/proforma-invoices/new" element={<Guard><ProformaInvoiceForm /></Guard>} />
+        <Route path="/export/proforma-invoices/:id/edit" element={<Guard><ProformaInvoiceForm /></Guard>} />
 
         {/* Marketing */}
-        <Route path="/marketing/campaigns" element={<G config={marketingCampaignConfig} />} />
-        <Route path="/marketing/leads" element={<G config={marketingLeadConfig} />} />
-        <Route path="/marketing/channels" element={<G config={marketingChannelConfig} />} />
-        <Route path="/marketing/seo" element={<G config={marketingSEOConfig} />} />
+        <Route path="/marketing/campaigns" element={<Guard><G config={marketingCampaignConfig} /></Guard>} />
+        <Route path="/marketing/leads" element={<Guard><G config={marketingLeadConfig} /></Guard>} />
+        <Route path="/marketing/channels" element={<Guard><G config={marketingChannelConfig} /></Guard>} />
+        <Route path="/marketing/seo" element={<Guard><G config={marketingSEOConfig} /></Guard>} />
 
         {/* 售后 */}
-        <Route path="/aftersales/visits" element={<G config={aftersaleVisitConfig} />} />
-        <Route path="/aftersales/tickets" element={<G config={aftersaleTicketConfig} />} />
-        <Route path="/aftersales/returns" element={<ReturnOrders />} />
+        <Route path="/aftersales/visits" element={<Guard><G config={aftersaleVisitConfig} /></Guard>} />
+        <Route path="/aftersales/tickets" element={<Guard><G config={aftersaleTicketConfig} /></Guard>} />
+        <Route path="/aftersales/returns" element={<Guard><ReturnOrders /></Guard>} />
 
         {/* SRM */}
-        <Route path="/srm/suppliers" element={<G config={srmSupplierConfig} />} />
-        <Route path="/srm/inquiries" element={<G config={srmInquiryConfig} />} />
-        <Route path="/srm/orders" element={<G config={srmPurchaseOrderConfig} />} />
-        <Route path="/srm/receive" element={<G config={srmReceiveConfig} />} />
-        <Route path="/srm/payables" element={<G config={srmPayableConfig} />} />
+        <Route path="/srm/suppliers" element={<Guard><G config={srmSupplierConfig} /></Guard>} />
+        <Route path="/srm/inquiries" element={<Guard><G config={srmInquiryConfig} /></Guard>} />
+        <Route path="/srm/orders" element={<Guard><G config={srmPurchaseOrderConfig} /></Guard>} />
+        <Route path="/srm/receive" element={<Guard><G config={srmReceiveConfig} /></Guard>} />
+        <Route path="/srm/payables" element={<Guard><G config={srmPayableConfig} /></Guard>} />
 
         {/* ERP · 生产 */}
-        <Route path="/erp/bom" element={<G config={erpBomConfig} />} />
-        <Route path="/erp/work-orders" element={<G config={erpWorkOrderConfig} />} />
-        <Route path="/erp/schedule" element={<G config={erpScheduleConfig} />} />
-        <Route path="/erp/reporting" element={<G config={erpReportingConfig} />} />
-        <Route path="/erp/quality" element={<G config={erpQualityConfig} />} />
-        <Route path="/erp/intelligent-material" element={<IntelligentMaterial />} />
+        <Route path="/erp/bom" element={<Guard><G config={erpBomConfig} /></Guard>} />
+        <Route path="/erp/work-orders" element={<Guard><G config={erpWorkOrderConfig} /></Guard>} />
+        <Route path="/erp/schedule" element={<Guard><G config={erpScheduleConfig} /></Guard>} />
+        <Route path="/erp/reporting" element={<Guard><G config={erpReportingConfig} /></Guard>} />
+        <Route path="/erp/quality" element={<Guard><G config={erpQualityConfig} /></Guard>} />
+        <Route path="/erp/intelligent-material" element={<Guard><IntelligentMaterial /></Guard>} />
 
         {/* ERP · 仓储 */}
-        <Route path="/erp/inventory" element={<G config={erpInventoryConfig} />} />
-        <Route path="/erp/inbound" element={<G config={erpInboundConfig} />} />
-        <Route path="/erp/outbound" element={<G config={erpOutboundConfig} />} />
-        <Route path="/erp/transfer" element={<G config={erpTransferConfig} />} />
-        <Route path="/erp/stock-check" element={<G config={erpStockCheckConfig} />} />
+        <Route path="/erp/inventory" element={<Guard><G config={erpInventoryConfig} /></Guard>} />
+        <Route path="/erp/inbound" element={<Guard><G config={erpInboundConfig} /></Guard>} />
+        <Route path="/erp/outbound" element={<Guard><G config={erpOutboundConfig} /></Guard>} />
+        <Route path="/erp/transfer" element={<Guard><G config={erpTransferConfig} /></Guard>} />
+        <Route path="/erp/stock-check" element={<Guard><G config={erpStockCheckConfig} /></Guard>} />
 
         {/* ERP · 财务 */}
-        <Route path="/erp/repay-plan" element={<G config={erpRepayPlanConfig} />} />
-        <Route path="/erp/ar" element={<G config={erpARConfig} />} />
-        <Route path="/erp/ap" element={<G config={erpAPConfig} />} />
-        <Route path="/erp/invoices" element={<G config={erpInvoiceConfig} />} />
-        <Route path="/erp/reconciliation" element={<G config={erpReconciliationConfig} />} />
-        <Route path="/erp/expenses" element={<G config={erpExpenseConfig} />} />
-        <Route path="/erp/accounts" element={<G config={erpAccountsConfig} />} />
+        <Route path="/erp/repay-plan" element={<Guard><G config={erpRepayPlanConfig} /></Guard>} />
+        <Route path="/erp/ar" element={<Guard><G config={erpARConfig} /></Guard>} />
+        <Route path="/erp/ap" element={<Guard><G config={erpAPConfig} /></Guard>} />
+        <Route path="/erp/invoices" element={<Guard><G config={erpInvoiceConfig} /></Guard>} />
+        <Route path="/erp/reconciliation" element={<Guard><G config={erpReconciliationConfig} /></Guard>} />
+        <Route path="/erp/expenses" element={<Guard><G config={erpExpenseConfig} /></Guard>} />
+        <Route path="/erp/accounts" element={<Guard><G config={erpAccountsConfig} /></Guard>} />
 
         {/* 数据分析 */}
-        <Route path="/analytics/products" element={<G config={analyticsProductConfig} />} />
-        <Route path="/analytics/leads" element={<G config={analyticsLeadConfig} />} />
-        <Route path="/analytics/roi" element={<G config={analyticsROIConfig} />} />
-        <Route path="/analytics/customers" element={<G config={analyticsCustomerConfig} />} />
-        <Route path="/analytics/opportunities" element={<G config={analyticsOppConfig} />} />
-        <Route path="/analytics/quotations" element={<G config={analyticsQuotationConfig} />} />
-        <Route path="/analytics/contracts" element={<G config={analyticsContractConfig} />} />
-        <Route path="/analytics/collections" element={<G config={analyticsCollectionConfig} />} />
-        <Route path="/analytics/finance" element={<G config={analyticsFinanceConfig} />} />
+        <Route path="/analytics/products" element={<Guard><G config={analyticsProductConfig} /></Guard>} />
+        <Route path="/analytics/leads" element={<Guard><G config={analyticsLeadConfig} /></Guard>} />
+        <Route path="/analytics/roi" element={<Guard><G config={analyticsROIConfig} /></Guard>} />
+        <Route path="/analytics/customers" element={<Guard><G config={analyticsCustomerConfig} /></Guard>} />
+        <Route path="/analytics/opportunities" element={<Guard><G config={analyticsOppConfig} /></Guard>} />
+        <Route path="/analytics/quotations" element={<Guard><G config={analyticsQuotationConfig} /></Guard>} />
+        <Route path="/analytics/contracts" element={<Guard><G config={analyticsContractConfig} /></Guard>} />
+        <Route path="/analytics/collections" element={<Guard><G config={analyticsCollectionConfig} /></Guard>} />
+        <Route path="/analytics/finance" element={<Guard><G config={analyticsFinanceConfig} /></Guard>} />
 
         {/* 技术研发 */}
-        <Route path="/tech/docs" element={<G config={techDocsConfig} />} />
-        <Route path="/tech/ecn" element={<G config={techECNConfig} />} />
+        <Route path="/tech/docs" element={<Guard><G config={techDocsConfig} /></Guard>} />
+        <Route path="/tech/ecn" element={<Guard><G config={techECNConfig} /></Guard>} />
 
         {/* 组织 */}
-        <Route path="/org/contacts" element={<Contacts />} />
-        <Route path="/org/contacts/:contactId" element={<ContactDetail />} />
-        <Route path="/org/roles" element={<RbacSettings />} />
+        <Route path="/org/contacts" element={<Guard><Contacts /></Guard>} />
+        <Route path="/org/contacts/:contactId" element={<Guard><ContactDetail /></Guard>} />
+        <Route path="/org/roles" element={<Guard><RbacSettings /></Guard>} />
+        <Route path="/org/offboarding" element={<Guard><Offboarding /></Guard>} />
+        <Route path="/org/offboarding-todos" element={<Guard><OffboardingTodos /></Guard>} />
 
         {/* 系统工具 */}
-        <Route path="/tools/approval" element={<ApprovalEngine />} />
-        <Route path="/tools/templates" element={<ApprovalTemplates />} />
-        <Route path="/tools/stats" element={<ApprovalStats />} />
-        <Route path="/tools/trash" element={<TrashPage />} />
-        <Route path="/tools/blueprint" element={<BlueprintBrowser />} />
-        <Route path="/tools/logs" element={<G config={operationLogConfig} />} />
-        <Route path="/tools/config" element={<SystemSettings />} />
-        <Route path="/tools/doc-templates" element={<DocTemplateSettings />} />
-        <Route path="/tools/print-templates" element={<PrintTemplates />} />
+        <Route path="/tools/approval" element={<Guard><ApprovalEngine /></Guard>} />
+        <Route path="/tools/templates" element={<Guard><ApprovalTemplates /></Guard>} />
+        <Route path="/tools/stats" element={<Guard><ApprovalStats /></Guard>} />
+        <Route path="/tools/trash" element={<Guard><TrashPage /></Guard>} />
+        <Route path="/tools/blueprint" element={<Guard><BlueprintBrowser /></Guard>} />
+        <Route path="/tools/logs" element={<Guard><G config={operationLogConfig} /></Guard>} />
+        <Route path="/tools/config" element={<Guard><SystemSettings /></Guard>} />
+        <Route path="/tools/feishu-wiki" element={<Guard><FeishuWiki /></Guard>} />
+        <Route path="/tools/doc-templates" element={<Guard><DocTemplateSettings /></Guard>} />
+        <Route path="/tools/print-templates" element={<Guard><PrintTemplates /></Guard>} />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </MainLayout>
-    </I18nProvider>
   )
 }
 

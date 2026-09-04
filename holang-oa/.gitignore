@@ -5,6 +5,7 @@ node_modules/
 
 # Build output
 dist/
+dist_bak_*/
 build/
 *.tsbuildinfo
 

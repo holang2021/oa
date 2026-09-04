@@ -17,6 +17,7 @@ const createOpportunitySchema = z.object({
   expectedCloseDate: z.string().datetime().optional(),
   stage: z.string().default('INITIAL_CONTACT'),
   description: z.string().optional(),
+  customerContactId: z.string().optional(),
 });
 
 const updateOpportunitySchema = createOpportunitySchema.partial();

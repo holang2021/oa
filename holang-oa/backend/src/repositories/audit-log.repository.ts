@@ -12,6 +12,7 @@ export type AuditAction =
   | 'POOL_OP' // 公海操作
   | 'LOGIN' // 登录
   | 'SYNC' // 企微/伙伴云同步
+  | 'VIEW_SWITCH' // 身份/视图模式切换（用户↔管理员），配置层防误操作审计
   | 'READONLY'; // 其他只读访问
 
 export type AuditResult = 'SUCCESS' | 'DENIED' | 'FAIL';

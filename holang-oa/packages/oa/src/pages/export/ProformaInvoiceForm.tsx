@@ -1,35 +1,50 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, FileText } from 'lucide-react'
-import { proformaInvoices, customers, quotations } from '../../data/mockData'
-import type { ProformaInvoice } from '../../data/mockData'
 import { useI18n } from '../../i18n/I18nContext'
+import { getCustomers } from '../../services/customerService'
+import { getQuotes, type Quote } from '../../services/quoteService'
+import { createPi, updatePiStatus, getPiById } from '../../services/piService'
 
-const emptyForm = (): ProformaInvoice => ({
-  id: '',
+interface PiForm {
+  piCode: string
+  customerId: string
+  customerName: string
+  quotationId: string
+  piDate: string
+  validityDays: number
+  status: string
+  currency: string
+  totalAmount: number
+  totalAmountCNY: number
+  paymentTerms: string
+  deliveryTerms: string
+  deliveryDate: string
+  signedAt: string
+  notes: string
+}
+
+const emptyForm = (): PiForm => ({
   piCode: '',
   customerId: '',
   customerName: '',
-  orderId: '',
   quotationId: '',
   piDate: new Date().toISOString().split('T')[0],
-  salesPerson: '',
+  validityDays: 30,
+  status: 'DRAFT',
   currency: 'USD',
   totalAmount: 0,
   totalAmountCNY: 0,
   paymentTerms: '',
   deliveryTerms: '',
   deliveryDate: '',
-  validityDays: 30,
-  status: 'draft',
   signedAt: '',
-  pdfFile: '',
-  createdAt: new Date().toISOString().split('T')[0],
+  notes: '',
 })
 
-const statusOptions = ['draft', 'sent', 'signed', 'expired', 'cancelled']
+const statusOptions = ['DRAFT', 'CONFIRMED', 'CANCELLED']
 const statusLabels: Record<string, string> = {
-  draft: '草稿', sent: '已发送', signed: '已回签', expired: '已过期', cancelled: '已撤销',
+  DRAFT: '草稿', CONFIRMED: '已确认', CANCELLED: '已撤销',
 }
 const currencyOptions = ['USD', 'EUR', 'CNY', 'GBP']
 const paymentTermOptions = [
@@ -47,42 +62,112 @@ export default function ProformaInvoiceForm() {
   const { t } = useI18n()
   const isEdit = !!id
 
-  const [form, setForm] = useState<ProformaInvoice>(emptyForm())
+  const [form, setForm] = useState<PiForm>(emptyForm())
   const [saving, setSaving] = useState(false)
+  const [customers, setCustomers] = useState<any[]>([])
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (isEdit && id) {
-      const existing = proformaInvoices.find(pi => pi.id === id)
-      if (existing) setForm({ ...existing })
-    } else {
-      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '').slice(2)
-      const count = proformaInvoices.length + 1
-      setForm(prev => ({ ...prev, piCode: `PI-${dateStr}-${String(count).padStart(3, '0')}` }))
-    }
+    ;(async () => {
+      setLoading(true)
+      try {
+        const custData: any = await getCustomers({ salesType: 'EXTERNAL' })
+        setCustomers(Array.isArray(custData) ? custData : custData?.list || [])
+        if (isEdit && id) {
+          const pi = await getPiById(id)
+          if (pi) {
+            setForm({
+              piCode: pi.piNo || '',
+              customerId: pi.customerId || '',
+              customerName: '',
+              quotationId: pi.quoteRef || '',
+              piDate: (pi.issuedAt || '').slice(0, 10) || new Date().toISOString().split('T')[0],
+              validityDays: 30,
+              status: pi.status || 'DRAFT',
+              currency: pi.currency || 'USD',
+              totalAmount: pi.amount || 0,
+              totalAmountCNY: 0,
+              paymentTerms: '',
+              deliveryTerms: '',
+              deliveryDate: '',
+              signedAt: '',
+              notes: pi.notes || '',
+            })
+          }
+        } else {
+          const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '').slice(2)
+          setForm(prev => ({ ...prev, piCode: `PI-${dateStr}-NEW` }))
+        }
+      } catch (e: any) {
+        alert(e?.message || '加载失败')
+      } finally {
+        setLoading(false)
+      }
+    })()
   }, [id, isEdit])
 
-  const update = (field: keyof ProformaInvoice, value: any) => {
+  // 选中客户后加载该客户的「已接受(ACCEPTED)外销报价」供关联
+  useEffect(() => {
+    if (!form.customerId) { setQuotes([]); return }
+    ;(async () => {
+      try {
+        const q: any = await getQuotes({ customerId: form.customerId, status: 'ACCEPTED', salesType: 'EXTERNAL' })
+        setQuotes(Array.isArray(q) ? q : q?.list || [])
+      } catch {
+        setQuotes([])
+      }
+    })()
+  }, [form.customerId])
+
+  const update = (field: keyof PiForm, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSave = () => {
+  const selectedCustomer = customers.find(c => c.id === form.customerId)
+
+  const handleSave = async () => {
     if (!form.customerId) { alert('请选择客户'); return }
+    if (!form.quotationId) { alert('请关联一份已接受的报价单（PI 必须基于 ACCEPTED 外销报价）'); return }
     if (!form.totalAmount || form.totalAmount <= 0) { alert('请输入外币金额'); return }
     setSaving(true)
-    setTimeout(() => {
-      if (isEdit) {
-        const idx = proformaInvoices.findIndex(pi => pi.id === id)
-        if (idx >= 0) proformaInvoices[idx] = form
-      } else {
-        form.id = 'pi' + (proformaInvoices.length + 1)
-        proformaInvoices.push(form)
+    try {
+      const issuedAt = form.piDate ? new Date(form.piDate).toISOString() : undefined
+      const expiresAt = (() => {
+        if (!form.piDate) return undefined
+        const d = new Date(form.piDate)
+        d.setDate(d.getDate() + (form.validityDays || 30))
+        return d.toISOString()
+      })()
+      const notesParts: string[] = []
+      if (form.paymentTerms) notesParts.push(`付款条款: ${form.paymentTerms}`)
+      if (form.deliveryTerms) notesParts.push(`交货条款: ${form.deliveryTerms}`)
+      if (form.notes) notesParts.push(form.notes)
+      const payload = {
+        customerId: form.customerId,
+        quoteRef: form.quotationId,
+        amount: form.totalAmount,
+        currency: form.currency,
+        issuedAt,
+        expiresAt,
+        notes: notesParts.join('；') || undefined,
       }
-      setSaving(false)
+      if (isEdit && id) {
+        await updatePiStatus(id, form.status)
+      } else {
+        await createPi(payload)
+      }
       navigate('/export/proforma-invoices')
-    }, 500)
+    } catch (e: any) {
+      alert(e?.message || '保存失败')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const selectedCustomer = customers.find(c => c.id === form.customerId)
+  if (loading) {
+    return <div className="p-6 text-sm text-gray-500">加载中…</div>
+  }
 
   return (
     <div className="space-y-4">
@@ -111,7 +196,7 @@ export default function ProformaInvoiceForm() {
           <h3 className="font-medium text-sm">基本信息</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">PI 编号</label>
+              <label className="text-xs text-gray-500">PI 编号（保存后自动生成）</label>
               <input value={form.piCode} disabled className="input text-sm bg-gray-50 w-full" />
             </div>
             <div>
@@ -135,25 +220,30 @@ export default function ProformaInvoiceForm() {
         <div className="card space-y-3">
           <h3 className="font-medium text-sm">客户信息</h3>
           <div>
-            <label className="text-xs text-gray-500">客户 <span className="text-red-500">*</span></label>
+            <label className="text-xs text-gray-500">客户（外销）<span className="text-red-500">*</span></label>
             <select value={form.customerId} onChange={e => { update('customerId', e.target.value); update('quotationId', '') }} className="input text-sm w-full">
               <option value="">请选择客户</option>
-              {customers.filter(c => c.salesType === 'external' || !c.salesType).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {customers.filter(c => (c.salesType || '').toUpperCase() === 'EXTERNAL').map(c => (
+                <option key={c.id} value={c.id}>{c.companyName || c.name}</option>
+              ))}
             </select>
           </div>
           {selectedCustomer && (
             <div className="text-xs text-gray-500 space-y-1">
-              <div>联系人：{selectedCustomer.contactName}</div>
-              <div>电话：{selectedCustomer.contactPhone}</div>
-              <div>邮箱：{selectedCustomer.contactEmail}</div>
+              <div>客户：{selectedCustomer.companyName || selectedCustomer.name}</div>
             </div>
           )}
           <div>
-            <label className="text-xs text-gray-500">关联报价单</label>
+            <label className="text-xs text-gray-500">关联报价单（须 ACCEPTED）<span className="text-red-500">*</span></label>
             <select value={form.quotationId} onChange={e => update('quotationId', e.target.value)} className="input text-sm w-full">
-              <option value="">请选择报价单</option>
-              {quotations.filter(q => q.customerId === form.customerId).map(q => <option key={q.id} value={q.id}>{q.code}（¥{q.amount.toLocaleString()}）</option>)}
+              <option value="">请选择已接受报价单</option>
+              {quotes.map(q => (
+                <option key={q.id} value={q.id}>{q.code}（{q.amount?.toLocaleString?.() ?? q.amount}）</option>
+              ))}
             </select>
+            {form.customerId && quotes.length === 0 && (
+              <div className="text-xs text-amber-600 mt-1">该外销客户暂无「已接受」报价单，无法生成 PI</div>
+            )}
           </div>
         </div>
 
@@ -172,14 +262,13 @@ export default function ProformaInvoiceForm() {
               <input type="number" value={form.totalAmount || ''} onChange={e => {
                 const val = parseFloat(e.target.value) || 0
                 update('totalAmount', val)
-                // 自动换算人民币（汇率取 7.27）
                 if (form.currency === 'USD') update('totalAmountCNY', Math.round(val * 7.27))
                 else if (form.currency === 'EUR') update('totalAmountCNY', Math.round(val * 7.85))
                 else update('totalAmountCNY', val)
               }} className="input text-sm w-full" />
             </div>
             <div>
-              <label className="text-xs text-gray-500">人民币金额</label>
+              <label className="text-xs text-gray-500">人民币金额（参考）</label>
               <input value={'¥' + form.totalAmountCNY.toLocaleString()} disabled className="input text-sm bg-gray-50 w-full" />
             </div>
             <div>
@@ -203,9 +292,13 @@ export default function ProformaInvoiceForm() {
               </select>
             </div>
           </div>
+          <div>
+            <label className="text-xs text-gray-500">备注</label>
+            <textarea value={form.notes} onChange={e => update('notes', e.target.value)} className="input text-sm w-full" rows={2} />
+          </div>
         </div>
 
-        {/* 审批/回签信息 */}
+        {/* 回签信息 */}
         <div className="card lg:col-span-1 space-y-3">
           <h3 className="font-medium text-sm">回签信息</h3>
           <div>
@@ -215,13 +308,11 @@ export default function ProformaInvoiceForm() {
           {form.signedAt && (
             <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
               ✅ 客户已于 {form.signedAt} 回签此 PI
-              {!form.orderId && (
-                <div className="mt-1">
-                  <button onClick={() => alert('转为订单：' + form.piCode)} className="btn btn-primary text-xs">
-                    转为正式订单
-                  </button>
-                </div>
-              )}
+              <div className="mt-1">
+                <button onClick={() => alert('转为订单：' + form.piCode)} className="btn btn-primary text-xs">
+                  转为正式订单
+                </button>
+              </div>
             </div>
           )}
         </div>

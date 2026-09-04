@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Search, ChevronLeft, ChevronRight, Filter, Clock } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Search, ChevronLeft, ChevronRight, Filter, Clock, Loader2 } from 'lucide-react'
 
 export interface PageColumn {
   label: string
@@ -27,6 +27,8 @@ export interface PageConfig {
   mockData?: Record<string, any>[]
   /** 功能开发中标记：为 true 时显示"功能开发中/暂无数据"，不渲染假数据 */
   comingSoon?: boolean
+  /** 静态 JSON 数据地址（相对于 public），加载后合并 mockData */
+  dataUrl?: string
   idKey?: string
   pageSize?: number
   /** 表格顶部操作区域的自定义按钮 (已传 key) */
@@ -81,15 +83,42 @@ function generateMockRowCount(n: number): Record<string, any>[] {
 export default function GenericListPage({ config }: { config: PageConfig }) {
   const {
     title, subtitle, searchPlaceholder, searchFields, columns, emptyMessage,
-    filters, mockData, comingSoon, idKey = 'id', pageSize = 10, topActions, rowActions,
+    filters, mockData, comingSoon, dataUrl, idKey = 'id', pageSize = 10, topActions, rowActions,
   } = config
 
   const [search, setSearch] = useState('')
   const [filterValues, setFilterValues] = useState<Record<string, string>>({})
   const [page, setPage] = useState(1)
+  const [fetchedData, setFetchedData] = useState<Record<string, any>[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!dataUrl) return
+    setLoading(true)
+    setFetchError(null)
+    fetch(dataUrl)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((arr: any) => {
+        setFetchedData(Array.isArray(arr) ? arr : [])
+      })
+      .catch(e => {
+        setFetchError(e?.message || '加载失败')
+      })
+      .finally(() => setLoading(false))
+  }, [dataUrl])
+
+  const sourceData = useMemo(() => {
+    const base = mockData || []
+    const extra = fetchedData || []
+    return extra.length > 0 ? extra : base
+  }, [mockData, fetchedData])
 
   const filtered = useMemo(() => {
-    let data = mockData || []
+    let data = sourceData
     if (search) {
       const q = search.toLowerCase()
       data = data.filter(row =>
@@ -108,7 +137,7 @@ export default function GenericListPage({ config }: { config: PageConfig }) {
       }
     }
     return data
-  }, [search, filterValues, mockData, searchFields, filters])
+  }, [search, filterValues, sourceData, searchFields, filters])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -133,6 +162,36 @@ export default function GenericListPage({ config }: { config: PageConfig }) {
             <p className="text-base font-medium text-gray-500">功能开发中</p>
             <p className="text-sm">{emptyMessage}</p>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+          {subtitle && <p className="text-sm text-gray-400 mt-1">{subtitle}</p>}
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-20 flex flex-col items-center justify-center gap-3 text-gray-400">
+          <Loader2 size={32} className="animate-spin" />
+          <p className="text-sm">数据加载中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+          {subtitle && <p className="text-sm text-gray-400 mt-1">{subtitle}</p>}
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-20 flex flex-col items-center justify-center gap-3 text-red-500">
+          <p className="text-base font-medium">数据加载失败</p>
+          <p className="text-sm text-gray-500">{fetchError}</p>
         </div>
       </div>
     )

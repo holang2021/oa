@@ -17,9 +17,11 @@ export interface Contact {
   contactType?: string
   remark?: string
   huobanId?: string
+  createdById?: string
   createdAt?: string
   updatedAt?: string
   customer?: { id: string; companyName: string }
+  createdBy?: { id: string; name: string } | null
 }
 
 export interface ContactQuery {
@@ -52,4 +54,15 @@ export async function createContact(customerId: string, data: Partial<Contact>):
   const res = await api.post<Contact>(`/customers/${customerId}/contacts`, data)
   if (res.code === 0 && res.data) return res.data
   return null
+}
+
+export async function updateContact(id: string, data: Partial<Contact>): Promise<Contact | null> {
+  const res = await api.put<Contact>(`/customers/${data.customerId}/contacts/${id}`, data)
+  if (res.code === 0 && res.data) return res.data
+  return null
+}
+
+export async function deleteContact(_id: string, _customerId: string): Promise<boolean> {
+  // 联系人删除在后端被统一禁止；前端不再调用
+  return false
 }

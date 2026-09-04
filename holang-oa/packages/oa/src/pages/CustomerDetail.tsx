@@ -1,19 +1,22 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, MapPin, User, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, User, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save } from 'lucide-react'
 import { useI18n } from '../i18n/I18nContext'
 import { getCustomerById, updateCustomer, type Customer } from '../services/customerService'
-import { getContacts, createContact, type Contact } from '../services/contactService'
+import { getContacts, createContact, updateContact, type Contact } from '../services/contactService'
 import { getOrders, type Order } from '../services/orderService'
 import { getPayments, type Payment } from '../services/paymentService'
 import { getOpportunities, type Opportunity } from '../services/opportunityService'
 import { getQuotes, type Quote } from '../services/quoteService'
 import { getContracts, type Contract } from '../services/contractService'
 import { getPis, type ProformaInvoice } from '../services/piService'
-import { getFollowUps, createFollowUp, type FollowUp } from '../services/followUpService'
+import { getFollowUps, createFollowUp, updateFollowUp, deleteFollowUp, type FollowUp } from '../services/followUpService'
+import { getCurrentUser } from '../services/authService'
+import QuickAddContactSelect from '../components/QuickAddContactSelect'
+import CustomerAiChat from '../components/CustomerAiChat'
 import { followStages } from '../data/mockData'
 
-type TabKey = 'overview' | 'contacts' | 'opportunities' | 'quotations' | 'orders' | 'payments' | 'timeline'
+type TabKey = 'overview' | 'contacts' | 'opportunities' | 'quotations' | 'orders' | 'payments' | 'timeline' | 'ai'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: '概览' },
@@ -23,6 +26,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'orders', label: '订单' },
   { key: 'payments', label: '回款' },
   { key: 'timeline', label: '时间轴' },
+  { key: 'ai', label: 'AI 助手' },
 ]
 
 const levelColors: Record<string, string> = { A: 'bg-red-50 text-red-700', B: 'bg-orange-50 text-orange-700', C: 'bg-yellow-50 text-yellow-700', D: 'bg-blue-50 text-blue-700', E: 'bg-gray-50 text-gray-600' }
@@ -69,6 +73,8 @@ export default function CustomerDetail() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useI18n()
+  const currentUser = getCurrentUser()
+  const isManager = currentUser?.role === 'MANAGER' || currentUser?.role === 'ADMIN'
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [timelineChannelFilter, setTimelineChannelFilter] = useState<string>('全部')
   const [customer, setCustomer] = useState<Customer | null>(null)
@@ -92,13 +98,27 @@ export default function CustomerDetail() {
   // Contact add form state
   const [showAddContact, setShowAddContact] = useState(false)
   const [addingContact, setAddingContact] = useState(false)
-  const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', position: '', isKeyPerson: false })
+  const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', position: '', wechat: '', whatsapp: '', dept: '', gender: '', remark: '', isKeyPerson: false })
+
+  // Contact edit state
+  const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  const [editContactDraft, setEditContactDraft] = useState<Partial<Contact>>({})
+  const [savingContactEdit, setSavingContactEdit] = useState(false)
 
   // Follow-up add form state
   const [showAddFollowUp, setShowAddFollowUp] = useState(false)
   const [addingFollowUp, setAddingFollowUp] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [newFollowUp, setNewFollowUp] = useState({ method: 'note', content: '', contactId: '' })
+
+  // Follow-up edit / reply / filter state
+  const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null)
+  const [editDraft, setEditDraft] = useState({ method: 'note', content: '', followedAt: '', nextFollowUpAt: '', nextPlan: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [replyParent, setReplyParent] = useState<FollowUp | null>(null)
+  const [replyDraft, setReplyDraft] = useState({ content: '' })
+  const [savingReply, setSavingReply] = useState(false)
+  const [timelineRange, setTimelineRange] = useState<'all' | '30' | '90'>('all')
 
   const saveCountry = async () => {
     if (!customer) return
@@ -129,17 +149,55 @@ export default function CustomerDetail() {
         phone: newContact.phone.trim() || undefined,
         email: newContact.email.trim() || undefined,
         position: newContact.position.trim() || undefined,
+        wechat: newContact.wechat.trim() || undefined,
+        whatsapp: newContact.whatsapp.trim() || undefined,
+        dept: newContact.dept.trim() || undefined,
+        gender: newContact.gender || undefined,
+        remark: newContact.remark.trim() || undefined,
         isKeyPerson: newContact.isKeyPerson,
       })
       if (ct) {
         setCustContacts(prev => [ct, ...prev])
-        setNewContact({ name: '', phone: '', email: '', position: '', isKeyPerson: false })
+        setNewContact({ name: '', phone: '', email: '', position: '', wechat: '', whatsapp: '', dept: '', gender: '', remark: '', isKeyPerson: false })
         setShowAddContact(false)
       }
-    } catch {
-      // silent
+    } catch (e: any) {
+      alert(e?.message || '添加联系人失败')
     } finally {
       setAddingContact(false)
+    }
+  }
+
+  const startEditContact = (ct: Contact) => {
+    setEditingContact(ct)
+    setEditContactDraft({ ...ct })
+  }
+
+  const handleUpdateContact = async () => {
+    if (!editingContact || !editContactDraft.name?.trim()) return
+    setSavingContactEdit(true)
+    try {
+      const updated = await updateContact(editingContact.id, {
+        ...editContactDraft,
+        customerId: editingContact.customerId,
+        name: editContactDraft.name.trim(),
+        phone: editContactDraft.phone?.trim() || undefined,
+        email: editContactDraft.email?.trim() || undefined,
+        wechat: editContactDraft.wechat?.trim() || undefined,
+        whatsapp: editContactDraft.whatsapp?.trim() || undefined,
+        dept: editContactDraft.dept?.trim() || undefined,
+        position: editContactDraft.position?.trim() || undefined,
+        title: editContactDraft.title?.trim() || undefined,
+        remark: editContactDraft.remark?.trim() || undefined,
+      })
+      if (updated) {
+        setCustContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
+        setEditingContact(null)
+      }
+    } catch (e: any) {
+      alert(e?.message || '保存失败，仅创建者可修改')
+    } finally {
+      setSavingContactEdit(false)
     }
   }
 
@@ -188,6 +246,80 @@ export default function CustomerDetail() {
       // silent
     } finally {
       setAiGenerating(false)
+    }
+  }
+
+  // 打开编辑（仅本人可见入口）
+  const handleOpenEdit = (f: FollowUp) => {
+    setEditingFollowUp(f)
+    setEditDraft({
+      method: f.method || 'note',
+      content: f.content || '',
+      followedAt: f.followedAt ? f.followedAt.slice(0, 16) : (f.createdAt ? f.createdAt.slice(0, 16) : ''),
+      nextFollowUpAt: f.nextFollowUpAt ? f.nextFollowUpAt.slice(0, 10) : '',
+      nextPlan: f.nextPlan || '',
+    })
+  }
+
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    if (!editingFollowUp || !editDraft.content.trim()) return
+    setSavingEdit(true)
+    try {
+      const updated = await updateFollowUp(editingFollowUp.id, {
+        method: editDraft.method,
+        content: editDraft.content.trim(),
+        followedAt: editDraft.followedAt ? new Date(editDraft.followedAt).toISOString() : undefined,
+        nextFollowUpAt: editDraft.nextFollowUpAt ? new Date(editDraft.nextFollowUpAt).toISOString() : undefined,
+        nextPlan: editDraft.nextPlan.trim() || undefined,
+      })
+      if (updated) {
+        setCustFollowUps(prev => prev.map(f => f.id === updated.id ? updated : f))
+        setEditingFollowUp(null)
+      }
+    } catch {
+      // silent
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  // 删除（仅本人，二次确认）
+  const handleDeleteFollowUp = async (f: FollowUp) => {
+    if (!window.confirm('确定删除这条跟进记录吗？此操作不可恢复。')) return
+    try {
+      const ok = await deleteFollowUp(f.id)
+      if (ok) setCustFollowUps(prev => prev.filter(x => x.id !== f.id))
+    } catch {
+      // silent
+    }
+  }
+
+  // 打开回复/补充（主管/管理员对他人记录）
+  const handleOpenReply = (f: FollowUp) => {
+    setReplyParent(f)
+    setReplyDraft({ content: '' })
+  }
+
+  // 保存回复/补充
+  const handleSaveReply = async () => {
+    if (!replyParent || !replyParent.customerId || !replyDraft.content.trim()) return
+    setSavingReply(true)
+    try {
+      const fu = await createFollowUp({
+        customerId: replyParent.customerId,
+        method: 'note',
+        content: replyDraft.content.trim(),
+        parentId: replyParent.id,
+      })
+      if (fu) {
+        setCustFollowUps(prev => [fu, ...prev])
+        setReplyParent(null)
+      }
+    } catch {
+      // silent
+    } finally {
+      setSavingReply(false)
     }
   }
 
@@ -258,20 +390,30 @@ export default function CustomerDetail() {
     )
   }
 
-  // Timeline = follow-ups mapped to timeline format
-  const custTimeline: Array<{ id: string; type: string; channel: string; createdAt: string; content: string; operator: string }> = custFollowUps.map(f => ({
-    id: f.id,
-    type: f.method || 'note',
-    channel: f.channel || '系统',
-    createdAt: f.createdAt || '',
-    content: f.content || '',
-    operator: f.operator || f.user?.name || '',
-  }))
-  const filteredTimeline = timelineChannelFilter === '全部' ? custTimeline : custTimeline.filter(e => e.channel === timelineChannelFilter)
+  // Timeline = follow-ups（保留完整字段，用于编辑/回复/权限判断）
+  const custTimeline: FollowUp[] = custFollowUps
+  // 时间范围过滤（近30/90天，按跟进时间或创建时间）
+  const rangeFiltered = timelineRange === 'all'
+    ? custTimeline
+    : custTimeline.filter(f => {
+        const ts = new Date(f.followedAt || f.createdAt || 0).getTime()
+        const cutoff = Date.now() - (timelineRange === '30' ? 30 : 90) * 86400000
+        return ts >= cutoff
+      })
+  const filteredTimeline = timelineChannelFilter === '全部'
+    ? rangeFiltered
+    : rangeFiltered.filter(e => (e.channel || '系统') === timelineChannelFilter)
+  // 构建父子树：父跟进（无 parentId）+ 其回复（parentId 指向父）
+  const parentItems = filteredTimeline.filter(f => !f.parentId)
+  const repliesOf = (pid: string) => filteredTimeline.filter(f => f.parentId === pid)
+  const fmtFollowTime = (f: FollowUp) => {
+    const raw = f.followedAt || f.createdAt || ''
+    return raw ? raw.slice(0, 16).replace('T', ' ') : ''
+  }
 
   // Channel interaction stats
-  const channelStats = custTimeline.reduce((acc, e) => { acc[e.channel] = (acc[e.channel] || 0) + 1; return acc }, {} as Record<string, number>)
-  const allChannels = ['全部', ...Array.from(new Set(custTimeline.map(e => e.channel)))]
+  const channelStats = custTimeline.reduce((acc, e) => { acc[e.channel || '系统'] = (acc[e.channel || '系统'] || 0) + 1; return acc }, {} as Record<string, number>)
+  const allChannels = ['全部', ...Array.from(new Set(custTimeline.map(e => e.channel || '系统')))]
 
   const totalOrderAmount = custOrders.reduce((sum, o) => sum + o.amount, 0)
   const totalPaymentReceived = custPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
@@ -547,7 +689,7 @@ export default function CustomerDetail() {
                 <div className="card border-brand-200 bg-brand-50/30 p-4 space-y-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-700">新增联系人</span>
-                    <button onClick={() => { setShowAddContact(false); setNewContact({ name: '', phone: '', email: '', position: '', isKeyPerson: false }) }} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+                    <button onClick={() => { setShowAddContact(false); setNewContact({ name: '', phone: '', email: '', position: '', wechat: '', whatsapp: '', dept: '', gender: '', remark: '', isKeyPerson: false }) }} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input
@@ -557,6 +699,28 @@ export default function CustomerDetail() {
                       className="input text-sm"
                       autoFocus
                     />
+                    <input
+                      value={newContact.position}
+                      onChange={e => setNewContact(prev => ({ ...prev, position: e.target.value }))}
+                      placeholder="职位"
+                      className="input text-sm"
+                    />
+                    <input
+                      value={newContact.dept}
+                      onChange={e => setNewContact(prev => ({ ...prev, dept: e.target.value }))}
+                      placeholder="部门"
+                      className="input text-sm"
+                    />
+                    <select
+                      value={newContact.gender}
+                      onChange={e => setNewContact(prev => ({ ...prev, gender: e.target.value }))}
+                      className="input text-sm"
+                    >
+                      <option value="">性别</option>
+                      <option value="MALE">男</option>
+                      <option value="FEMALE">女</option>
+                      <option value="UNKNOWN">未知</option>
+                    </select>
                     <input
                       value={newContact.phone}
                       onChange={e => setNewContact(prev => ({ ...prev, phone: e.target.value }))}
@@ -570,12 +734,25 @@ export default function CustomerDetail() {
                       className="input text-sm"
                     />
                     <input
-                      value={newContact.position}
-                      onChange={e => setNewContact(prev => ({ ...prev, position: e.target.value }))}
-                      placeholder="职位"
+                      value={newContact.wechat}
+                      onChange={e => setNewContact(prev => ({ ...prev, wechat: e.target.value }))}
+                      placeholder="微信"
+                      className="input text-sm"
+                    />
+                    <input
+                      value={newContact.whatsapp}
+                      onChange={e => setNewContact(prev => ({ ...prev, whatsapp: e.target.value }))}
+                      placeholder="WhatsApp"
                       className="input text-sm"
                     />
                   </div>
+                  <textarea
+                    value={newContact.remark}
+                    onChange={e => setNewContact(prev => ({ ...prev, remark: e.target.value }))}
+                    placeholder="备注"
+                    rows={2}
+                    className="input text-sm resize-none"
+                  />
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
                       <input
@@ -601,43 +778,216 @@ export default function CustomerDetail() {
               ) : custContacts.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">暂无联系人</div>
               ) : (
-                custContacts.map((ct) => (
-                  <div key={ct.id} onClick={() => navigate(`${basePath}/contacts/${ct.id}`)} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${ct.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'}`}>
-                        {ct.name.charAt(0)}
+                custContacts.map((ct) => {
+                  const isCreator = !ct.createdById || ct.createdById === currentUser?.id
+                  return (
+                    <div key={ct.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-md hover:border-gray-300 transition-all">
+                      <div className="flex items-start gap-3 flex-1 cursor-pointer" onClick={() => navigate(`${basePath}/contacts/${ct.id}`)}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${ct.gender === 'MALE' ? 'bg-blue-400' : ct.gender === 'FEMALE' ? 'bg-pink-400' : 'bg-gray-400'}`}>
+                          {ct.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{ct.name}</span>
+                            {ct.isKeyPerson && <span className="px-1.5 py-0.5 bg-brand-50 text-brand-600 text-[10px] rounded font-medium">关键决策人</span>}
+                            {!isCreator && ct.createdBy && (
+                              <span className="text-[10px] text-gray-400">创建者：{ct.createdBy.name}</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{ct.position || ct.title || ''} {ct.dept ? `· ${ct.dept}` : ''}</div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-xs text-gray-500">
+                            {ct.phone && <span className="inline-flex items-center gap-1"><Phone size={11} /> {ct.phone}</span>}
+                            {ct.email && <span className="inline-flex items-center gap-1"><Mail size={11} /> {ct.email}</span>}
+                          </div>
+                          {ct.remark && <div className="text-xs text-gray-400 mt-1">备注：{ct.remark}</div>}
+                          {/* Social media links */}
+                          <div className="flex items-center gap-2 mt-2">
+                            {ct.wechat && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded text-[11px] font-medium" title={`微信: ${ct.wechat}`}>
+                                <MessageCircle size={12} /> 微信: {ct.wechat}
+                              </span>
+                            )}
+                            {ct.whatsapp && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[11px] font-medium" title={`WhatsApp: ${ct.whatsapp}`}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                WhatsApp
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{ct.name}</span>
-                          {ct.isKeyPerson && <span className="px-1.5 py-0.5 bg-brand-50 text-brand-600 text-[10px] rounded font-medium">关键决策人</span>}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5">{ct.position || ct.title || ''} {ct.dept ? `· ${ct.dept}` : ''}</div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-xs text-gray-500">
-                          {ct.phone && <span className="inline-flex items-center gap-1"><Phone size={11} /> {ct.phone}</span>}
-                          {ct.email && <span className="inline-flex items-center gap-1"><Mail size={11} /> {ct.email}</span>}
-                        </div>
-                        {ct.remark && <div className="text-xs text-gray-400 mt-1">备注：{ct.remark}</div>}
-                        {/* Social media links */}
-                        <div className="flex items-center gap-2 mt-2">
-                          {ct.wechat && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded text-[11px] font-medium" title={`微信: ${ct.wechat}`}>
-                              <MessageCircle size={12} /> 微信: {ct.wechat}
-                            </span>
-                          )}
-                          {ct.whatsapp && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[11px] font-medium" title={`WhatsApp: ${ct.whatsapp}`}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                              WhatsApp
-                            </span>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isCreator && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); startEditContact(ct) }}
+                            className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg"
+                            title="编辑"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        <ChevronRight size={16} className="text-gray-300 shrink-0 cursor-pointer" onClick={() => navigate(`${basePath}/contacts/${ct.id}`)} />
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-gray-300 shrink-0" />
-                  </div>
-                ))
+                  )
+                })
               )}
+            </div>
+          )}
+
+          {/* Edit Contact Modal */}
+          {editingContact && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-800">编辑联系人</h3>
+                  <button onClick={() => setEditingContact(null)} className="text-gray-400 hover:text-gray-600">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">姓名 <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      value={editContactDraft.name || ''}
+                      onChange={e => setEditContactDraft(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">职位</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.position || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, position: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">部门</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.dept || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, dept: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">称谓</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.title || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, title: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">性别</label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.gender || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, gender: e.target.value || undefined }))}
+                      >
+                        <option value="">未知</option>
+                        <option value="MALE">男</option>
+                        <option value="FEMALE">女</option>
+                        <option value="UNKNOWN">未知</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">类型</label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                      value={editContactDraft.type || 'PRIMARY'}
+                      onChange={e => setEditContactDraft(prev => ({ ...prev, type: e.target.value }))}
+                    >
+                      <option value="PRIMARY">主要联系人</option>
+                      <option value="SECONDARY">次要联系人</option>
+                      <option value="DECISION">决策人</option>
+                      <option value="TECHNICAL">技术对接人</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">手机</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.phone || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, phone: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">邮箱</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.email || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, email: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">微信</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.wechat || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, wechat: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">WhatsApp</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={editContactDraft.whatsapp || ''}
+                        onChange={e => setEditContactDraft(prev => ({ ...prev, whatsapp: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">备注</label>
+                    <textarea
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+                      value={editContactDraft.remark || ''}
+                      onChange={e => setEditContactDraft(prev => ({ ...prev, remark: e.target.value }))}
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={!!editContactDraft.isKeyPerson}
+                      onChange={e => setEditContactDraft(prev => ({ ...prev, isKeyPerson: e.target.checked }))}
+                      className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    关键决策人
+                  </label>
+                </div>
+                <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                  <button
+                    onClick={() => setEditingContact(null)}
+                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleUpdateContact}
+                    disabled={savingContactEdit || !editContactDraft.name?.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    {savingContactEdit ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    保存
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -798,16 +1148,18 @@ export default function CustomerDetail() {
                       <option value="meeting">会议</option>
                       <option value="whatsapp">WhatsApp</option>
                     </select>
-                    <select
+                    <QuickAddContactSelect
+                      customerId={customer.id}
                       value={newFollowUp.contactId}
-                      onChange={e => setNewFollowUp(prev => ({ ...prev, contactId: e.target.value }))}
+                      onChange={(v) => setNewFollowUp(prev => ({ ...prev, contactId: v }))}
+                      contacts={custContacts}
+                      onContactCreated={(c) => {
+                        setCustContacts(prev => [c, ...prev])
+                        setNewFollowUp(prev => ({ ...prev, contactId: c.id }))
+                      }}
+                      placeholder="选择联系人（可选）"
                       className="input text-sm flex-1 min-w-0"
-                    >
-                      <option value="">选择联系人（可选）</option>
-                      {custContacts.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}{c.position ? ` · ${c.position}` : ''}{c.phone ? ` (${c.phone})` : ''}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                   {/* 第二行：多行内容 + AI按钮 */}
                   <div className="relative">
@@ -863,30 +1215,85 @@ export default function CustomerDetail() {
                     className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${timelineChannelFilter === ch ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{ch}</button>
                 ))}
               </div>
+
+              {/* 时间范围筛选 */}
+              <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
+                <Clock size={12} className="text-gray-400 shrink-0" />
+                {([['all', '全部'], ['30', '近30天'], ['90', '近90天']] as const).map(([val, label]) => (
+                  <button key={val} onClick={() => setTimelineRange(val)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${timelineRange === val ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{label}</button>
+                ))}
+              </div>
+
               {filteredTimeline.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">暂无该渠道记录</div>
               ) : (
                 <div className="relative">
                 <div className="space-y-0">
-                  {filteredTimeline.map((evt, idx) => {
-                    const IconComp = timelineTypeIcons[evt.type] || FileText
-                    const isLast = idx === filteredTimeline.length - 1
+                  {parentItems.map((evt, idx) => {
+                    const IconComp = timelineTypeIcons[evt.method || 'note'] || FileText
+                    const isLast = idx === parentItems.length - 1
+                    const isOwner = evt.userId === currentUser?.id
+                    const canEditDelete = isOwner
+                    const canReply = isManager && !isOwner
+                    const replies = repliesOf(evt.id)
                     return (
-                      <div key={evt.id} className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${timelineTypeColors[evt.type]} text-white`}>
-                            <IconComp size={14} />
+                      <div key={evt.id}>
+                        <div className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${timelineTypeColors[evt.method || 'note']} text-white`}>
+                              <IconComp size={14} />
+                            </div>
+                            {!isLast && <div className="w-0.5 flex-1 bg-gray-200 my-1" />}
                           </div>
-                          {!isLast && <div className="w-0.5 flex-1 bg-gray-200 my-1" />}
-                        </div>
-                        <div className={`pb-5 ${isLast ? '' : ''}`}>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${timelineTypeColors[evt.type]} text-white`}>{timelineTypeLabels[evt.type]}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${channelColors[evt.channel] || 'bg-gray-50 text-gray-500'}`}>{evt.channel}</span>
-                            <span className="text-xs text-gray-400">{evt.createdAt}</span>
+                          <div className={`pb-5 ${isLast ? '' : ''} flex-1`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${timelineTypeColors[evt.method || 'note']} text-white`}>{timelineTypeLabels[evt.method || 'note']}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${channelColors[evt.channel || '系统'] || 'bg-gray-50 text-gray-500'}`}>{evt.channel || '系统'}</span>
+                              <span className="text-xs text-gray-400">跟进：{fmtFollowTime(evt)}</span>
+                              {evt.nextFollowUpAt && <span className="text-xs text-orange-500">下次跟进：{evt.nextFollowUpAt.slice(0, 10)}</span>}
+                            </div>
+                            <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{evt.content}</p>
+                            {evt.nextPlan && (
+                              <div className="mt-1.5 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+                                <span className="font-medium text-gray-600">下一步计划：</span>{evt.nextPlan}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <span className="text-xs text-gray-400">{evt.operator || evt.user?.name || ''}</span>
+                              <div className="flex items-center gap-2 ml-auto">
+                                {canEditDelete && (
+                                  <>
+                                    <button onClick={() => handleOpenEdit(evt)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600"><Pencil size={12} /> 编辑</button>
+                                    <button onClick={() => handleDeleteFollowUp(evt)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500"><Trash2 size={12} /> 删除</button>
+                                  </>
+                                )}
+                                {canReply && (
+                                  <button onClick={() => handleOpenReply(evt)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600"><Reply size={12} /> 回复/补充</button>
+                                )}
+                              </div>
+                            </div>
+                            {replies.length > 0 && (
+                              <div className="mt-2 space-y-2 pl-3 border-l-2 border-brand-100">
+                                {replies.map(r => {
+                                  const rOwner = r.userId === currentUser?.id
+                                  return (
+                                    <div key={r.id} className="bg-brand-50/40 rounded-lg p-2.5">
+                                      <div className="flex items-center gap-2">
+                                        <CornerDownRight size={12} className="text-brand-400 shrink-0" />
+                                        <span className="text-[10px] font-medium text-brand-600">{r.user?.name || r.operator || '补充'}</span>
+                                        <span className="text-[10px] text-gray-400">的补充 · {fmtFollowTime(r)}</span>
+                                        {rOwner && (
+                                          <button onClick={() => handleDeleteFollowUp(r)} className="inline-flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-red-500 ml-auto"><Trash2 size={10} /> 删除</button>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{r.content}</p>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-sm text-gray-700 mt-1">{evt.content}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{evt.operator}</p>
                         </div>
                       </div>
                     )
@@ -894,7 +1301,70 @@ export default function CustomerDetail() {
                 </div>
               </div>
               )}
+
+              {/* 编辑跟进弹窗（仅本人） */}
+              {editingFollowUp && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between px-5 py-3 border-b">
+                      <span className="text-sm font-semibold text-gray-700">编辑跟进记录</span>
+                      <button onClick={() => setEditingFollowUp(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                    </div>
+                    <div className="p-5 space-y-3">
+                      <div className="flex gap-3">
+                        <select value={editDraft.method} onChange={e => setEditDraft(prev => ({ ...prev, method: e.target.value }))} className="input text-sm w-32">
+                          <option value="note">备注</option>
+                          <option value="call">电话</option>
+                          <option value="email">邮件</option>
+                          <option value="visit">拜访</option>
+                          <option value="meeting">会议</option>
+                          <option value="whatsapp">WhatsApp</option>
+                        </select>
+                        <input type="datetime-local" value={editDraft.followedAt} onChange={e => setEditDraft(prev => ({ ...prev, followedAt: e.target.value }))} className="input text-sm flex-1" title="跟进时间（业务发生时间）" />
+                      </div>
+                      <textarea value={editDraft.content} onChange={e => setEditDraft(prev => ({ ...prev, content: e.target.value }))} placeholder="跟进内容 *" className="input text-sm w-full resize-y min-h-[80px]" rows={3} />
+                      <input type="date" value={editDraft.nextFollowUpAt} onChange={e => setEditDraft(prev => ({ ...prev, nextFollowUpAt: e.target.value }))} className="input text-sm w-full" title="下次跟进日期" />
+                      <textarea value={editDraft.nextPlan} onChange={e => setEditDraft(prev => ({ ...prev, nextPlan: e.target.value }))} placeholder="下一步计划" className="input text-sm w-full resize-y min-h-[60px]" rows={2} />
+                    </div>
+                    <div className="flex justify-end gap-3 px-5 py-3 border-t bg-gray-50">
+                      <button onClick={() => setEditingFollowUp(null)} className="btn-ghost">取消</button>
+                      <button onClick={handleSaveEdit} disabled={!editDraft.content.trim() || savingEdit} className="btn-primary text-xs flex items-center gap-1">
+                        {savingEdit ? <><Loader2 size={14} className="animate-spin" /> 保存中</> : '保存'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 回复/补充弹窗（主管/管理员对他人记录） */}
+              {replyParent && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+                    <div className="flex items-center justify-between px-5 py-3 border-b">
+                      <span className="text-sm font-semibold text-gray-700">回复/补充跟进</span>
+                      <button onClick={() => setReplyParent(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                    </div>
+                    <div className="p-5 space-y-3">
+                      <div className="text-xs text-gray-400 bg-gray-50 rounded p-2">
+                        原记录：{replyParent.content?.slice(0, 60)}{replyParent.content && replyParent.content.length > 60 ? '…' : ''}
+                      </div>
+                      <textarea value={replyDraft.content} onChange={e => setReplyDraft(prev => ({ ...prev, content: e.target.value }))} placeholder="补充内容 *（您的补充将以新记录挂接在原记录下，原记录不会被修改）" className="input text-sm w-full resize-y min-h-[80px]" rows={3} autoFocus />
+                    </div>
+                    <div className="flex justify-end gap-3 px-5 py-3 border-t bg-gray-50">
+                      <button onClick={() => setReplyParent(null)} className="btn-ghost">取消</button>
+                      <button onClick={handleSaveReply} disabled={!replyDraft.content.trim() || savingReply} className="btn-primary text-xs flex items-center gap-1">
+                        {savingReply ? <><Loader2 size={14} className="animate-spin" /> 提交中</> : <><Send size={14} /> 提交补充</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
+          )}
+
+          {/* AI 助手 Tab */}
+          {activeTab === 'ai' && (
+            <CustomerAiChat customerId={id || ''} />
           )}
         </div>
       </div>

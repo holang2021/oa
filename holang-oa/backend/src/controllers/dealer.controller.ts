@@ -1,9 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, DealerReportStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
+
+const DealerReportStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
 
 const submitDealerReportSchema = z.object({
   companyName: z.string().min(1, '公司名称不能为空'),

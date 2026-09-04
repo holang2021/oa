@@ -89,7 +89,7 @@ npx prisma generate
 DATABASE_URL="file:/opt/holang-oa/data/holang-oa.db"
 PORT=3001
 NODE_ENV=production
-JWT_SECRET=holang-crm-dev-secret-2026
+JWT_SECRET=<REDACTED-见 .env>
 
 # 企微 OAuth 2.0 (AgentID 1000081)
 WECOM_OAUTH_SECRET=<已存入 credentials.json（wecom.app_1000081.oauth_secret）>

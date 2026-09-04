@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { ApiConfig, API_PROVIDER_LABELS } from '../../types/apiConfig'
-import { updateApiConfig, updateApiCredentials, updateApiStatus } from '../../services/apiConfigStore'
+import { updateApiStatus, saveApiConfigToBackend } from '../../services/apiConfigStore'
 
 interface Props {
   config: ApiConfig
@@ -20,17 +20,29 @@ export default function ApiConfigDialog({ config, onClose, onSaved }: Props) {
   const [credentials, setCredentials] = useState<Record<string, string>>({ ...config.credentials })
   const [saving, setSaving] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
     try {
-      updateApiConfig(config.id, {
+      // 脱敏：password 输入框返回空表示不修改，保留已有值
+      const existing = config.credentials
+      const masked: Record<string, string> = {}
+      for (const [key, val] of Object.entries(credentials)) {
+        if (val && !val.startsWith('****') && val !== existing[key]) {
+          masked[key] = val
+        } else {
+          masked[key] = existing[key] || ''
+        }
+      }
+
+      await saveApiConfigToBackend(config.provider, {
         baseUrl,
         timeout,
         testEndpoint,
+        credentials: masked,
       })
-      updateApiCredentials(config.id, credentials)
+
       // 改了 baseUrl 或凭证则重置状态
-      if (baseUrl !== config.baseUrl || JSON.stringify(credentials) !== JSON.stringify(config.credentials)) {
+      if (baseUrl !== config.baseUrl || JSON.stringify(masked) !== JSON.stringify(config.credentials)) {
         updateApiStatus(config.id, 'unconfigured')
       }
       onSaved()
@@ -218,7 +230,7 @@ export default function ApiConfigDialog({ config, onClose, onSaved }: Props) {
           </div>
 
           <p className="text-xs text-gray-400">
-            凭证保存后以加密方式存储在本地，不会上传输送。
+            凭证保存在服务器配置文件中，管理员可随时修改。请勿在公共网络泄露。
           </p>
         </div>
 

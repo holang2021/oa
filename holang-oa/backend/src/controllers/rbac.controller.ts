@@ -9,6 +9,7 @@ import {
   syncRolesFromWecom,
 } from '../services/rbac-sync.service';
 import { queryAuditLogs } from '../services/audit.service';
+import { createAuditLog } from '../repositories/audit-log.repository';
 import { resolveRole, deriveSalesType, listRolePermissions } from '../constants/roles';
 
 /** GET /rbac/roles —— 8 角色权限矩阵 */
@@ -69,6 +70,33 @@ export const getAuditLogs = async (req: AuthRequest, res: Response, next: NextFu
       offset,
     });
     return res.json({ code: 0, message: '获取成功', data: result });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST /rbac/view-mode —— 记录身份/视图模式切换（用户↔管理员）。
+ * 仅 ADMIN 可调（路由层已 authorize([ADMIN])）。落审计日志，满足配置层切换可审计要求。
+ */
+export const recordViewMode = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const mode = req.body?.mode; // 'user' | 'admin'
+    if (mode !== 'user' && mode !== 'admin') {
+      return res.status(400).json({ code: 400, message: '非法模式', data: null });
+    }
+    const role = resolveRole(req.user.role);
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'VIEW_SWITCH',
+      entity: 'view_mode',
+      entityId: req.user.id,
+      salesType: deriveSalesType(role),
+      result: 'SUCCESS',
+      detail: { mode, from: req.body?.from || null },
+      traceId: req.traceId,
+    });
+    return res.json({ code: 0, message: '已记录', data: { mode } });
   } catch (error) {
     return next(error);
   }

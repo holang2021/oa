@@ -45,8 +45,13 @@ const addContactSchema = z.object({
   position: z.string().optional(),
   title: z.string().optional(),
   type: z.string().default('PRIMARY'),
-  phone: z.string().optional(),
+  phone: z.string().optional().or(z.literal('')),
   email: z.string().email().optional().or(z.literal('')),
+  wechat: z.string().optional().or(z.literal('')),
+  whatsapp: z.string().optional().or(z.literal('')),
+  dept: z.string().optional().or(z.literal('')),
+  gender: z.string().optional().or(z.literal('')),
+  remark: z.string().optional().or(z.literal('')),
   isKeyPerson: z.boolean().default(false),
 });
 
@@ -461,6 +466,9 @@ export const getCustomerContacts = async (req: AuthRequest, res: Response, next:
 
     const contacts = await prisma.contact.findMany({
       where: { customerId: id },
+      include: {
+        createdBy: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -495,17 +503,26 @@ export const addContact = async (req: AuthRequest, res: Response, next: NextFunc
       });
     }
 
-    // Create contact
+    // Create contact with creator ownership
     const contact = await prisma.contact.create({
       data: {
         customerId: id,
         name: validated.name,
-        position: validated.position,
-        title: validated.title,
+        position: validated.position || null,
+        title: validated.title || null,
         type: validated.type,
-        phone: validated.phone,
+        phone: validated.phone || null,
         email: validated.email || null,
+        wechat: validated.wechat || null,
+        whatsapp: validated.whatsapp || null,
+        dept: validated.dept || null,
+        gender: validated.gender || null,
+        remark: validated.remark || null,
         isKeyPerson: validated.isKeyPerson,
+        createdById: req.user!.id,
+      },
+      include: {
+        createdBy: { select: { id: true, name: true } },
       },
     });
 
@@ -521,22 +538,48 @@ export const addContact = async (req: AuthRequest, res: Response, next: NextFunc
 
 /**
  * Update contact
+ * 规则：仅创建者本人可修改；未记录创建者时默认允许当前用户修改（兼容旧数据），
+ * 同时兼容 system-admin-0001 等系统迁移账号缺失 createdById 的情况。
  */
 export const updateContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { contactId } = req.params;
     const validated = addContactSchema.partial().parse(req.body);
 
+    const existing = await prisma.contact.findUnique({
+      where: { id: contactId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ code: 404, message: '联系人不存在', data: null });
+    }
+
+    if (existing.createdById && existing.createdById !== req.user!.id) {
+      return res.status(403).json({
+        code: 403,
+        message: '仅联系人创建者可修改该联系人信息',
+        data: null,
+      });
+    }
+
     const contact = await prisma.contact.update({
       where: { id: contactId },
       data: {
         ...(validated.name !== undefined && { name: validated.name }),
-        ...(validated.position !== undefined && { position: validated.position }),
-        ...(validated.title !== undefined && { title: validated.title }),
+        ...(validated.position !== undefined && { position: validated.position || null }),
+        ...(validated.title !== undefined && { title: validated.title || null }),
         ...(validated.type !== undefined && { type: validated.type }),
-        ...(validated.phone !== undefined && { phone: validated.phone }),
-        ...(validated.email !== undefined && { email: validated.email }),
+        ...(validated.phone !== undefined && { phone: validated.phone || null }),
+        ...(validated.email !== undefined && { email: validated.email || null }),
+        ...(validated.wechat !== undefined && { wechat: validated.wechat || null }),
+        ...(validated.whatsapp !== undefined && { whatsapp: validated.whatsapp || null }),
+        ...(validated.dept !== undefined && { dept: validated.dept || null }),
+        ...(validated.gender !== undefined && { gender: validated.gender || null }),
+        ...(validated.remark !== undefined && { remark: validated.remark || null }),
         ...(validated.isKeyPerson !== undefined && { isKeyPerson: validated.isKeyPerson }),
+      },
+      include: {
+        createdBy: { select: { id: true, name: true } },
       },
     });
 
@@ -552,18 +595,13 @@ export const updateContact = async (req: AuthRequest, res: Response, next: NextF
 
 /**
  * Delete contact
+ * 规则：任何角色均禁止删除联系人记录（保留完整业务轨迹）。
  */
 export const deleteContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { contactId } = req.params;
-
-    await prisma.contact.delete({
-      where: { id: contactId },
-    });
-
-    res.json({
-      code: 0,
-      message: '删除成功',
+    return res.status(403).json({
+      code: 403,
+      message: '系统禁止删除联系人记录，请联系管理员',
       data: null,
     });
   } catch (error) {

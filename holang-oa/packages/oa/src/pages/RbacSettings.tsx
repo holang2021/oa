@@ -3,10 +3,11 @@
 // 管理员可：新建/编辑/删除角色，配置每个角色的菜单权限
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Plus, Pencil, Trash2, Shield, ShieldCheck, Users, UserPlus,
   ChevronDown, ChevronRight, Check, X, Save, RotateCcw,
+  UserCog, Eye, EyeOff,
 } from 'lucide-react'
 import {
   Role,
@@ -29,6 +30,7 @@ import {
   syncEmployeesFromWecom,
 } from '../services/rbacStore'
 import { useI18n } from '../i18n/I18nContext'
+import { api } from '../services/api'
 
 const ACTION_LABELS: Record<ActionPermission, string> = {
   view: '查看',
@@ -58,9 +60,24 @@ export default function RbacSettings() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [showRoleForm, setShowRoleForm] = useState(false)
   const [showEmployeeForm, setShowEmployeeForm] = useState(false)
+  const [showAdminForm, setShowAdminForm] = useState(false)
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
 
   const refreshRoles = () => setRoles(getAllRoles())
   const refreshEmployees = () => setEmployees(getAllEmployees())
+
+  // 加载真实企微部门作为下拉选项
+  useEffect(() => {
+    api.get('/wecom/departments')
+      .then((res) => {
+        if (res.code === 0 && Array.isArray(res.data)) {
+          setDepartmentOptions(res.data.map((d: any) => d.name).filter(Boolean))
+        }
+      })
+      .catch(() => {
+        setDepartmentOptions([])
+      })
+  }, [])
 
   // ============================================================
   // 角色表单
@@ -105,17 +122,36 @@ export default function RbacSettings() {
   // ============================================================
   // 企微同步（模拟）
   // ============================================================
-  const handleSyncWecom = () => {
-    // 模拟从企微拉取通讯录
-    const mockWecomUsers = [
-      { userId: 'admin', name: '刘世光', department: '管理部', status: 'active' as const },
-      { userId: 'zhangsan', name: '张三', department: '销售部', status: 'active' as const },
-      { userId: 'lisi', name: '李四', department: '销售部', status: 'active' as const },
-      { userId: 'wangwu', name: '王五', department: '财务部', status: 'active' as const },
-    ]
-    syncEmployeesFromWecom(mockWecomUsers)
-    refreshEmployees()
-    alert('企微通讯录同步完成！')
+  const handleSyncWecom = async () => {
+    try {
+      // 1) 触发后端真实同步（拉企微通讯录并写入 OA 用户表）
+      const syncRes = await api.post('/wecom/sync')
+      if (syncRes.code !== 0) {
+        alert('同步失败：' + syncRes.message)
+        return
+      }
+      // 2) 拉取真实通讯录名单，写回本地员工列表（让前端可见真实同步结果）
+      const contactsRes = await api.get('/wecom/contacts')
+      if (contactsRes.code !== 0) {
+        alert('拉取通讯录失败：' + contactsRes.message)
+        return
+      }
+      const list = contactsRes.data?.list || []
+      const realUsers = list.map((u: any) => ({
+        userId: u.userid,
+        name: u.name,
+        departments: Array.isArray(u.department) ? u.department : (u.mainDepartment ? [u.mainDepartment] : []),
+        status: u.enable === 1 ? 'active' : 'inactive',
+      }))
+      syncEmployeesFromWecom(realUsers)
+      refreshEmployees()
+      const stat = syncRes.data || {}
+      alert(
+        `企微通讯录真实同步完成！\n新增用户 ${stat.created ?? 0}，更新 ${stat.updated ?? 0}（停用 ${stat.disabled ?? 0}），部门 ${stat.departments ?? 0} 个`
+      )
+    } catch (e: any) {
+      alert('同步失败：' + (e?.message || '网络错误'))
+    }
   }
 
   return (
@@ -228,28 +264,37 @@ export default function RbacSettings() {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-gray-700">员工列表</h3>
-            <button
-              onClick={() => {
-                setEditingEmployee({
-                  id: 'emp_' + Date.now(),
-                  userId: '',
-                  name: '',
-                  nameEn: '',
-                  email: '',
-                  phone: '',
-                  department: '',
-                  roleId: 'viewer',
-                  status: 'active',
-                  wecomUserId: '',
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                })
-                setShowEmployeeForm(true)
-              }}
-              className="btn-primary flex items-center gap-2"
-            >
-              <UserPlus size={16} /> 添加员工
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAdminForm(true)}
+                className="btn-primary flex items-center gap-2 bg-amber-600 hover:bg-amber-700 border-amber-600"
+                title="创建具备系统最高权限的管理员账号"
+              >
+                <UserCog size={16} /> 添加管理员
+              </button>
+              <button
+                onClick={() => {
+                  setEditingEmployee({
+                    id: 'emp_' + Date.now(),
+                    userId: '',
+                    name: '',
+                    nameEn: '',
+                    email: '',
+                    phone: '',
+                    departments: [],
+                    roleId: 'viewer',
+                    status: 'active',
+                    wecomUserId: '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  })
+                  setShowEmployeeForm(true)
+                }}
+                className="btn-primary flex items-center gap-2"
+              >
+                <UserPlus size={16} /> 添加员工
+              </button>
+            </div>
           </div>
 
           <div className="card overflow-x-auto">
@@ -272,7 +317,7 @@ export default function RbacSettings() {
                     <tr key={emp.id} className="border-b hover:bg-gray-50">
                       <td className="py-2 font-medium">{emp.name}</td>
                       <td className="py-2 font-mono text-xs">{emp.userId}</td>
-                      <td className="py-2">{emp.department}</td>
+                      <td className="py-2">{emp.departments.join(' / ') || '-'}</td>
                       <td className="py-2">
                         <span className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-xs">
                           {role?.name || emp.roleId}
@@ -302,8 +347,22 @@ export default function RbacSettings() {
             <EmployeeFormModal
               employee={editingEmployee}
               roles={roles}
+              departmentOptions={departmentOptions}
               onSave={handleSaveEmployee}
               onCancel={() => { setShowEmployeeForm(false); setEditingEmployee(null) }}
+            />
+          )}
+
+          {/* 添加管理员弹窗 */}
+          {showAdminForm && (
+            <AddAdminModal
+              departmentOptions={departmentOptions}
+              roles={roles}
+              onSuccess={() => {
+                setShowAdminForm(false)
+                refreshEmployees()
+              }}
+              onCancel={() => setShowAdminForm(false)}
             />
           )}
         </div>
@@ -492,9 +551,10 @@ function RoleFormModal({ role, onSave, onCancel }: { role: Role; onSave: (r: Rol
 // ============================================================
 // 员工编辑弹窗
 // ============================================================
-function EmployeeFormModal({ employee, roles, onSave, onCancel }: {
+function EmployeeFormModal({ employee, roles, departmentOptions, onSave, onCancel }: {
   employee: Employee
   roles: Role[]
+  departmentOptions: string[]
   onSave: (e: Employee) => void
   onCancel: () => void
 }) {
@@ -532,14 +592,31 @@ function EmployeeFormModal({ employee, roles, onSave, onCancel }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">部门</label>
-              <input
-                type="text"
-                value={form.department}
-                onChange={e => setForm({ ...form, department: e.target.value })}
-                className="input text-sm w-full"
-                placeholder="所属部门"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">部门（可多选）</label>
+              <div className="border border-gray-200 rounded-lg p-2 max-h-32 overflow-y-auto bg-white">
+                {departmentOptions.length === 0 && (
+                  <div className="text-xs text-gray-400 py-1">暂无部门，请先企微同步</div>
+                )}
+                {departmentOptions.map((dept) => {
+                  const checked = (form.departments || []).includes(dept)
+                  return (
+                    <label key={dept} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-1">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...(form.departments || []), dept]
+                            : (form.departments || []).filter((d) => d !== dept)
+                          setForm({ ...form, departments: next })
+                        }}
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                      />
+                      <span className="text-xs text-gray-700">{dept}</span>
+                    </label>
+                  )
+                })}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">角色</label>
@@ -609,6 +686,299 @@ function EmployeeFormModal({ employee, roles, onSave, onCancel }: {
             disabled={!form.name || !form.userId}
           >
             <Save size={16} /> 保存
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 添加管理员弹窗
+// 高权限操作：独立入口、独立表单、独立校验、调用后端 /users 创建 ADMIN
+// ============================================================
+interface AddAdminForm {
+  name: string
+  userId: string
+  email: string
+  password: string
+  confirmPassword: string
+  departments: string[]
+  wecomUserId: string
+}
+
+function AddAdminModal({
+  departmentOptions,
+  roles,
+  onSuccess,
+  onCancel,
+}: {
+  departmentOptions: string[]
+  roles: Role[]
+  onSuccess: () => void
+  onCancel: () => void
+}) {
+  const [form, setForm] = useState<AddAdminForm>({
+    name: '',
+    userId: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    departments: [],
+    wecomUserId: '',
+  })
+  const [showPwd, setShowPwd] = useState(false)
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false)
+  const [errors, setErrors] = useState<Partial<Record<keyof AddAdminForm, string>>>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState('')
+
+  const validate = (): boolean => {
+    const nextErrors: Partial<Record<keyof AddAdminForm, string>> = {}
+    if (!form.name.trim()) nextErrors.name = '姓名不能为空'
+    if (!form.userId.trim()) {
+      nextErrors.userId = '登录账号不能为空'
+    } else if (!/^[a-zA-Z0-9_\-\.]{3,32}$/.test(form.userId.trim())) {
+      nextErrors.userId = '账号只能包含字母、数字、下划线、横线、点，长度 3-32'
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      nextErrors.email = '邮箱格式不正确'
+    }
+    if (!form.password) {
+      nextErrors.password = '密码不能为空'
+    } else if (form.password.length < 6) {
+      nextErrors.password = '密码至少6个字符'
+    }
+    if (form.password !== form.confirmPassword) {
+      nextErrors.confirmPassword = '两次输入的密码不一致'
+    }
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  const handleSubmit = async () => {
+    setServerError('')
+    if (!validate()) return
+
+    setSubmitting(true)
+    try {
+      // 1) 后端创建 ADMIN 用户
+      // 注意：后端 User.name 同时作为登录账号，因此登录账号写入 name 字段
+      const loginAccount = form.userId.trim()
+      const res = await api.post('/users', {
+        name: loginAccount,
+        email: form.email.trim() || undefined,
+        password: form.password,
+        role: 'ADMIN',
+        departments: form.departments,
+        wecomUserId: form.wecomUserId.trim() || undefined,
+      })
+
+      if (res.code !== 0) {
+        setServerError(res.message || '创建管理员失败')
+        return
+      }
+
+      const backendUser = res.data as {
+        id: string
+        name: string
+        email: string | null
+        role: string
+        department: string | null
+        departments: string | null
+        wecomUserId: string | null
+        createdAt: string
+      }
+
+      // 2) 同步到前端员工表，保证菜单权限/角色渲染一致
+      const now = new Date().toISOString()
+      const parsedDepartments = (() => {
+        if (backendUser.departments) {
+          try {
+            const parsed = JSON.parse(backendUser.departments)
+            return Array.isArray(parsed) ? parsed : []
+          } catch {
+            return []
+          }
+        }
+        return backendUser.department ? [backendUser.department] : form.departments
+      })()
+
+      createEmployee({
+        id: backendUser.id,
+        userId: form.userId.trim(),
+        name: form.name.trim(),
+        nameEn: '',
+        email: backendUser.email || form.email.trim(),
+        phone: '',
+        departments: parsedDepartments,
+        roleId: 'admin',
+        status: 'active',
+        wecomUserId: backendUser.wecomUserId || form.wecomUserId.trim(),
+        createdAt: backendUser.createdAt || now,
+        updatedAt: now,
+      })
+
+      alert(`管理员「${form.name.trim()}」创建成功，登录账号：${form.userId.trim()}`)
+      onSuccess()
+    } catch (e: any) {
+      setServerError(e?.message || '网络错误，请重试')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-amber-50">
+          <div className="flex items-center gap-2 text-amber-700">
+            <UserCog size={18} />
+            <h3 className="font-semibold">添加管理员</h3>
+          </div>
+          <button onClick={onCancel} className="p-1.5 rounded hover:bg-amber-100"><X size={16} /></button>
+        </div>
+
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+          {serverError && (
+            <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+              {serverError}
+            </div>
+          )}
+
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            管理员拥有系统最高权限，可修改角色权限、系统配置和数据。请谨慎创建。
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">姓名 <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className={`input text-sm w-full ${errors.name ? 'border-red-300 focus:border-red-500' : ''}`}
+                placeholder="真实姓名"
+              />
+              {errors.name && <p className="text-[11px] text-red-500 mt-1">{errors.name}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">登录账号 <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={form.userId}
+                onChange={(e) => setForm({ ...form, userId: e.target.value })}
+                className={`input text-sm w-full ${errors.userId ? 'border-red-300 focus:border-red-500' : ''}`}
+                placeholder="用于登录的用户名"
+              />
+              {errors.userId && <p className="text-[11px] text-red-500 mt-1">{errors.userId}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">邮箱</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className={`input text-sm w-full ${errors.email ? 'border-red-300 focus:border-red-500' : ''}`}
+              placeholder="邮箱地址"
+            />
+            {errors.email && <p className="text-[11px] text-red-500 mt-1">{errors.email}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">密码 <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <input
+                  type={showPwd ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className={`input text-sm w-full pr-8 ${errors.password ? 'border-red-300 focus:border-red-500' : ''}`}
+                  placeholder="至少6个字符"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {errors.password && <p className="text-[11px] text-red-500 mt-1">{errors.password}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">确认密码 <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <input
+                  type={showConfirmPwd ? 'text' : 'password'}
+                  value={form.confirmPassword}
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                  className={`input text-sm w-full pr-8 ${errors.confirmPassword ? 'border-red-300 focus:border-red-500' : ''}`}
+                  placeholder="再次输入密码"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPwd((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-[11px] text-red-500 mt-1">{errors.confirmPassword}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">部门（可多选）</label>
+              <div className="border border-gray-200 rounded-lg p-2 max-h-32 overflow-y-auto bg-white">
+                {departmentOptions.length === 0 && (
+                  <div className="text-xs text-gray-400 py-1">暂无部门，请先企微同步</div>
+                )}
+                {departmentOptions.map((dept) => {
+                  const checked = form.departments.includes(dept)
+                  return (
+                    <label key={dept} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-1">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...form.departments, dept]
+                            : form.departments.filter((d) => d !== dept)
+                          setForm({ ...form, departments: next })
+                        }}
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                      />
+                      <span className="text-xs text-gray-700">{dept}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">企微 UserID</label>
+              <input
+                type="text"
+                value={form.wecomUserId}
+                onChange={(e) => setForm({ ...form, wecomUserId: e.target.value })}
+                className="input text-sm w-full"
+                placeholder="企微通讯录 UserID"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+          <button onClick={onCancel} className="btn-ghost" disabled={submitting}>取消</button>
+          <button
+            onClick={handleSubmit}
+            className="btn-primary flex items-center gap-2 bg-amber-600 hover:bg-amber-700 border-amber-600"
+            disabled={submitting}
+          >
+            {submitting ? '创建中...' : <><UserCog size={16} /> 确认创建管理员</>}
           </button>
         </div>
       </div>

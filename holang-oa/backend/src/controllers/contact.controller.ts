@@ -75,6 +75,7 @@ export const getContactById = async (req: AuthRequest, res: Response, next: Next
       where: { id },
       include: {
         customer: { select: { id: true, companyName: true } },
+        createdBy: { select: { id: true, name: true } },
       },
     });
 

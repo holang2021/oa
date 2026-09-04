@@ -20,7 +20,8 @@ model User {
   email         String?   @unique
   password      String    @default("")
   role          String    @default("SALES")
-  department    String?
+  department    String?   // 主部门（兼容单值，取 departments[0]）
+  departments   String?   @map("departments") // 多部门：JSON 数组字符串，存部门名，如 ["生产部","技术部"]
   isActive      Boolean   @default(true)
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -28,6 +29,7 @@ model User {
 
   customers         Customer[] @relation("CustomerSalesOwner")
   customersCreated  Customer[] @relation("CustomerCreator")
+  contactsCreated   Contact[]    @relation("ContactCreator")
   opportunities     Opportunity[]
   quotes            Quote[]
   orders            Order[]
@@ -133,6 +135,7 @@ model Customer {
   invoices      Invoice[]
   deliveries    Delivery[]
   dealerReports DealerReport[]
+  aiMessages    CustomerAiMessage[]
 
   @@index([status])
   @@index([businessLine])
@@ -166,13 +169,17 @@ model Contact {
   contactType   String?
   remark        String?
   huobanId      String?
+  // 创建者：新增联系人时自动写入当前用户 ID，作为编辑权限依据；禁止删除
+  createdById   String?     @map("created_by_id")
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdBy     User?       @relation("ContactCreator", fields: [createdById], references: [id])
 
   @@index([customerId])
   @@index([phone])
+  @@index([createdById])
   @@map("contacts")
 }
 
@@ -348,6 +355,10 @@ model FollowUp {
   channel         String?
   operator        String?
   nextFollowUpAt  DateTime?
+  followedAt      DateTime?   // 跟进时间（业务实际发生时间）
+  nextPlan        String?     // 下一步计划
+  contactId       String?     // 关联联系人（修复现有选择不生效）
+  parentId        String?     // 回复挂接：主管/管理员在他人跟进下补充记录
   huobanId        String?
   createdAt       DateTime    @default(now())
 
@@ -356,6 +367,7 @@ model FollowUp {
 
   @@index([customerId])
   @@index([userId])
+  @@index([parentId])
   @@map("follow_ups")
 }
 
@@ -450,6 +462,7 @@ model Delivery {
 
   order          Order?    @relation(fields: [orderId], references: [id])
   customer       Customer? @relation(fields: [customerId], references: [id])
+  items          DeliveryItem[]
 
   @@index([orderId])
   @@index([customerId])
@@ -523,6 +536,7 @@ model Opportunity {
   winProbability  Float            @default(0)
   description     String?
   salesOwnerId    String?
+  customerContactId String?        @map("customer_contact_id")
   code            String?
   collaborators   String?
   taxRate         Float?           @default(13)
@@ -545,6 +559,7 @@ model Opportunity {
   @@index([salesOwnerId])
   @@index([salesType])
   @@index([customerId])
+  @@index([customerContactId])
   @@index([inPublicPool])
   @@map("opportunities")
 }
@@ -662,6 +677,7 @@ model Pi {
   id          String    @id @default(cuid())
   piNo        String    @unique // PI 编号，如 PI2026xxxxxx
   customerId  String
+  customerContactId String? @map("customer_contact_id")
   salesType   String?   // EXTERNAL 外销专用
   quoteRef    String?   // 关联报价单(Quote)——复用其金额/明细
   amount      Float     @default(0) // 复用 Quote.totalAmount
@@ -679,6 +695,7 @@ model Pi {
   creator     User?     @relation("UserPis", fields: [createdById], references: [id])
 
   @@index([customerId])
+  @@index([customerContactId])
   @@index([salesType])
   @@index([quoteRef])
   @@map("pis")
@@ -788,6 +805,36 @@ model AuditLog {
 }
 
 // ============================================================
+// 系统待办表 —— 离职交接待办（防遗漏）
+// 离职交接执行成功后由后端自动写入，assigneeRole=ADMIN 可见、可标记完成。
+// 仅新增表，不修改任何既有表结构（单一版本铁律 / 防删库）。
+// ============================================================
+model Todo {
+  id             String    @id @default(cuid())
+  type           String    @default("OFFBOARDING_HANDOVER") // 待办类型：离职交接待办
+  title          String // 标题，如「张三 离职交接待办」
+  content        String // 详情，如「张三（技术部）已离职，待交接：3 客户 / 1 商机 / 5 跟进。已退回公海。」
+  status         String    @default("PENDING") // PENDING | DONE
+  relatedUserId  String? // 关联的离职员工 id
+  relatedUserName String? // 关联的离职员工姓名（冗余，便于展示）
+  meta           String? // JSON：{ mode, targetUserId, targetName, transferred, toPool, oppTransferred, oppToPool }
+  assigneeRole   String    @default("ADMIN") // 给哪个角色看（当前仅 ADMIN）
+  createdById    String? // 触发人（操作离职的管理员）id
+  createdByName  String? // 触发人姓名
+  doneById       String? // 标记完成人 id
+  doneByName     String? // 标记完成人姓名
+  doneAt         DateTime? // 完成时间
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([assigneeRole])
+  @@index([relatedUserId])
+  @@map("todos")
+}
+
+// ============================================================
 // 客户等级配置表 —— 批次1-A D1 (对应 P2)
 // 等级定义 + 跟进频次（A 每5–7天 / B 每2–3周 / C 每4–6周）
 // + A 占比控 20–30% + 复审降级规则。
@@ -805,5 +852,76 @@ model CustomerGradeConfig {
   updatedAt       DateTime @updatedAt
 
   @@map("customer_grade_config")
+}
+
+// ============================================================
+// 客户 AI 对话历史 —— 客户详情页内嵌 AI 助手（2026-08-06）
+// 每个客户一条共享会话线程（全公司可见，按客户查看权限 RBAC 隔离）；
+// 角色：user=销售发起 / assistant=AI 回复；随客户删除级联清除。
+// ============================================================
+model CustomerAiMessage {
+  id        String   @id @default(cuid())
+  customerId String
+  customer  Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId    String?  // 发起对话的销售（归因用，可空=系统）
+  role      String   // 'user' | 'assistant'
+  content   String
+  model     String?  // 如 'deepseek-chat'
+  tokensIn  Int?
+  tokensOut Int?
+  createdAt DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([userId])
+  @@map("customer_ai_messages")
+}
+
+// ============================================================
+// 飞书知识库同步日志 —— 沟通记录同步飞书 Wiki 的落库与检索（2026-08-06 方案A：应用身份）
+// 每条 OA 沟通记录 → 一篇飞书文档；本表记录映射关系与同步状态，供 OA 内检索/调取。
+// ============================================================
+model FeishuSyncLog {
+  id            String   @id @default(cuid())
+  recordType    String   // FOLLOW_UP | AI_THREAD | CONTACT_NOTE
+  oaRecordId    String   // 原表 PK
+  customerId    String
+  customerName  String?
+  operator      String?
+  title         String
+  nodeToken     String   // 飞书节点 token（删/重推用）
+  objToken      String   // docx obj_token（读正文用）
+  feishuUrl     String
+  status        String   @default("SYNCED") // SYNCED | FAILED
+  lastError     String?
+  retryCount    Int      @default(0)
+  syncedAt      DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([recordType, oaRecordId])
+  @@index([customerId])
+  @@index([status])
+  @@index([title])
+  @@map("feishu_sync_log")
+}
+
+// ============================================================
+// 发货明细表 —— 对应伙伴云「发货清单」
+// 2026-08-17 补建：每条 Delivery（发货申请/发货单）可含多行明细。
+// ============================================================
+model DeliveryItem {
+  id            String   @id @default(cuid())
+  deliveryId    String
+  productName   String?  // 产品名称
+  model         String?  // 规格型号
+  quantity      Int?     // 数量
+  remark        String?  // 备注
+  huobanId      String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  delivery      Delivery @relation(fields: [deliveryId], references: [id])
+
+  @@index([deliveryId])
+  @@map("delivery_items")
 }
 

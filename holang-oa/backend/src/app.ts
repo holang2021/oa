@@ -28,6 +28,13 @@ import deliveryRoutes from './routes/delivery.routes';
 import leadRoutes from './routes/lead.routes';
 import contactRoutes from './routes/contact.routes';
 import rbacRoutes from './routes/rbac.routes';
+import apiConfigRoutes from './routes/api-config.routes';
+import customerAiRoutes from './routes/customerAi.routes';
+import offboardingRoutes from './routes/offboarding.routes';
+import todosRoutes from './routes/todos.routes';
+import currencyRoutes from './routes/currency.routes';
+import codeRuleRoutes from './routes/codeRule.routes';
+import fieldConfigRoutes from './routes/fieldConfig.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -112,6 +119,13 @@ app.use(`${API_PREFIX}/deliveries`, deliveryRoutes);
 app.use(`${API_PREFIX}/leads`, leadRoutes);
 app.use(`${API_PREFIX}/contacts`, contactRoutes);
 app.use(`${API_PREFIX}/rbac`, rbacRoutes);
+app.use(`${API_PREFIX}/api-configs`, apiConfigRoutes);
+app.use(`${API_PREFIX}/customer-ai`, customerAiRoutes);
+app.use(`${API_PREFIX}/offboarding`, offboardingRoutes);
+app.use(`${API_PREFIX}/todos`, todosRoutes);
+app.use(`${API_PREFIX}/currencies`, currencyRoutes);
+app.use(`${API_PREFIX}/code-rules`, codeRuleRoutes);
+app.use(`${API_PREFIX}/field-configs`, fieldConfigRoutes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {

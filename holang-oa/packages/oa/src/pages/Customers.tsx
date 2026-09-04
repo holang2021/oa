@@ -30,6 +30,7 @@ export default function Customers() {
 
   const [allCustomers, setAllCustomers] = useState<Customer[]>([])
   const [countryFilter, setCountryFilter] = useState('')
+  const [lineFilter, setLineFilter] = useState('')  // 业务线筛选：工业 INDUSTRIAL / 零售 RETAIL
 
   // 公海客户
   const [poolCustomers, setPoolCustomers] = useState<Customer[]>([])
@@ -80,9 +81,12 @@ export default function Customers() {
     else loadPool()
   }, [tab, search, salesType])
 
-  // 后端已按 salesType 严格隔离，这里仅做国家筛选 + 分页（仅我的客户 tab）
+  // 后端已按 salesType 严格隔离，这里仅做国家 / 业务线筛选 + 分页（仅我的客户 tab）
   useEffect(() => {
-    const filtered = allCustomers.filter(c => countryFilter === '' || c.country === countryFilter)
+    const filtered = allCustomers.filter(c =>
+      (countryFilter === '' || c.country === countryFilter) &&
+      (lineFilter === '' || c.businessLine === lineFilter)
+    )
     const tp = Math.ceil(filtered.length / pageSize) || 1
     setTotal(filtered.length)
     setTotalPages(tp)
@@ -140,6 +144,25 @@ export default function Customers() {
     return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${colors[lv] || 'bg-gray-50 text-gray-600'}`}>{lv || '-'}级</span>
   }
 
+  // 内销/外销 域标识徽章（清晰可辨，避免混淆）
+  const salesTypeBadge = (st: string) => {
+    const isExport = st === 'EXTERNAL'
+    return (
+      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${isExport ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'}`}>
+        {isExport ? '外销' : '内销'}
+      </span>
+    )
+  }
+  // 业务线徽章（工业 / 零售）
+  const businessLineBadge = (bl: string) => {
+    const isRetail = bl === 'RETAIL'
+    return (
+      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${isRetail ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+        {isRetail ? '零售' : '工业'}
+      </span>
+    )
+  }
+
   const canReturn = (c: Customer) => c.salesOwnerId === currentUserId || isCurrentUserAdmin()
 
   const isPool = tab === 'pool'
@@ -147,7 +170,10 @@ export default function Customers() {
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-gray-900">{isPool ? t('pool.public') : t('pool.mine')} ({isPool ? poolCustomers.length : total}条)</h1>
+        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          {salesTypeBadge(salesType)}
+          {isPool ? t('pool.public') : t('pool.mine')} ({isPool ? poolCustomers.length : total}条)
+        </h1>
         {!isPool && (
           <button onClick={() => navigate(`${basePath}/customers/new`)} className="btn-primary inline-flex items-center gap-2 self-start sm:self-auto">
             <Plus size={16} /> 新增客户
@@ -194,6 +220,15 @@ export default function Customers() {
               <option key={co} value={co}>{co}</option>
             ))}
           </select>
+          <select
+            value={lineFilter}
+            onChange={(e) => { setLineFilter(e.target.value); setPage(1) }}
+            className="input-field sm:w-36"
+          >
+            <option value="">全部业务线</option>
+            <option value="INDUSTRIAL">工业</option>
+            <option value="RETAIL">零售</option>
+          </select>
         </div>
       )}
 
@@ -229,6 +264,7 @@ export default function Customers() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">行业</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">联系人</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">国家</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">业务类型</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-500">等级</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">销售负责人</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">创建时间</th>
@@ -237,7 +273,7 @@ export default function Customers() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {customers.length === 0 ? (
-                  <tr><td colSpan={9} className="text-center py-12 text-gray-400">暂无客户数据</td></tr>
+                  <tr><td colSpan={10} className="text-center py-12 text-gray-400">暂无客户数据</td></tr>
                 ) : (
                   customers.map((c) => (
                     <tr key={c.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => navigate(`${basePath}/customers/${c.id}`)}>
@@ -254,6 +290,12 @@ export default function Customers() {
                         ) : (
                           <span className="text-xs text-gray-300">-</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          {salesTypeBadge(c.salesType)}
+                          {businessLineBadge(c.businessLine)}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">{levelBadge(c.level)}</td>
                       <td className="px-4 py-3 text-gray-600">{c.salesPerson}</td>
@@ -309,9 +351,11 @@ export default function Customers() {
                     <div className="font-medium text-gray-900">{c.name}</div>
                     <div className="text-xs text-gray-400 font-mono mt-0.5">{c.code}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {levelBadge(c.level)}
-                    <span className="text-xs text-gray-500">{c.industry}</span>
+                    <div className="flex items-center gap-2">
+                      {salesTypeBadge(c.salesType)}
+                      {businessLineBadge(c.businessLine)}
+                      {levelBadge(c.level)}
+                      <span className="text-xs text-gray-500">{c.industry}</span>
                     {c.country && (
                       <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-medium ${c.country === '中国' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{c.country}</span>
                     )}
@@ -362,13 +406,14 @@ export default function Customers() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">客户名称</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">行业</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">国家</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">业务类型</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">销售负责人</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {poolCustomers.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-12 text-gray-400">公海暂无客户</td></tr>
+                  <tr><td colSpan={7} className="text-center py-12 text-gray-400">公海暂无客户</td></tr>
                 ) : (
                   poolCustomers.map((c) => (
                     <tr key={c.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => navigate(`${basePath}/customers/${c.id}`)}>
@@ -381,6 +426,12 @@ export default function Customers() {
                         ) : (
                           <span className="text-xs text-gray-300">-</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          {salesTypeBadge(c.salesType)}
+                          {businessLineBadge(c.businessLine)}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{c.salesPerson || '-'}</td>
                       <td className="px-4 py-3 text-right">

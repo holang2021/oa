@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { authorize } from '../middleware/rbac';
 import * as authController from '../controllers/auth.controller';
 
 const router = Router();
@@ -16,7 +17,7 @@ router.post('/login', authController.login);
  * @desc    Register new user (Admin only)
  * @access  Private/Admin
  */
-router.post('/register', authenticate, authController.register);
+router.post('/register', authenticate, authorize(['ADMIN']), authController.register);
 
 /**
  * @route   POST /api/v1/auth/logout

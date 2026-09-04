@@ -18,6 +18,7 @@ const createPiSchema = z.object({
   issuedAt: z.string().datetime().optional(),
   expiresAt: z.string().datetime().optional(),
   notes: z.string().optional(),
+  customerContactId: z.string().optional(),
 });
 
 const updatePiSchema = z.object({ status: z.string().min(1) });
