@@ -55,7 +55,7 @@ export async function previewOffboarding(userId: string): Promise<OffboardingPre
     }),
     prisma.opportunity.findMany({
       where: { salesOwnerId: userId },
-      select: { id: true, title: true, salesType: true },
+      select: { id: true, name: true, salesType: true },
     }),
     prisma.followUp.count({ where: { userId } }),
     prisma.user.findMany({
@@ -113,7 +113,7 @@ export async function executeOffboarding(
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, role: true, isActive: true },
+    select: { id: true, name: true, role: true, department: true, isActive: true },
   })
   if (!target) throw new AppError('离职用户不存在', 404)
 

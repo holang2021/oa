@@ -71,8 +71,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     }
 
     // Generate JWT token
-    const jwtSecret = process.env.JWT_SECRET!;
-    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    // 与 middleware/auth.ts、utils/jwt.ts 保持一致：密钥缺失即明确拒绝，不用非空断言静默放行
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET is not configured');
+    // jsonwebtoken 的 expiresIn 类型为 StringValue（如 '7d'/'24h'），普通 string 不匹配重载
+    const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
 
     const token = jwt.sign(
       { id: user.id, name: user.name, role: user.role },
@@ -352,8 +355,11 @@ export const refreshToken = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     // Generate new token
-    const jwtSecret = process.env.JWT_SECRET!;
-    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    // 与 middleware/auth.ts、utils/jwt.ts 保持一致：密钥缺失即明确拒绝，不用非空断言静默放行
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET is not configured');
+    // jsonwebtoken 的 expiresIn 类型为 StringValue（如 '7d'/'24h'），普通 string 不匹配重载
+    const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
 
     const token = jwt.sign(
       { id: req.user.id, name: req.user.name, role: req.user.role },
