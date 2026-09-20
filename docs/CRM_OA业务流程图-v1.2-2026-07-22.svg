@@ -1,0 +1,162 @@
+<svg viewBox="0 0 680 780" width="100%" role="img">
+  <title>HOLANG CRM on OA 业务流程总览 v1.2 草稿</title>
+  <desc>完整 CRM 在自建 OA 上的业务流程：市场→线索公海→统一客户池(查重:国内工商·信用代码唯一键/海外邓白氏码)→客户·商机公海→双运营(外销/内销绝对分离)→订单发货→回款财务→售后；内销/外销按 salesType 服务端强制隔离；公海与数据禁止员工下载(H-2)；DeepSeek 辅助查重/公司补全/背调。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="34" font-family="sans-serif" font-size="14" font-weight="500" fill="#26215C">HOLANG CRM on OA — 业务流程总览（v1.2 草稿 · 待刘总确认）</text>
+
+  <rect x="40" y="55" width="440" height="600" rx="16" fill="#FBFAF7" stroke="#C9C7C0" stroke-width="0.5"/>
+  <rect x="500" y="55" width="140" height="600" rx="16" fill="#FBFAF7" stroke="#C9C7C0" stroke-width="0.5"/>
+  <text x="570" y="78" font-family="sans-serif" font-size="12" fill="#5F5E5A" text-anchor="middle">支撑域（贯穿）</text>
+  <rect x="40" y="668" width="600" height="96" rx="12" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+
+  <!-- 1 市场活动 -->
+  <g>
+    <rect x="60" y="75" width="150" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="135" y="102" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C" text-anchor="middle" dominant-baseline="central">市场活动</text>
+  </g>
+  <!-- 2 线索公海 -->
+  <g>
+    <rect x="240" y="70" width="200" height="66" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="340" y="90" font-family="sans-serif" font-size="14" font-weight="500" fill="#04342C" text-anchor="middle" dominant-baseline="central">线索公海</text>
+    <text x="340" y="108" font-family="sans-serif" font-size="11" fill="#B3261E" text-anchor="middle" dominant-baseline="central">内销/外销分离 · 禁止下载</text>
+    <text x="340" y="124" font-family="sans-serif" font-size="11" fill="#0F6E56" text-anchor="middle" dominant-baseline="central">分配·回流·总监审批</text>
+  </g>
+  <!-- 3 统一客户池 -->
+  <g>
+    <rect x="110" y="150" width="300" height="66" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="260" y="170" font-family="sans-serif" font-size="14" font-weight="500" fill="#042C53" text-anchor="middle" dominant-baseline="central">统一客户池（SoR）</text>
+    <text x="260" y="188" font-family="sans-serif" font-size="11" fill="#185FA5" text-anchor="middle" dominant-baseline="central">查重(国内工商·信用代码唯一键 / 海外邓白氏码)</text>
+    <text x="260" y="204" font-family="sans-serif" font-size="11" fill="#185FA5" text-anchor="middle" dominant-baseline="central">公司变更·开票·异动(audit_log)</text>
+  </g>
+  <!-- 4 客户·商机公海 -->
+  <g>
+    <rect x="110" y="226" width="300" height="44" rx="8" fill="#EAF6EF" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="260" y="244" font-family="sans-serif" font-size="13" font-weight="500" fill="#04342C" text-anchor="middle" dominant-baseline="central">客户·商机公海（未认领/退回→可认领）</text>
+    <text x="260" y="262" font-family="sans-serif" font-size="11" fill="#B3261E" text-anchor="middle" dominant-baseline="central">内销/外销分离 · 禁止下载</text>
+  </g>
+
+  <!-- 5 双运营 -->
+  <rect x="55" y="280" width="410" height="150" rx="12" fill="#FBFAF7" stroke="#5F5E5A" stroke-width="0.5"/>
+  <text x="260" y="298" font-family="sans-serif" font-size="13" font-weight="500" fill="#2C2C2A" text-anchor="middle">双运营系统（外销 / 内销 · 统一池 + 双流）</text>
+  <g>
+    <rect x="70" y="308" width="160" height="34" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="150" y="325" font-family="sans-serif" font-size="13" fill="#26215C" text-anchor="middle" dominant-baseline="central">外销·商机</text>
+  </g>
+  <g>
+    <rect x="70" y="348" width="160" height="34" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="150" y="365" font-family="sans-serif" font-size="13" fill="#26215C" text-anchor="middle" dominant-baseline="central">外销·报价</text>
+  </g>
+  <g>
+    <rect x="70" y="388" width="160" height="46" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="150" y="405" font-family="sans-serif" font-size="13" fill="#26215C" text-anchor="middle" dominant-baseline="central">PI · PL · 销售合同</text>
+    <text x="150" y="421" font-family="sans-serif" font-size="11" fill="#534AB7" text-anchor="middle" dominant-baseline="central">统一模板·强校验防错</text>
+  </g>
+  <g>
+    <rect x="260" y="308" width="160" height="34" rx="8" fill="#FBEAF0" stroke="#993556" stroke-width="0.5"/>
+    <text x="340" y="325" font-family="sans-serif" font-size="13" fill="#4B1528" text-anchor="middle" dominant-baseline="central">内销·商机</text>
+  </g>
+  <g>
+    <rect x="260" y="348" width="160" height="34" rx="8" fill="#FBEAF0" stroke="#993556" stroke-width="0.5"/>
+    <text x="340" y="365" font-family="sans-serif" font-size="13" fill="#4B1528" text-anchor="middle" dominant-baseline="central">内销·报价</text>
+  </g>
+  <g>
+    <rect x="260" y="388" width="160" height="46" rx="8" fill="#FBEAF0" stroke="#993556" stroke-width="0.5"/>
+    <text x="340" y="405" font-family="sans-serif" font-size="13" fill="#4B1528" text-anchor="middle" dominant-baseline="central">商务合同</text>
+    <text x="340" y="421" font-family="sans-serif" font-size="11" fill="#993556" text-anchor="middle" dominant-baseline="central">结构化·关键条款防错</text>
+  </g>
+
+  <!-- 6 订单/发货 -->
+  <g>
+    <rect x="130" y="440" width="150" height="40" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="205" y="460" font-family="sans-serif" font-size="13" fill="#26215C" text-anchor="middle" dominant-baseline="central">订单</text>
+  </g>
+  <g>
+    <rect x="300" y="440" width="140" height="40" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="370" y="460" font-family="sans-serif" font-size="13" fill="#26215C" text-anchor="middle" dominant-baseline="central">发货</text>
+  </g>
+  <!-- 7 回款/财务 -->
+  <g>
+    <rect x="120" y="495" width="120" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="180" y="515" font-family="sans-serif" font-size="13" fill="#412402" text-anchor="middle" dominant-baseline="central">回款</text>
+  </g>
+  <g>
+    <rect x="260" y="495" width="200" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="360" y="515" font-family="sans-serif" font-size="13" fill="#412402" text-anchor="middle" dominant-baseline="central">财务（回款计划·对账·付款单·资金账户）</text>
+  </g>
+  <!-- 8 售后 -->
+  <g>
+    <rect x="55" y="550" width="410" height="50" rx="8" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="260" y="568" font-family="sans-serif" font-size="13" font-weight="500" fill="#173404" text-anchor="middle" dominant-baseline="central">售后服务（利他 · 轻量）</text>
+    <text x="260" y="586" font-family="sans-serif" font-size="11" fill="#3B6D11" text-anchor="middle" dominant-baseline="central">服务请求 → 工单 → 进度 → 回访 → 知识沉淀（二期：售后报价/合同/质保）</text>
+  </g>
+
+  <!-- 支撑域 -->
+  <g>
+    <rect x="510" y="90" width="120" height="50" rx="8" fill="#FBFAF7" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="570" y="110" font-family="sans-serif" font-size="12" fill="#2C2C2A" text-anchor="middle" dominant-baseline="central">RBAC 角色</text>
+    <text x="570" y="128" font-family="sans-serif" font-size="11" fill="#5F5E5A" text-anchor="middle" dominant-baseline="central">企微 1000081</text>
+  </g>
+  <g>
+    <rect x="510" y="155" width="120" height="50" rx="8" fill="#FBFAF7" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="570" y="175" font-family="sans-serif" font-size="12" fill="#2C2C2A" text-anchor="middle" dominant-baseline="central">多端运行</text>
+    <text x="570" y="193" font-family="sans-serif" font-size="11" fill="#5F5E5A" text-anchor="middle" dominant-baseline="central">网页·小程序·APP</text>
+  </g>
+  <g>
+    <rect x="510" y="220" width="120" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="570" y="240" font-family="sans-serif" font-size="12" fill="#4A1B0C" text-anchor="middle" dominant-baseline="central">一体化通道</text>
+    <text x="570" y="258" font-family="sans-serif" font-size="11" fill="#993C1D" text-anchor="middle" dominant-baseline="central">企微·微信·邮件·WhatsApp</text>
+  </g>
+  <g>
+    <rect x="510" y="290" width="120" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="570" y="310" font-family="sans-serif" font-size="12" fill="#4A1B0C" text-anchor="middle" dominant-baseline="central">伙伴云迁移</text>
+    <text x="570" y="328" font-family="sans-serif" font-size="11" fill="#993C1D" text-anchor="middle" dominant-baseline="central">API导入更新·规则预制</text>
+  </g>
+  <g>
+    <rect x="510" y="360" width="120" height="56" rx="8" fill="#E7ECFB" stroke="#2738C9" stroke-width="0.5"/>
+    <text x="570" y="380" font-family="sans-serif" font-size="12" font-weight="500" fill="#101B6B" text-anchor="middle" dominant-baseline="central">DeepSeek 智能层</text>
+    <text x="570" y="398" font-family="sans-serif" font-size="11" fill="#2738C9" text-anchor="middle" dominant-baseline="central">查重·公司补全·背调</text>
+  </g>
+  <g>
+    <rect x="510" y="430" width="120" height="50" rx="8" fill="#FBE7E5" stroke="#B3261E" stroke-width="0.5"/>
+    <text x="570" y="450" font-family="sans-serif" font-size="12" font-weight="500" fill="#7A1410" text-anchor="middle" dominant-baseline="central">数据防泄漏 H-2</text>
+    <text x="570" y="468" font-family="sans-serif" font-size="11" fill="#B3261E" text-anchor="middle" dominant-baseline="central">公海·禁止下载</text>
+  </g>
+
+  <!-- 底部分析 -->
+  <text x="340" y="695" font-family="sans-serif" font-size="13" font-weight="500" fill="#26215C" text-anchor="middle" dominant-baseline="central">数据分析（9 类：产品 / 线索 / 市场ROI / 客户 / 商机 / 报价 / 合同 / 订单回款 / 财务营收）</text>
+  <text x="340" y="718" font-family="sans-serif" font-size="11" fill="#534AB7" text-anchor="middle" dominant-baseline="central">汇总全链路 · 含地图视图 · DeepSeek 沉淀数据入企业知识图谱</text>
+
+  <!-- 主流程箭头 -->
+  <line x1="210" y1="97" x2="238" y2="103" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="340" y1="136" x2="260" y2="150" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="260" y1="216" x2="260" y2="226" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="260" y1="270" x2="260" y2="280" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="230" y1="434" x2="205" y2="440" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="340" y1="434" x2="285" y2="440" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="280" y1="460" x2="298" y2="460" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="440" y1="460" x2="440" y2="495" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="240" y1="515" x2="258" y2="515" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M360 535 L300 548" fill="none" stroke="#888780" stroke-width="0.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+
+  <!-- DeepSeek → 客户池（查重/补全） -->
+  <line x1="510" y1="388" x2="232" y2="182" stroke="#2738C9" stroke-width="0.8" stroke-dasharray="4 3"/>
+  <text x="400" y="290" font-family="sans-serif" font-size="10" fill="#2738C9" text-anchor="middle">查重·公司补全</text>
+  <!-- DeepSeek → 双运营（背调） -->
+  <line x1="510" y1="388" x2="232" y2="310" stroke="#2738C9" stroke-width="0.8" stroke-dasharray="4 3"/>
+  <text x="380" y="350" font-family="sans-serif" font-size="10" fill="#2738C9" text-anchor="middle">员工可触发背调</text>
+  <!-- 伙伴云迁移 → 客户池 -->
+  <line x1="500" y1="318" x2="408" y2="182" stroke="#993C1D" stroke-width="0.6" stroke-dasharray="4 3"/>
+  <text x="455" y="250" font-family="sans-serif" font-size="10" fill="#993C1D" text-anchor="middle">迁入</text>
+  <!-- RBAC → 公海（权限/防下载） -->
+  <line x1="500" y1="115" x2="440" y2="103" stroke="#B3261E" stroke-width="0.7" stroke-dasharray="4 3"/>
+  <text x="472" y="92" font-family="sans-serif" font-size="10" fill="#B3261E" text-anchor="middle">角色·防下载</text>
+
+  <!-- 内销/外销 绝对分离 红线（竖向标注于左主区与支撑域之间） -->
+  <line x1="458" y1="70" x2="458" y2="430" stroke="#B3261E" stroke-width="0.6" stroke-dasharray="3 3"/>
+  <text x="458" y="250" font-family="sans-serif" font-size="10" font-weight="500" fill="#B3261E" text-anchor="middle" transform="rotate(-90 458 250)">内销/外销 绝对分离 · salesType 服务端强制</text>
+</svg>

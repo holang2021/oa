@@ -6,6 +6,7 @@ import { getFieldConfig } from '../services/fieldConfigStore'
 import { getCustomerById, createCustomer, updateCustomer } from '../services/customerService'
 import type { FieldMeta } from '../types/fieldConfig'
 import FormField from '../components/FormField'
+import ContactManager from '../components/ContactManager'
 
 // Simulated DeepSeek API — 替代真实 API 调用
 async function deepseekQuery(companyName: string, mode: 'domestic' | 'export'): Promise<Partial<Customer>> {
@@ -50,6 +51,16 @@ async function deepseekQuery(companyName: string, mode: 'domestic' | 'export'): 
   }
 }
 
+// 表单 salesType 字段值是 domestic/overseas（或遗留 internal），后端枚举为 INTERNAL/EXTERNAL
+// 统一映射到后端枚举，避免 Zod 校验 400（创建/编辑客户都走这里）
+function toBackendSalesType(v?: string): 'INTERNAL' | 'EXTERNAL' | null {
+  if (!v) return null
+  const s = String(v).toLowerCase()
+  if (s === 'overseas' || s === 'export' || s === 'external') return 'EXTERNAL'
+  if (s === 'domestic' || s === 'internal' || s === 'indirect' || s === 'direct') return 'INTERNAL'
+  return null
+}
+
 export default function CustomerForm() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -64,8 +75,10 @@ export default function CustomerForm() {
   const [aiFilled, setAiFilled] = useState(false)
 
   // Field configuration (driven by admin settings)
+  // 明确区分 Company 与 Contact：contact* 字段不在客户表单渲染，改由「联系人管理」面板维护（一对多）
   const allCustomerFields = getFieldConfig('customer')
-  const visibleFields = allCustomerFields.filter(f => f.visible).sort((a, b) => a.order - b.order)
+  const formFields = allCustomerFields.filter(f => !f.fieldName.startsWith('contact'))
+  const visibleFields = formFields.filter(f => f.visible).sort((a, b) => a.order - b.order)
   const fieldGroups = visibleFields.reduce((acc, f) => {
     const g = f.group || '其他信息'
     if (!acc[g]) acc[g] = []
@@ -149,7 +162,7 @@ export default function CustomerForm() {
         salesPerson: form.salesPerson || null,
         salesDept: form.salesDept || null,
         businessLine: form.businessLine || null,
-        salesType: form.salesType || null,
+        salesType: toBackendSalesType(form.salesType) ?? (isExport ? 'EXTERNAL' : 'INTERNAL'),
         creditCode: form.creditCode || null,
         dunsNumber: form.dunsNumber || null,
         country: form.country || null,
@@ -162,12 +175,23 @@ export default function CustomerForm() {
         invoiceType: form.invoiceType || null,
         remark: form.remark || null,
       }
+      // 后端 zod 的 .optional() 只接收 undefined、不接收 null；空值需剔除而非传 null
+      for (const key of Object.keys(payload)) {
+        if (payload[key] === null) delete payload[key]
+      }
+      let newId: string | undefined
       if (isEdit && id) {
         await updateCustomer(id, payload)
       } else {
-        await createCustomer(payload)
+        const res = await createCustomer(payload)
+        newId = res?.data?.id
       }
-      navigate(isExport ? '/export/customers' : '/domestic/customers')
+      if (newId) {
+        // 新建公司后跳转编辑页，便于立即添加联系人（联系人需关联已存在的客户）
+        navigate(`${isExport ? '/export' : '/domestic'}/customers/${newId}/edit`)
+      } else {
+        navigate(isExport ? '/export/customers' : '/domestic/customers')
+      }
     } catch (err: any) {
       alert('保存失败: ' + (err?.message || '未知错误'))
     } finally {
@@ -216,7 +240,7 @@ export default function CustomerForm() {
   // Validation driven by field config
   const validate = () => {
     const errs: Record<string, string> = {}
-    for (const f of allCustomerFields) {
+    for (const f of formFields) {
       if (f.required && !form[f.fieldName as keyof typeof form]) {
         errs[f.fieldName] = `${f.label}为必填项`
       }
@@ -350,6 +374,9 @@ export default function CustomerForm() {
             </div>
           </div>
         ))}
+
+        {/* 联系人管理（一对多）：公司可挂多个联系人 */}
+        <ContactManager customerId={isEdit ? (id ?? null) : null} />
 
         <div className="flex gap-3">
           <button type="submit" disabled={submitting} className="btn-primary inline-flex items-center gap-2">

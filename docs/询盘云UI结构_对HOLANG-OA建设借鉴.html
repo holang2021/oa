@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>询盘云 UI 结构解析 · 对 holang-oa 建设借鉴</title>
+<style>
+  :root{
+    --brand:#1e4e8c; --brand-soft:#eef4fb; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --bg:#f7f8fa; --ok:#16a34a; --warn:#d97706; --gap:#dc2626; --card:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.65;font-size:14px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 64px}
+  header.top{border-bottom:3px solid var(--brand);padding-bottom:18px;margin-bottom:8px}
+  h1{font-size:24px;margin:0 0 6px;color:var(--brand)}
+  .sub{color:var(--muted);font-size:13px}
+  h2{font-size:18px;margin:34px 0 12px;padding-left:10px;border-left:4px solid var(--brand);color:var(--ink)}
+  h3{font-size:15px;margin:20px 0 8px;color:var(--brand)}
+  p{margin:8px 0}
+  .note{background:var(--brand-soft);border:1px solid #d4e2f4;border-radius:10px;padding:12px 16px;font-size:13px;color:#334}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}
+  th{background:#f1f5f9;font-weight:600;color:#334}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+  .p-ok{background:#dcfce7;color:var(--ok)}
+  .p-part{background:#fef3c7;color:var(--warn)}
+  .p-gap{background:#fee2e2;color:var(--gap)}
+  .p-lead{background:#dbeafe;color:#1d4ed8}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0}
+  .ia{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px 16px;overflow:auto;white-space:pre;line-height:1.5}
+  .ia .c{color:#7dd3fc}.ia .b{color:#fbbf24}.ia .g{color:#86efac}.ia .p{color:#c4b5fd}
+  .prio{border-radius:10px;padding:12px 14px;margin:10px 0;border:1px solid var(--line);background:#fff}
+  .prio.p0{border-left:5px solid #dc2626}
+  .prio.p1{border-left:5px solid #d97706}
+  .prio.p2{border-left:5px solid #1d4ed8}
+  .prio.p3{border-left:5px solid #6b7280}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.3px}
+  .reuse{background:#f0fdf4;border:1px dashed #86efac;border-radius:8px;padding:6px 10px;margin-top:8px;font-size:12px;color:#166534}
+  ul{margin:8px 0 8px 0;padding-left:20px}
+  li{margin:4px 0}
+  .kbd{background:#111827;color:#e5e7eb;padding:1px 6px;border-radius:5px;font-size:11px;font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>询盘云（LeadsCloud）UI 结构解析 · 对 holang-oa 建设借鉴</h1>
+  <div class="sub">信息化总监（holang-tech-lead）· 复核稿 · 2026-08-17 · 配合《询盘云 vs HOLANG-OA CRM 对比》配套文档</div>
+</header>
+
+<div class="note">
+  <b>复核说明与信息来源</b><br/>
+  ① 本沙箱浏览器受代理限制，未能交互式打开 leadscloud.com 做 DEMO 实测；询盘云 UI 结构来自<b>官网 WebFetch + 第三方评测/演示账号截图描述</b>（52by / 10100 / huoban / xhlbj 等），属厂商营销口径，个别交互细节待 DEMO 实测核实。<br/>
+  ② holang-oa 结构来自<b>源码核对</b>：<span class="kbd">MainLayout.tsx</span>、<span class="kbd">App.tsx</span>、<span class="kbd">Dashboard.tsx</span>、<span class="kbd">CustomerDetail.tsx</span>，置信度高。<br/>
+  ③ 核心判断：我们在<b>客户360 / 时间轴 / 全渠道概览 / 销售闭环</b>上已具备询盘云的「结构骨架」，差距主要在<b>触点数据自动抓取</b>与<b>CRM 自动化规则引擎</b>，而非页面形态本身。因此借鉴重点是「补数据来源 + 加规则引擎」，无需重构现有 UI。
+</div>
+
+<h2>1. 询盘云 UI / 信息架构（IA）</h2>
+
+<h3>1.1 总体组织逻辑：全触点（Touchpoint-Centric）</h3>
+<p>导航按「客户触点」而非「业务域」组织：WhatsApp / 企业微信 / 网站交互 / Facebook / Instagram / 邮件。每个触点一个模块，所有触点数据统一汇入 CRM 客户池。</p>
+<div class="ia"><span class="c">导航（全触点）</span>
+├ 首页工作台（仪表盘 / 运营小工具）
+├ CRM（核心·所有渠道客户沉淀点）
+│   ├ 客户列表
+│   └ 客户360（时间轴）
+├ WhatsApp
+├ 企业微信
+├ 网站交互（建站 + 流量监测）
+├ Facebook
+├ Instagram
+├ 邮件管理（资料库 / 群发单显）
+├ 销售漏斗 / BI 报表
+└ 流程 / 自动化配置</div>
+
+<h3>1.2 首页工作台（仪表盘）</h3>
+<ul>
+  <li><b>运营小工具</b>：个人名片、世界时钟、WhatsApp 号码归属地查询、国际疫情实时统计、货币兑换、日程任务表。</li>
+  <li><b>业务驾驶舱</b>：新询盘数、<b>「7 天未跟进」客户数（可点击穿透）</b>、销售漏斗分布（各阶段可点击）、日程安排、客户跟进记录；支持按时间段查看、灵活筛选定位。</li>
+</ul>
+
+<h3>1.3 客户360（CRM 核心）</h3>
+<ul>
+  <li>每个客户一条「时间轴」，记录全生命周期行为/交互轨迹，便于观察状态变化与复盘。</li>
+  <li>详情页集成：询盘 + 联系人全部信息及操作；可<b>切换查看「同一客户每个询盘」</b>的进展 / 文档 / 任务。</li>
+  <li>支持「复购」场景：同一客户多个询盘的追踪与管理。</li>
+</ul>
+
+<h3>1.4 客户旅程时间轴（招牌能力）</h3>
+<ul>
+  <li>自动抓取并关联各触点：WhatsApp / 企微 / 网站 / Facebook / Instagram / 邮件。</li>
+  <li>顶部筛选条：<b>按类型分时序</b>（跟进记录 / 邮件 / 网站交互 / 企微 / FB / WhatsApp / IG / 来源）+ 数量统计；全视角客户画像。</li>
+</ul>
+
+<h3>1.5 销售漏斗</h3>
+<p>支持企业<b>自定义漏斗阶段</b>，每个阶段可<b>点击穿透</b>查看该阶段客户详情，实时掌握跟进进度。</p>
+
+<h3>1.6 客户流转</h3>
+<p>支持客户转移 / 分享 / 退公海；可<b>自定义自动退公海规则</b>（如超 N 天未跟进）；为业务员设置<b>客户上限</b>，让全公司客户有效流转。</p>
+
+<h3>1.7 流程 / 自动化（可视化流程设计器）</h3>
+<ul>
+  <li>拖拽式定义全流程规则：线索分配 → 跟进提醒 → 合同审批 → 回款确认。</li>
+  <li>示例规则：「超 3 天未跟进自动流转公海」「合同金额 &gt; 10 万需总监审批」。</li>
+  <li>协作：团队负责人可查看下属邮件；可<b>标记重点客户提醒上级</b>；可<b>分享</b>询盘给同事联合跟进。</li>
+</ul>
+
+<h3>1.8 营销侧</h3>
+<p>SEO 服务、网站流量监测（<b>个体访客行为追踪</b>）、Shopify / Magento 订单打通、邮件企业资料库、群发单显（变量替换）。</p>
+
+<h2>2. holang-oa 现有 UI / IA（源码核对）</h2>
+
+<h3>2.1 总体组织逻辑：业务域（Domain-Centric）</h3>
+<p>侧边栏按业务域分组，契合「业财一体化」定位；带<b>两层身份隔离</b>（管理员/用户）+ RBAC 菜单过滤，与询盘云取向不同但合理。</p>
+<div class="ia"><span class="b">导航（业务域）</span>
+├ 工作台 Dashboard（可拖拽 widget）
+├ 产品 Product
+├ CRM·内销 domestic（customers/leads/opps/quotations/orders/collections/deliveries）
+├ CRM·外销 export（同上 + whatsapp + proforma）
+├ 售后 aftersales（visits/tickets/returns）
+├ SRM（suppliers/inquiries/orders/receive/payables）
+├ ERP（生产/仓储/财务）
+├ 数据分析 analytics
+├ 组织 org（contacts/roles）
+└ 系统工具 tools（approval/templates/feishu-wiki/...）</div>
+
+<h3>2.2 工作台（Dashboard）—— 已较强</h3>
+<ul>
+  <li>固定 <span class="kbd">TopStatsBar</span>：待办 / 已批 / 逾期 / 催办（可点击穿透）。</li>
+  <li>可拖拽自定义 widget：my_customers / leads / opps / quotations / orders / collections、stats、<b>pipeline（销售漏斗 SVG）</b>、recent_activity、notifications、custom_page（iframe）。</li>
+  <li>按角色默认布局 + 管理员可设默认 + 自定义页面。</li>
+</ul>
+
+<h3>2.3 客户360（CustomerDetail）—— 结构已齐</h3>
+<ul>
+  <li>Tab：概览 / 联系人 / 商机 / 报价 / 订单 / 回款 / <b>时间轴</b> / AI 助手。</li>
+  <li><b>销售闭环 stepper</b>（商机→报价→合同→订单→回款）——这是我们<b>领先</b>询盘云的能力。</li>
+  <li>跟进阶段进度条；<b>全渠道互动概览</b>（已按 WhatsApp/电话/邮件/官网/社媒 统计）。</li>
+  <li>社媒账号关联（占位 Phase 2）。</li>
+  <li>时间轴 Tab：渠道筛选 + 时间范围筛选 + 父子回复树 + <b>AI 辅助生成</b> + 主管补充。</li>
+</ul>
+
+<h3>2.4 外销触点入口（现有）</h3>
+<p><span class="kbd">/export/whatsapp</span>（原型页）、<span class="kbd">/marketing/{campaigns,leads,channels,seo}</span>。</p>
+
+<h3>2.5 审批 / 自动化（现有）</h3>
+<p><span class="kbd">ApprovalEngine</span>（审批专用：模板 / 统计 / 流转），非通用 CRM 自动化规则引擎。</p>
+
+<h2>3. 逐项对照（已具备 / 部分 / 缺口 / 领先）</h2>
+<table>
+  <thead><tr><th style="width:22%">能力</th><th style="width:30%">询盘云</th><th style="width:30%">holang-oa</th><th style="width:18%">状态</th></tr></thead>
+  <tbody>
+    <tr><td>导航组织逻辑</td><td>全触点（WhatsApp/FB/IG/邮件/网站）</td><td>业务域（内销/外销/售后/SRM/ERP）</td><td><span class="pill p-lead">取向不同</span></td></tr>
+    <tr><td>首页工作台驾驶舱</td><td>7天未跟进预警 + 漏斗穿透 + 运营小工具</td><td>TopStatsBar + pipeline/activity widget（可定制）</td><td><span class="pill p-ok">已具备</span> 补 N天预警卡</td></tr>
+    <tr><td>客户360时间轴</td><td>自动抓取多触点</td><td>手动录入多方式（note/call/email/visit/meeting/whatsapp）</td><td><span class="pill p-part">部分</span> 结构在·数据源缺</td></tr>
+    <tr><td>全渠道互动概览</td><td>✓</td><td>✓ 已实现（按渠道统计）</td><td><span class="pill p-ok">已具备</span></td></tr>
+    <tr><td>销售闭环视图</td><td>✗</td><td>✓ stepper（商机→报价→合同→订单→回款）</td><td><span class="pill p-lead">我们领先</span></td></tr>
+    <tr><td>销售漏斗可穿透</td><td>自定义阶段 + 点击穿透</td><td>静态 funnel SVG（Dashboard）</td><td><span class="pill p-part">部分</span> 加自定义+穿透</td></tr>
+    <tr><td>客户流转/退公海/上限</td><td>✓ 自定义规则</td><td>仅 LeadPool 基础</td><td><span class="pill p-gap">缺口</span></td></tr>
+    <tr><td>可视化流程/自动化引擎</td><td>✓ 规则设计器（未跟进→公海等）</td><td>仅 ApprovalEngine（审批）</td><td><span class="pill p-gap">缺口</span></td></tr>
+    <tr><td>分享 / 标记重点协作</td><td>✓ 分享询盘 + 标记上级</td><td>仅主管 timeline 补充</td><td><span class="pill p-part">部分</span></td></tr>
+    <tr><td>多维度查重</td><td>✓ 公司/邮箱/电话/WA/IG</td><td>待核实（疑似基础）</td><td><span class="pill p-gap">缺口/待核</span></td></tr>
+    <tr><td>网站个体访客追踪</td><td>✓</td><td>/marketing/seo 占位</td><td><span class="pill p-gap">缺口</span>（自官网抓取）</td></tr>
+    <tr><td>WhatsApp/社媒自动归档</td><td>✓</td><td>WhatsApp 原型页</td><td><span class="pill p-gap">缺口</span>（自动同步）</td></tr>
+    <tr><td>SEO/建站/多语种翻译</td><td>✓</td><td>/marketing/seo</td><td><span class="pill p-part">部分</span></td></tr>
+    <tr><td>群发单显 / 邮件资料库</td><td>✓</td><td>✗</td><td><span class="pill p-gap">缺口</span>（外销低优先）</td></tr>
+  </tbody>
+</table>
+
+<h2>4. 反哺建设清单（按优先级，含复用点）</h2>
+<p>原则：保持 holang-oa 为<b>唯一客户主数据（SoR）</b>，不整体引入询盘云；前端触点按渠道 ROI 分级补强，与 2026-08-17 渠道结论（官网SEO / FB·IG / Google ADS）一致。</p>
+
+<div class="prio p0">
+  <span class="tag" style="color:#dc2626">P0 · 内部复用·零新依赖</span>
+  <ul>
+    <li><b>P0-1 工作台「N 天未跟进预警」卡片</b>：复用 <span class="kbd">Dashboard.tsx</span> 的 WIDGET_REGISTRY + <span class="kbd">TopStatsBar</span> 模式，新增 widget <code>unfollowed_alert</code>，显示「7 天未跟进客户数」点击穿透到对应 lead/customer 列表。直接对标询盘云驾驶舱。</li>
+    <li><b>P0-2 销售漏斗可穿透</b>：<span class="kbd">PipelineWidget</span> 各阶段点击 → 跳 <span class="kbd">/analytics/opportunities</span> 或对应列表；阶段枚举改为可配置（复用 oppStage 字典）。</li>
+  </ul>
+  <div class="reuse">复用：Dashboard widget 机制、TopStatsBar 穿透、oppStage 枚举、现有 followUp 数据</div>
+</div>
+
+<div class="prio p1">
+  <span class="tag" style="color:#d97706">P1 · 外销前端补强（对齐渠道结论）</span>
+  <ul>
+    <li><b>P1-1 官网访客追踪埋点</b> → 自动建外销 lead + 写入时间轴（channel="官网" 已支持）。回流 holangintl.com 询盘。</li>
+    <li><b>P1-2 WhatsApp / 社媒互动自动归档</b>进客户时间轴：复用 <span class="kbd">CustomerDetail</span> timeline 多 channel 模型（website/social/whatsapp 类型已定义），接入抓取层。</li>
+  </ul>
+  <div class="reuse">复用：LeadPool、CustomerDetail 时间轴 channel 模型、FollowUpService</div>
+</div>
+
+<div class="prio p2">
+  <span class="tag" style="color:#1d4ed8">P2 · CRM 自动化引擎（补齐规则层）</span>
+  <ul>
+    <li><b>P2-1 轻量 CRM 自动化规则引擎</b>：超 N 天未跟进 → 自动退公海；客户上限；跟进提醒。复用 ApprovalEngine「规则 + 触发」思路，但<b>独立于审批</b>避免耦合；作用于 LeadPool / 客户池。</li>
+    <li><b>P2-2 多维度查重</b>：外销 lead 入库时按 公司名/邮箱/电话/WhatsApp/社媒 校验，防重复建档（先核实现有查重能力再补）。</li>
+  </ul>
+  <div class="reuse">复用：ApprovalEngine 规则范式、LeadPool 公海、现有客户字段</div>
+</div>
+
+<div class="prio p3">
+  <span class="tag" style="color:#6b7280">P3 · 协作与营销（按需）</span>
+  <ul>
+    <li><b>P3-1 客户/商机「分享 + 标记重点」</b>给上级/同事：把现有 timeline 主管补充机制扩成显式分享（对标询盘云分享/标记）。</li>
+    <li><b>P3-2 外销实用小组件</b>：世界时钟 / 货币换算 / WhatsApp 归属地，作为 Dashboard 可选 widget。</li>
+    <li><b>P3-3 邮件群发单显 / 资料库</b>：外销渠道不含邮件，低优先。</li>
+  </ul>
+</div>
+
+<h2>5. 实施原则与风险</h2>
+<ul>
+  <li><b>不整体引入询盘云</b>：其「客户旅程时间轴」价值需履约数据支撑，而履约在 holang-oa；整体采购 = 花 SaaS 年费只买「获客采集器」，性价比低（详见对比报告）。</li>
+  <li><b>复用优先</b>：Dashboard widget、CustomerDetail 时间轴多 channel、ApprovalEngine 规则、LeadPool 公海——均已存在，补的是「数据来源」与「规则层」。</li>
+  <li><b>风险</b>：① 自动抓取需合规账号（WhatsApp Business / Meta 审核），周期与驳回风险易被低估；② 多触点关联需统一身份解析（同一客户跨渠道去重）；③ 去重与自动退公海规则误伤需灰度。</li>
+</ul>
+
+<h2>6. 待确认 / 下一步</h2>
+<ul>
+  <li>本文件为「UI 结构借鉴草稿」<b>非建设立项</b>，未改动任何代码/部署。</li>
+  <li>待刘总拍板后，转《外销 CRM 前端触点补强技术蓝图（草案）》交 CodeBuddy 排期；按「先可见效果后后端」铁律，先出原型预览再动后端。</li>
+  <li>建议下一步先落地 P0-1（N天未跟进预警卡），纯前端复用、零新依赖、当天可见效果。</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>询盘云 CRM 与 HOLANG-OA CRM 差异对比报告</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f7f9fc; --ink:#1f2933; --sub:#52606d;
+    --line:#e4e9f0; --brand:#0b5fff; --brand-soft:#e8f0ff;
+    --win:#0f7a4d; --win-soft:#e6f6ee; --loss:#b42318; --loss-soft:#fdecea;
+    --tie:#8a6d00; --tie-soft:#fff8e1;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.7;font-size:15px;}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 28px 64px;}
+  header{border-bottom:3px solid var(--brand);padding-bottom:18px;margin-bottom:8px;}
+  h1{font-size:25px;margin:0 0 6px;color:var(--ink);}
+  .meta{color:var(--sub);font-size:13px;}
+  h2{font-size:19px;margin:34px 0 12px;padding-left:11px;border-left:4px solid var(--brand);}
+  h3{font-size:16px;margin:22px 0 8px;color:#2b3a4a;}
+  p{margin:8px 0;}
+  .lead{background:var(--brand-soft);border:1px solid #cfe0ff;border-radius:10px;
+    padding:16px 18px;margin:18px 0;}
+  .lead b{color:var(--brand);}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;
+    background:#fff;box-shadow:0 1px 3px rgba(20,40,80,.06);border-radius:8px;overflow:hidden;}
+  th,td{border:1px solid var(--line);padding:9px 11px;vertical-align:top;text-align:left;}
+  thead th{background:#eef3fa;color:#243b53;font-weight:600;}
+  tbody tr:nth-child(even){background:#fafcff;}
+  .c-lc{color:var(--win);} .c-oa{color:var(--win);}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;font-weight:600;white-space:nowrap;}
+  .t-win{background:var(--win-soft);color:var(--win);}
+  .t-loss{background:var(--loss-soft);color:var(--loss);}
+  .t-tie{background:var(--tie-soft);color:var(--tie);}
+  .t-oa{background:var(--brand-soft);color:var(--brand);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0;}
+  .card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);}
+  .card h4{margin:0 0 8px;font-size:15px;}
+  .card.oa{border-top:3px solid var(--brand);}
+  .card.lc{border-top:3px solid var(--win);}
+  ul{margin:6px 0 6px 4px;padding-left:18px;}
+  li{margin:5px 0;}
+  .note{background:#fff8e1;border:1px solid #f0e0a8;border-radius:8px;padding:12px 15px;margin:14px 0;font-size:13.5px;}
+  .src{font-size:12.5px;color:var(--sub);border-top:1px dashed var(--line);margin-top:30px;padding-top:14px;}
+  .pill{font-size:12px;background:#eef3fa;color:#324b66;padding:2px 9px;border-radius:11px;margin-right:6px;}
+  .kpi{font-weight:700;}
+  footer{margin-top:28px;color:var(--sub);font-size:12.5px;text-align:center;}
+  @media print{body{font-size:12px}.wrap{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>询盘云（LeadsCloud）CRM 与 HOLANG-OA 自研 CRM 差异对比报告</h1>
+  <div class="meta">复核目的：评估两套客户管理系统的能力边界与定位差异，为 HOLANG 英文官网获客引擎建设提供决策依据 · 生成时间：2026-08-17 · 信息置信度：中高（官网+合作方页 WebFetch + 自研代码核对）</div>
+</header>
+
+<div class="lead">
+  <b>核心结论：</b>两套系统覆盖的是客户价值链的<strong>不同段落</strong>，不是同一赛道的替代关系。
+  <ul>
+    <li><b>询盘云 = 外贸「获客营销型」CRM</b>：强在<strong>前端触点自动抓取</strong>（WhatsApp / Facebook / Instagram / 邮件 / 网站访客追踪）+ SEO 建站 + 阿里询盘导入；<strong>弱在后端交易履约</strong>，且<strong>完全没有「内销」概念</strong>。</li>
+    <li><b>HOLANG-OA = 内外销「一体化业财型」OA/ERP</b>：强在<strong>交易履约闭环</strong>（报价→订单→发货→回款→发票→退货）+ <strong>内销/外销绝对隔离</strong> + 审批流 + RBAC；<strong>弱在前端获客触点自动抓取</strong>。</li>
+    <li><b>对 HOLANG 的判断：</b>因「内销外销绝对隔离」已是顶层架构铁律，且 holang-oa 已有完整交易骨干，<strong>整体替换询盘云在架构上不成立</strong>；更连贯的路径是把询盘云的「前端触点抓取 + 询盘回流」能力<strong>作为补强模块借鉴进 holang-oa 外销 CRM</strong>，让 holangintl.com 的询盘直接回流单系统闭环。具体走法见第五节，供刘总拍板。</li>
+  </ul>
+</div>
+
+<h2>一、两套系统的定位本质</h2>
+<div class="grid2">
+  <div class="card lc">
+    <h4>询盘云 LeadsCloud</h4>
+    <p>定位：<b>外贸营销一站式管理专家（Marketing CRM）</b>。面向纯外贸 B2B 企业，主打「把流量/询盘变成客户轨迹」。</p>
+    <p>价值重心：<b>获客 + 多触点营销 + 社媒/邮件/SEO</b>。客户旅程时间轴是其灵魂，自动沉淀各渠道交互。</p>
+    <p>边界：<b>不做重交易履约</b>（订单/发货/回款仅浅层对接 Shopify/Magento），<b>不覆盖内销/国内渠道</b>。</p>
+  </div>
+  <div class="card oa">
+    <h4>HOLANG-OA 自研 CRM</h4>
+    <p>定位：<b>内外销一体化业务协同 OA/ERP</b>。覆盖客户全生命周期，且强制内销/外销双运营隔离。</p>
+    <p>价值重心：<b>交易履约闭环 + 业财一体 + 审批合规</b>。报价→订单→发货→回款→发票→退货全打通。</p>
+    <p>边界：<b>前端获客触点抓取弱</b>（无网站访客追踪、无 FB/IG、邮件未集成），SEO/建站另行在建。</p>
+  </div>
+</div>
+
+<h2>二、能力矩阵对比</h2>
+<table>
+  <thead>
+    <tr><th style="width:18%">能力维度</th><th style="width:36%">询盘云 LeadsCloud</th><th style="width:34%">HOLANG-OA（我们）</th><th style="width:12%">优势方</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>目标客群 / 定位</td><td>纯外贸 B2B 获客营销</td><td>内外销一体化业财 OA</td><td><span class="tag t-tie">各有所长</span></td></tr>
+    <tr><td>客户池 / 公海</td><td>✅ 客户池 + 退公海 + 自动退公海规则 + 客户上限</td><td>✅ 客户池 + 公海 + <b>内销外销隔离</b></td><td><span class="tag t-oa">我们（双运营）</span></td></tr>
+    <tr><td>线索 / 询盘管理</td><td>✅ 询盘导入（含 <b>Alibaba 阿里询盘实时导入</b>）+ 线索表单</td><td>✅ 线索池 LeadPool（内/外销分流）</td><td><span class="tag t-win">询盘云（阿里导入）</span></td></tr>
+    <tr><td>多触点自动抓取</td><td>✅ WhatsApp / FB / IG / 邮件 / <b>网站访客</b> 全自动同步时间轴</td><td>⚠️ WhatsApp 原型页 + 企微同步；<b>无网站访客 / 无 FB / IG / 邮件集成</b></td><td><span class="tag t-win">询盘云（碾压）</span></td></tr>
+    <tr><td>客户旅程时间轴</td><td>✅ 全触点时间轴（多类型筛选+统计）</td><td>✅ 跟进时间轴（以内部跟进为主）</td><td><span class="tag t-win">询盘云（触点更全）</span></td></tr>
+    <tr><td>网站流量 / 访客追踪</td><td>✅ 个体访客行为追踪（弥补 GA 无明细）</td><td>❌ 无</td><td><span class="tag t-win">询盘云</span></td></tr>
+    <tr><td>邮件集成</td><td>✅ 收发自动归档 / 群发单显 / 下属邮件 / 自动化规则</td><td>❌ 未集成</td><td><span class="tag t-win">询盘云</span></td></tr>
+    <tr><td>WhatsApp</td><td>✅ 系统内对话 + 多语种翻译 + 群聊 + 集成网站对话</td><td>⚠️ 原型页（对接中，未量产）</td><td><span class="tag t-win">询盘云（成熟）</span></td></tr>
+    <tr><td>社媒（FB / IG）</td><td>✅ Messenger 对话 + 评论同步 + 多主页运营</td><td>❌ 无</td><td><span class="tag t-win">询盘云</span></td></tr>
+    <tr><td>查重</td><td>✅ 多维度（公司名/邮箱/电话/WhatsApp/IG）</td><td>✅ 统一社会信用代码 / DUNS 权威键</td><td><span class="tag t-tie">各有所长</span></td></tr>
+    <tr><td>销售漏斗</td><td>✅ 自定义阶段 + 阶段穿透查看</td><td>⚠️ 商机池（阶段化管理，可视化漏斗弱）</td><td><span class="tag t-win">询盘云（可视化）</span></td></tr>
+    <tr><td>SEO / 建站</td><td>✅ 免费 SEO 工具 + 系统内建站 + RAG SEO 内容服务</td><td>❌（holangintl.com 英文官网独立在建）</td><td><span class="tag t-win">询盘云（打包）</span></td></tr>
+    <tr><td>报价 / 形式发票</td><td>⚠️ 轻量</td><td>✅ 完整报价单 + PI 形式发票 + 打印模板</td><td><span class="tag t-oa">我们</span></td></tr>
+    <tr><td>订单管理</td><td>⚠️ 仅 Shopify/Magento 订单打通（不自营）</td><td>✅ 完整订单（内/外销、直销间销）</td><td><span class="tag t-oa">我们（碾压）</span></td></tr>
+    <tr><td>发货 / 回款 / 发票 / 退货</td><td>❌ 无原生能力</td><td>✅ 发货 + 回款 + 发票 + 退货 全模块</td><td><span class="tag t-oa">我们（碾压）</span></td></tr>
+    <tr><td>审批流引擎</td><td>❌ 轻量</td><td>✅ 完整审批引擎（模板/统计/流转）</td><td><span class="tag t-oa">我们</span></td></tr>
+    <tr><td>产品主数据</td><td>⚠️ 浅</td><td>✅ 产品库（制氮/制氧/制氢设备）</td><td><span class="tag t-oa">我们</span></td></tr>
+    <tr><td>背景调查 / 图纸</td><td>❌ 无</td><td>✅ 背景调查 + 蓝图浏览（工业场景专属）</td><td><span class="tag t-oa">我们</span></td></tr>
+    <tr><td>业财 / 币种</td><td>❌ 无</td><td>✅ 回款 / 发票 / 多币种</td><td><span class="tag t-oa">我们</span></td></tr>
+    <tr><td>RBAC / 权限</td><td>✅ 企微角色</td><td>✅ 细粒度 RBAC + <b>内销外销隔离</b></td><td><span class="tag t-oa">我们（更细）</span></td></tr>
+    <tr><td>离职交接</td><td>✅ 一键交接</td><td>⚠️ 权限回收可手工</td><td><span class="tag t-win">询盘云</span></td></tr>
+    <tr><td>AI 能力</td><td>✅ RAG SEO 内容生成（营销文案）</td><td>✅ 客户 AI 对话助手（嵌入式问答）</td><td><span class="tag t-tie">各有所长</span></td></tr>
+    <tr><td>智能物料</td><td>✅ 有</td><td>✅ 有（IntelligentMaterial）</td><td><span class="tag t-tie">平</span></td></tr>
+    <tr><td>BI / 数据看板</td><td>✅ BI 商业智能</td><td>✅ Dashboard 看板</td><td><span class="tag t-tie">平</span></td></tr>
+    <tr><td>企微 / 飞书集成</td><td>✅ 企微（聊天同步）</td><td>✅ 企微通讯录同步 + <b>飞书 Wiki 同步</b></td><td><span class="tag t-oa">我们（双向）</span></td></tr>
+    <tr><td>部署形态 / 数据主权</td><td>☁️ SaaS 订阅（数据在厂商侧）</td><td>🖥️ 自研私有化部署（生产库自持）</td><td><span class="tag t-oa">我们（数据自主）</span></td></tr>
+  </tbody>
+</table>
+
+<h2>三、核心差异深度解析</h2>
+
+<h3>3.1 询盘云不可替代的能力（我们的缺口）</h3>
+<ul>
+  <li><b>前端触点自动抓取</b>：WhatsApp / Facebook / Instagram / 邮件 / 网站访客行为，全部自动同步到客户旅程时间轴。这是询盘云的「灵魂」，也是 HOLANG-OA 当前最弱的环节——我们只有 WhatsApp 原型页和企微同步，没有网站访客追踪、没有 FB/IG、邮件未集成。</li>
+  <li><b>网站访客个体追踪</b>：能识别「谁来了、看了什么、停留多久」，弥补 GA 只有聚合数据无个体明细的缺陷。对「官网获客引擎」是直接刚需。</li>
+  <li><b>Alibaba 阿里询盘实时导入</b>：突破阿里一年仅导出一次的限制。若 HOLANG 走阿里国际站，此能力可直接复用。</li>
+  <li><b>SEO / 建站打包</b>：免费 SEO 工具 + 系统内建站 + RAG SEO 内容生成服务。我们 holangintl.com 是独立在建，未与 CRM 打通。</li>
+  <li><b>销售漏斗可视化 + 离职一键交接</b>：成熟度高于我们当前商机池。</li>
+</ul>
+
+<h3>3.2 HOLANG-OA 不可替代的能力（询盘云缺失）</h3>
+<ul>
+  <li><b>内销 / 外销绝对隔离</b>：这是刘总拍板的顶层架构铁律，询盘云<b>完全没有内销概念</b>（其所有渠道 WhatsApp/FB/IG/邮件/Google SEO 均指向海外），若采购询盘云，<b>内销业务完全得不到覆盖</b>，且会与 holang-oa 形成双客户库。</li>
+  <li><b>交易履约闭环</b>：报价 → 订单 → 发货 → 回款 → 发票 → 退货，全模块原生。询盘云止于「商机/询盘」，订单仅浅层对接 Shopify/Magento，<b>不做履约</b>。对制氮/制氧/制氢这种高客单、长周期、需发货回款的设备业务，履约闭环是命脉。</li>
+  <li><b>审批流 + RBAC + 业财</b>：完整审批引擎、细粒度权限、多币种回款发票、背景调查、图纸浏览——工业 B2B 履约与合规必需，询盘云不提供。</li>
+  <li><b>数据主权</b>：自研私有化部署，生产库自持；询盘云为 SaaS，客户数据在厂商侧。</li>
+</ul>
+
+<h3>3.3 重叠但侧重点不同</h3>
+<ul>
+  <li>客户池/公海、查重、智能物料、BI 看板：双方都有，但询盘云重「营销触点」，我们重「交易字段」。</li>
+  <li>AI 能力：询盘云做「营销内容生成（RAG SEO）」，我们做「客户对话助手（嵌入问答）」，方向不同可互补。</li>
+</ul>
+
+<div class="note">
+  <b>⚠️ 关键约束提醒：</b>「内销外销绝对隔离」是已拍板顶层架构。任何采购决策若只覆盖外销、留下内销在另一套系统，会<b>直接违背该架构</b>并制造客户数据孤岛。这是评估方案 A / 方案 B 时的硬门槛。
+</div>
+
+<h2>四、对 HOLANG 的战略含义</h2>
+<p>HOLANG 是工业气体设备（制氮/制氧/制氢）制造商，B2B、高客单、长销售周期，且明确走<b>内销 + 外销双运营</b>。英文官网 holangintl.com 的定位是「获客引擎，询盘回流 OA 外销 CRM」。</p>
+<p>由此推导：</p>
+<ul>
+  <li>我们需要的 = <b>前端获客触点（网站访客/WhatsApp/邮件/SEO 线索）</b> + <b>后端交易履约（报价/订单/发货/回款）</b> + <b>内外销隔离</b> 三者同时成立。</li>
+  <li>询盘云能补第一项，但第二项弱、第三项缺失；holang-oa 有第二三项，缺第一项。</li>
+  <li>结论：<b>不存在「二选一替换」</b>，真实选项是「单系统补强」还是「双系统并行」。</li>
+</ul>
+
+<h2>五、建议方案（供刘总拍板）</h2>
+<div class="grid2">
+  <div class="card lc">
+    <h4>方案 A：直接采购询盘云</h4>
+    <p><b>做法：</b>外销获客即用询盘云，holang-oa 仅做后端履约。</p>
+    <p><b>收益：</b>外销获客触点（WhatsApp/FB/IG/邮件/访客追踪/SEO）即开即用，免去自建。</p>
+    <p><b>代价：</b>① 双客户库数据孤岛；② <b>完全不覆盖内销</b>（违背顶层架构）；③ 客户数据在 SaaS 厂商侧；④ 年订阅成本（未披露，需询价）；⑤ 两套系统对接运维成本。</p>
+  </div>
+  <div class="card oa">
+    <h4>方案 B：holang-oa 补强前端（推荐方向）</h4>
+    <p><b>做法：</b>在 holang-oa 外销 CRM 内自建「前端获客触点」模块——网站访客追踪、WhatsApp/邮件自动归档、SEO 线索回流，让 holangintl.com 询盘直接回流单系统。</p>
+    <p><b>收益：</b>① 单系统闭环、数据自持；② <b>天然覆盖内外销隔离</b>；③ 与现有报价/订单/回款业财打通；④ 无 SaaS 年费。</p>
+    <p><b>代价：</b>① 需自建触点抓取（工作量，但可借鉴询盘云交互模型）；② 周期长于采购；③ SEO/建站需并行推进。</p>
+  </div>
+</div>
+
+<div class="note">
+  <b>我的客观建议（非拍板）：</b>基于「内销外销绝对隔离」已是铁律、且 holang-oa 已有完整交易骨干，<b>方案 B 在架构一致性上更优</b>。询盘云不应被整体替换，但其<b>前端触点抓取的交互模型（时间轴/访客追踪/多语种翻译/阿里询盘导入）</b>可作为 holang-oa 外销 CRM 补强模块的<strong>设计参考</strong>。若刘总评估后认为「外销获客速度优先于架构统一」，方案 A 亦可，但须同步解决内销系统归属与双库对接问题。
+</div>
+
+<h2>六、下一步动作建议</h2>
+<ul>
+  <li><b>若走方案 B（推荐）：</b>立项「holang-oa 外销 CRM 前端获客触点补强」，拆出子模块：① 网站访客追踪脚本（植入 holangintl.com）；② WhatsApp/邮件自动归档；③ SEO 线索回流管道；④ 销售漏斗可视化。复用现有 LeadPool/商机池/跟进时间轴。</li>
+  <li><b>若走方案 A：</b>向询盘云索取报价与试用 DEMO，重点验证「阿里询盘导入」「访客追踪」「与现有系统对接可行性」，并明确内销系统如何并存。</li>
+  <li><b>共性前置：</b>确认 HOLANG 是否使用阿里国际站（决定阿里询盘导入价值）、外销主渠道（WhatsApp vs 邮件 vs 社媒占比），以此定补强优先级。</li>
+</ul>
+
+<div class="src">
+  <p><b>信息来源与置信度：</b></p>
+  <p>
+    <span class="pill">询盘云功能</span> leadscloud.com 官网（WebFetch，2026-08-17）+ 合作方功能页 xhlbj.cn/chanpinfuwu（WebFetch，2026-08-17）。内容为厂商营销口径，功能清单置信度高；<b>定价、DEMO 实测、并发上限未核实</b>。
+  </p>
+  <p>
+    <span class="pill">HOLANG-OA 功能</span> holang-oa/packages/oa/src 源码核对（LeadPool / CustomerDetail / followUpService / WhatsAppPage / Quotations / Orders / Payments / Invoices / RbacSettings / Dashboard / ApprovalEngine 等模块），置信度高。
+  </p>
+  <p>
+    <span class="pill">实地复核限制</span> 本沙箱浏览器受代理限制（ERR_NO_SUPPORTED_PROXIES）无法实地打开 leadscloud.com 做 DEMO 点击，官网信息经 WebFetch 获取，等价于只读页面内容，未做交互验证。
+  </p>
+</div>
+
+<footer>HOLANG 系统建设 · CRM 对比复核 · 本文件为分析草稿，结论待刘总拍板后转建设立项</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,307 @@
+{
+  "generated_at": "2026-08-16T16:24:05.080307",
+  "dry_run": true,
+  "employee": {
+    "name": "HOLANG-中枢-001",
+    "employee_id": "DE_001",
+    "department": "数字化执行中枢",
+    "role": "数字员工（调度+验收+梳理）",
+    "phase": "待命"
+  },
+  "summary": {
+    "total_steps": 8,
+    "success_steps": 8,
+    "fallback_steps": 0,
+    "escalations": []
+  },
+  "steps": [
+    {
+      "ok": true,
+      "step": "环境检查",
+      "detail": {
+        "runtimes": [
+          "python",
+          "node"
+        ],
+        "status": "ok"
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "身份/账号注册",
+      "detail": {
+        "resolved_identity": {
+          "user_id": "DE_001",
+          "name": "HOLANG-中枢-001",
+          "department": "数字化执行中枢"
+        }
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "基础资源分配",
+      "detail": {
+        "allocated": {
+          "server_slot": "shared-115.159.101.193",
+          "memory_mb": 512,
+          "connectors": [
+            "lark_calendar",
+            "lark_wiki",
+            "lark_task",
+            "wecom_msg",
+            "identity_resolver",
+            "expert_registry"
+          ],
+          "dry_run": true
+        }
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "能力注册与绑定",
+      "detail": {
+        "registered": {
+          "status": "registered",
+          "experts": [
+            "holang-digital-product-owner",
+            "holang-tech-lead",
+            "holang-governance-expert",
+            "holang-audit-review",
+            "holang-knowledge-query",
+            "holang-brand-growth",
+            "holang-gas-sales",
+            "holang-product-rd-expert"
+          ]
+        }
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "日程检索",
+      "detail": {
+        "meetings": [
+          {
+            "title": "系统建设周会",
+            "start": "09:30",
+            "end": "10:30",
+            "organizer": "刘总",
+            "location": "线上腾讯会议"
+          }
+        ]
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "会议材料整理",
+      "detail": {
+        "materials": {
+          "系统建设周会": {
+            "hits": [
+              {
+                "title": "公司概况",
+                "node": "COMP-001"
+              }
+            ],
+            "missing": false,
+            "fallback": ""
+          }
+        }
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "待办事项汇总",
+      "detail": {
+        "count": 2,
+        "todos": [
+          {
+            "title": "OA 服务器续费确认",
+            "due": "2026-08-20",
+            "status": "pending"
+          },
+          {
+            "title": "飞书 Phase2 同步方案",
+            "due": "2026-08-18",
+            "status": "pending"
+          }
+        ]
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    },
+    {
+      "ok": true,
+      "step": "参会提醒设置",
+      "detail": {
+        "reminders": [
+          {
+            "meeting": "系统建设周会",
+            "content": "会议提醒：系统建设周会 09:30 @ 线上腾讯会议",
+            "sent": false,
+            "mode": "dry_run"
+          }
+        ],
+        "dry_run": true
+      },
+      "fallback_used": false,
+      "fallback_action": "",
+      "escalation": ""
+    }
+  ],
+  "meetings": [
+    {
+      "title": "系统建设周会",
+      "start": "09:30",
+      "end": "10:30",
+      "organizer": "刘总",
+      "location": "线上腾讯会议"
+    }
+  ],
+  "materials": {
+    "系统建设周会": {
+      "hits": [
+        {
+          "title": "公司概况",
+          "node": "COMP-001"
+        }
+      ],
+      "missing": false,
+      "fallback": ""
+    }
+  },
+  "todos": [
+    {
+      "title": "OA 服务器续费确认",
+      "due": "2026-08-20",
+      "status": "pending"
+    },
+    {
+      "title": "飞书 Phase2 同步方案",
+      "due": "2026-08-18",
+      "status": "pending"
+    }
+  ],
+  "reminders": [
+    {
+      "meeting": "系统建设周会",
+      "content": "会议提醒：系统建设周会 09:30 @ 线上腾讯会议",
+      "sent": false,
+      "mode": "dry_run"
+    }
+  ],
+  "connector_status": {
+    "identity_resolver": true,
+    "lark_calendar": true,
+    "lark_wiki": true,
+    "lark_task": true
+  },
+  "event_log": [
+    {
+      "ts": "2026-08-16T16:24:05.080166",
+      "event": "数字员工初始化",
+      "level": "info",
+      "payload": {
+        "name": "HOLANG-中枢-001",
+        "employee_id": "DE_001",
+        "department": "数字化执行中枢",
+        "role": "数字员工（调度+验收+梳理）",
+        "email": "digital-owner@holangchina.com"
+      }
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080206",
+      "event": "阶段切换",
+      "level": "info",
+      "phase": "系统落位中"
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080216",
+      "event": "环境检查",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080257",
+      "event": "身份/账号注册",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080263",
+      "event": "基础资源分配",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080269",
+      "event": "能力注册与绑定",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080281",
+      "event": "阶段切换",
+      "level": "info",
+      "phase": "会前准备中"
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080288",
+      "event": "日程检索",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080295",
+      "event": "会议材料整理",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080300",
+      "event": "待办事项汇总",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    },
+    {
+      "ts": "2026-08-16T16:24:05.080305",
+      "event": "参会提醒设置",
+      "level": "info",
+      "ok": true,
+      "fallback_used": false,
+      "escalation": ""
+    }
+  ]
+}

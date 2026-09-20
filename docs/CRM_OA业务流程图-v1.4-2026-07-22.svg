@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 780">
+  <defs>
+    <style>
+      .t{font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:13px;}
+      .tt{font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:15px;font-weight:700;}
+      .box{fill:#eaf2ff;stroke:#3b6fb6;stroke-width:1.5;}
+      .boxg{fill:#e8f8ee;stroke:#2e9e5b;stroke-width:1.5;}
+      .boxo{fill:#fff4e6;stroke:#e08a2b;stroke-width:1.5;}
+      .boxr{fill:#fdeef0;stroke:#c0504d;stroke-width:1.5;}
+      .sup{fill:#f3eaff;stroke:#8e44ad;stroke-width:1.5;}
+      .hl{fill:#fef9e7;stroke:#d4a017;stroke-width:1.5;}
+      .arrow{stroke:#555;stroke-width:1.5;fill:none;marker-end:url(#ah);}
+      .darrow{stroke:#888;stroke-width:1.2;stroke-dasharray:4 3;fill:none;marker-end:url(#ah);}
+    </style>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#555"/></marker>
+  </defs>
+
+  <!-- 理念条 -->
+  <rect class="hl" x="20" y="16" width="1020" height="34" rx="6"/>
+  <text class="tt" x="40" y="38" fill="#7a5c00">All In One ｜ 所有事在系统跑 · 帮员工快速解决 · 不成为负担 · 顺利简单高效</text>
+
+  <!-- 主流程 -->
+  <text class="tt" x="40" y="78" fill="#3b6fb6">主流程</text>
+  <rect class="box" x="40" y="86" width="120" height="40" rx="5"/><text class="t" x="52" y="110">市场活动</text>
+  <rect class="boxg" x="195" y="86" width="130" height="40" rx="5"/><text class="t" x="205" y="110">线索公海(独立)</text>
+  <rect class="box" x="360" y="82" width="170" height="56" rx="5"/><text class="t" x="370" y="102">统一客户池(SoR)</text><text class="t" x="370" y="120">H-4聚合根·查重权威键</text>
+  <rect class="boxo" x="565" y="92" width="130" height="40" rx="5"/><text class="t" x="573" y="116">双运营分流</text>
+  <rect class="box" x="575" y="146" width="170" height="36" rx="5"/><text class="t" x="583" y="168">外销:商机→报价→PI/PL/合同</text>
+  <rect class="box" x="575" y="194" width="170" height="36" rx="5"/><text class="t" x="583" y="216">内销:商机→报价→商务合同</text>
+  <rect class="box" x="575" y="242" width="170" height="36" rx="5"/><text class="t" x="583" y="264">订单→发货→回款→财务</text>
+  <rect class="boxg" x="575" y="290" width="170" height="36" rx="5"/><text class="t" x="583" y="312">售后:请求→工单→进度→回访→知识</text>
+
+  <!-- 公海区 -->
+  <text class="tt" x="790" y="78" fill="#2e9e5b">公海区（内外销绝对分离）</text>
+  <rect class="boxg" x="790" y="86" width="150" height="36" rx="5"/><text class="t" x="800" y="108">线索公海(独立)</text>
+  <rect class="boxg" x="790" y="132" width="150" height="54" rx="5"/><text class="t" x="800" y="152">客户·商机公海</text><text class="t" x="800" y="170">(同一引擎分实体)</text>
+  <rect class="boxr" x="790" y="200" width="250" height="120" rx="6"/>
+  <text class="t" x="800" y="222" fill="#c0504d" font-weight="700">离职移交工作流（主管裁量）</text>
+  <text class="t" x="800" y="244">① 一键全部移交指定人</text>
+  <text class="t" x="800" y="264">② 部分移交（勾选分批转）</text>
+  <text class="t" x="800" y="284">③ 退公海 → Q2 轻量二级确认</text>
+  <text class="t" x="800" y="304">（AI预填未结清单·主管点确认）</text>
+
+  <!-- 箭头 主流程 -->
+  <path class="arrow" d="M160 106 H195"/>
+  <path class="arrow" d="M325 106 H360"/>
+  <path class="arrow" d="M530 110 H565"/>
+  <path class="arrow" d="M695 110 V165 H575"/>
+  <path class="arrow" d="M695 110 V213 H575"/>
+  <path class="arrow" d="M695 110 V261 H575"/>
+  <path class="arrow" d="M695 110 V309 H575"/>
+  <!-- 公海 认领/回流 -->
+  <path class="darrow" d="M530 110 C620 140 720 130 790 138"/>
+  <path class="darrow" d="M790 159 C700 175 610 150 530 120"/>
+
+  <!-- 支撑域 -->
+  <text class="tt" x="40" y="452" fill="#8e44ad">支撑域（贯穿全链路）</text>
+  <rect class="sup" x="40" y="460" width="200" height="54" rx="5"/><text class="t" x="50" y="480">DeepSeek 智能层</text><text class="t" x="50" y="500">查重·公司补全·背调</text>
+  <rect class="sup" x="262" y="460" width="180" height="54" rx="5"/><text class="t" x="272" y="480">RBAC 企微 1000081</text><text class="t" x="272" y="500">角色权限·同步</text>
+  <rect class="sup" x="464" y="460" width="170" height="54" rx="5"/><text class="t" x="474" y="480">多端 H-1</text><text class="t" x="474" y="500">网页·小程序·APP</text>
+  <rect class="sup" x="656" y="460" width="150" height="54" rx="5"/><text class="t" x="666" y="480">H-2 防下载</text><text class="t" x="666" y="500">可看不可下</text>
+  <rect class="sup" x="828" y="460" width="190" height="54" rx="5"/><text class="t" x="838" y="480">H-3 自动化红线</text><text class="t" x="838" y="500">AI不代签终审</text>
+  <rect class="sup" x="40" y="528" width="978" height="40" rx="5"/><text class="t" x="50" y="552">H-4 客户聚合根：客户下所有从属信息（联系人/商机/报价/合同/订单/回款/开票/售后/跟进/异动）随客户整体移动，不拆分 — 移交/退公海=移动聚合整体</text>
+
+  <!-- 底部能力 -->
+  <rect class="hl" x="40" y="600" width="200" height="50" rx="5"/><text class="t" x="50" y="620">统一待办中心</text><text class="t" x="50" y="638">(系统首页入口)</text>
+  <rect class="hl" x="270" y="600" width="200" height="50" rx="5"/><text class="t" x="280" y="620">AI 工作流助手</text><text class="t" x="280" y="638">(内嵌·预填提醒)</text>
+  <rect class="hl" x="500" y="600" width="200" height="50" rx="5"/><text class="t" x="510" y="620">跨模块穿透</text><text class="t" x="510" y="638">+单点登录+多端一致</text>
+  <rect class="box" x="730" y="600" width="200" height="50" rx="5"/><text class="t" x="740" y="620">数据分析</text><text class="t" x="740" y="638">9类汇总+地图</text>
+  <rect class="boxg" x="40" y="680" width="890" height="44" rx="5"/><text class="t" x="50" y="700">一体化通道（企微·微信·邮件·WhatsApp 6星，批次1/2轻量留痕）　|　沟通/审批/移交 全程 audit_log 留痕</text>
+
+  <!-- 支撑域到主流程虚线 -->
+  <path class="darrow" d="M140 514 V390 H575"/>
+  <path class="darrow" d="M352 514 V420"/>
+  <path class="darrow" d="M915 514 V440 H575"/>
+</svg>

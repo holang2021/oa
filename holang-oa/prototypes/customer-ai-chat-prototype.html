@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客户详情 · AI 助手（高保真原型）</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --line:#e6e8eb; --txt:#1f2329; --sub:#8a9099;
+    --brand:#2f6bff; --brand-soft:#eaf1ff; --ai:#7c5cff; --ai-soft:#f1edff;
+    --ok:#18a058; --warn:#f0a020; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);}
+  .page{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+  /* 顶部客户抬头 */
+  .cust-head{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;}
+  .cust-head h2{margin:0;font-size:18px;}
+  .tag{font-size:12px;padding:2px 9px;border-radius:20px;background:var(--brand-soft);color:var(--brand);}
+  .tag.gray{background:#eef0f3;color:var(--sub);}
+  .tag.orange{background:#fff3e0;color:var(--warn);}
+  .meta{font-size:13px;color:var(--sub);}
+  /* Tabs */
+  .tabs{display:flex;gap:4px;margin:16px 0;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .tab{padding:9px 14px;font-size:14px;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;user-select:none;}
+  .tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600;}
+  .tab.ai{color:var(--ai);}
+  .tab.ai.active{border-bottom-color:var(--ai);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  /* AI 助手布局 */
+  .ai-wrap{display:grid;grid-template-columns:300px 1fr;gap:16px;}
+  @media(max-width:760px){.ai-wrap{grid-template-columns:1fr;}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
+  .card h3{margin:0 0 10px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .insight-row{font-size:13px;line-height:1.7;margin-bottom:8px;}
+  .insight-row b{color:var(--txt);}
+  .pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:6px;background:var(--ai-soft);color:var(--ai);margin-right:5px;}
+  .btn-ghost{font-size:12px;padding:6px 10px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;color:var(--ai);}
+  .btn-ghost:hover{background:var(--ai-soft);}
+  /* 对话区 */
+  .chat{display:flex;flex-direction:column;height:560px;max-height:78vh;}
+  .chat-head{font-size:13px;color:var(--sub);padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .chat-body{flex:1;overflow-y:auto;padding:14px 4px;display:flex;flex-direction:column;gap:12px;}
+  .msg{display:flex;gap:10px;max-width:90%;}
+  .msg .av{width:30px;height:30px;border-radius:50%;flex:0 0 30px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;}
+  .msg.ai .av{background:var(--ai);}
+  .msg.me{align-self:flex-end;flex-direction:row-reverse;}
+  .msg.me .av{background:var(--brand);}
+  .bubble{padding:9px 13px;border-radius:12px;font-size:14px;line-height:1.65;white-space:pre-wrap;}
+  .msg.ai .bubble{background:var(--ai-soft);border-top-left-radius:4px;}
+  .msg.me .bubble{background:var(--brand-soft);border-top-right-radius:4px;}
+  .role{font-size:11px;color:var(--sub);margin-top:3px;}
+  .typing{font-size:12px;color:var(--ai);padding:4px 2px;}
+  .chat-input{border-top:1px solid var(--line);padding-top:12px;display:flex;gap:8px;}
+  .chat-input textarea{flex:1;resize:none;height:44px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;}
+  .chat-input textarea:focus{border-color:var(--ai);}
+  .send{background:var(--ai);color:#fff;border:none;border-radius:10px;padding:0 18px;font-size:14px;cursor:pointer;}
+  .send:disabled{opacity:.5;cursor:not-allowed;}
+  .hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6;}
+  .src{font-size:11px;color:var(--ai);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- 客户抬头 -->
+  <div class="cust-head">
+    <h2>昊朗工业气体（越南）有限公司</h2>
+    <span class="tag">外销 EXTERNAL</span>
+    <span class="tag gray">等级 A</span>
+    <span class="tag orange">状态：跟进中</span>
+    <span class="meta">行业：电子制造 · 主营：高纯氮气 / 氩气 · 负责人：外销-王敏</span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs">
+    <div class="tab" data-k="overview">概览</div>
+    <div class="tab" data-k="contacts">联系人</div>
+    <div class="tab" data-k="opportunities">商机</div>
+    <div class="tab" data-k="quotations">报价</div>
+    <div class="tab" data-k="orders">订单</div>
+    <div class="tab" data-k="payments">收款</div>
+    <div class="tab" data-k="timeline">时间轴</div>
+    <div class="tab ai active" data-k="ai">AI 助手</div>
+  </div>
+
+  <!-- 其他 Tab 占位 -->
+  <div class="panel" data-p="overview"><div class="card">（概览内容略，原型聚焦 AI 助手）</div></div>
+  <div class="panel" data-p="contacts"><div class="card">（联系人内容略）</div></div>
+  <div class="panel" data-p="opportunities"><div class="card">（商机内容略）</div></div>
+  <div class="panel" data-p="quotations"><div class="card">（报价内容略）</div></div>
+  <div class="panel" data-p="orders"><div class="card">（订单内容略）</div></div>
+  <div class="panel" data-p="payments"><div class="card">（收款内容略）</div></div>
+  <div class="panel" data-p="timeline"><div class="card">（时间轴内容略）</div></div>
+
+  <!-- AI 助手 Panel -->
+  <div class="panel active" data-p="ai">
+    <div class="ai-wrap">
+      <!-- 左：客户洞察卡片 -->
+      <div class="card">
+        <h3>🧠 客户洞察 <span class="pill">AI 自动汇总</span></h3>
+        <div class="insight-row"><b>客户画像：</b>越南电子制造业客户，高纯氮气/氩气刚需，决策链含采购+技术，偏好本地化服务。</div>
+        <div class="insight-row"><b>需求变化：</b>从「试用小批量」转向「月度稳定供货」，近期询价规格提升（99.999%）。</div>
+        <div class="insight-row"><b>跟进状态：</b>已发 2 版报价，近 14 天无新动态，存在停滞风险。</div>
+        <div class="insight-row"><b>建议：</b>本周内主动电话回访，针对规格升级给技术方案；可推年度框架协议锁量。</div>
+        <button class="btn-ghost" onclick="alert('原型演示：将调用 POST /customers/:id/ai/summary 重新生成洞察')">↻ 重新生成洞察</button>
+        <div class="hint">洞察基于：客户档案 + 20 条跟进 + 联系人 + 商机，每次对话实时刷新上下文。</div>
+      </div>
+
+      <!-- 右：对话区 -->
+      <div class="card chat">
+        <div class="chat-head">
+          <span>💬 与 AI 销售顾问对话（多轮 · 历史留存）</span>
+          <span id="ctxBadge">上下文：档案+跟进×20+联系人+商机</span>
+        </div>
+        <div class="chat-body" id="chatBody">
+          <div class="msg ai">
+            <div class="av">AI</div>
+            <div><div class="bubble">你好，我是 HOLANG 销售顾问。已读取该客户的档案、跟进时间轴与商机。你可以让我「总结客户情况」「下一步怎么推进」「写一封回访话术」等。</div><div class="role">AI 助手 · deepseek-chat</div></div>
+          </div>
+          <div class="msg me">
+            <div class="av">我</div>
+            <div><div class="bubble">这个客户最近为什么没动静？我该怎么破冰？</div><div class="role">你 · 王敏</div></div>
+          </div>
+          <div class="msg ai">
+            <div class="av">AI</div>
+            <div><div class="bubble">根据近 14 天无新跟进 + 上次报价后未回复，判断进入「沉默期」。建议：
+1. 今天发一条轻量触达（节日/行业资讯），不带销售压力；
+2. 3 天后电话回访，围绕「99.999% 规格技术方案」切入；
+3. 抛年度框架协议意向，用锁量价换稳定供货。
+要我帮你起草那条触达消息吗？</div>
+<div class="role">AI 助手 · deepseek-chat</div>
+<div class="src">📎 引用：跟进#18（报价已发未回复）、商机 OP-2207（规格升级中）</div></div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <textarea id="inp" placeholder="问 AI：总结客户 / 下一步建议 / 起草话术…"></textarea>
+          <button class="send" id="send" onclick="sendMsg()">发送</button>
+        </div>
+        <div class="hint">演示：输入后点发送，可见「AI 正在输入」加载态与多轮上下文保留。真实环境消息落库 <code>customer_ai_messages</code>，刷新后仍留存。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab 切换
+  document.querySelectorAll('#tabs .tab').forEach(t=>{
+    t.onclick=()=>{
+      document.querySelectorAll('#tabs .tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelector('.panel[data-p="'+t.dataset.k+'"]').classList.add('active');
+    };
+  });
+  // 发送（原型模拟）
+  function sendMsg(){
+    const inp=document.getElementById('inp'); const v=inp.value.trim(); if(!v) return;
+    const body=document.getElementById('chatBody');
+    body.insertAdjacentHTML('beforeend',
+      `<div class="msg me"><div class="av">我</div><div><div class="bubble">${escapeHtml(v)}</div><div class="role">你 · 王敏</div></div></div>
+       <div class="typing" id="typing">AI 正在输入…</div>`);
+    inp.value=''; body.scrollTop=body.scrollHeight;
+    const send=document.getElementById('send'); send.disabled=true;
+    setTimeout(()=>{
+      document.getElementById('typing').remove();
+      body.insertAdjacentHTML('beforeend',
+        `<div class="msg ai"><div class="av">AI</div><div><div class="bubble">（原型演示）真实环境此处会聚合该客户最新资料后调用 DeepSeek 返回针对性建议，并落库 user+assistant 两条消息。</div><div class="role">AI 助手 · deepseek-chat</div></div></div>`);
+      body.scrollTop=body.scrollHeight; send.disabled=false;
+    },900);
+  }
+  function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+  document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+</script>
+</body>
+</html>

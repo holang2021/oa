@@ -1,0 +1,17 @@
+{
+  "name": "wecom-app-1000081",
+  "version": "1.0.0",
+  "description": "HOLANG 企微自建应用 1000081（HOLANG管理 · 角色权限）回调服务",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "dotenv": "^16.4.5",
+    "xml2js": "^0.6.2"
+  }
+}

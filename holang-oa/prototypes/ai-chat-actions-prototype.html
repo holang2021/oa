@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客户 AI 助手 · 操作权限原型（新建联系人 / 写跟进）</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6f8; }
+  .btn { @apply; }
+</style>
+</head>
+<body class="p-6">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">客户 AI 助手 · 操作权限（新建联系人 / 写跟进）</h1>
+    <p class="text-sm text-gray-500 mb-4">复用现有 <code>createContact</code> / <code>createFollowUp</code> 接口，AI 仅负责从对话抽取结构化草稿，人工预览确认后才落库。</p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+      <!-- 左：洞察卡片 -->
+      <div class="bg-white rounded-xl shadow-sm p-4 self-start">
+        <h3 class="text-sm font-semibold flex items-center gap-1.5">
+          <span>🧠</span> 客户洞察
+          <span class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">AI 自动汇总</span>
+        </h3>
+        <div class="text-sm leading-relaxed whitespace-pre-wrap text-gray-700 mt-3">
+PROFILE（客户画像）：埃及 Cairo Oxygen，工业气体设备采购方，决策链含采购+技术。
+DEMAND（需求变化）：近期从单台设备询价比价，转向整线配套方案。
+FOLLOWUP（跟进状态）：已 2 周无实质推进，存在停滞风险。
+SUGGEST（销售建议）：①本周安排技术总监线上会 ②补一份整线配置清单 ③明确交付周期。
+        </div>
+        <button class="text-xs mt-3 px-3 py-1.5 rounded bg-purple-100 text-purple-600">↻ 重新生成洞察</button>
+        <div class="text-[11px] text-gray-400 mt-3 leading-relaxed">洞察基于：客户档案 + 近期跟进 + 联系人 + 商机。</div>
+      </div>
+
+      <!-- 右：对话区 -->
+      <div class="bg-white rounded-xl shadow-sm flex flex-col" style="height: 70vh; min-height: 480px;">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <span class="text-sm font-medium">💬 与 AI 销售顾问对话</span>
+          <span class="text-[11px] text-gray-400">多轮 · 历史云端留存</span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          <div class="flex gap-2.5 flex-row-reverse">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs bg-blue-500">我</div>
+            <div class="max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm bg-blue-50 text-gray-800 rounded-tr-sm whitespace-pre-wrap">帮我整理一下刚才和 Cairo 的沟通，把新出现的联系人加进去，再记一条跟进。</div>
+          </div>
+          <div class="flex gap-2.5">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs bg-purple-500">AI</div>
+            <div class="max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm bg-purple-50 text-gray-800 rounded-tl-sm whitespace-pre-wrap">已为您从对话中识别到 1 位新联系人（技术总监 Ahmed Hassan）和 1 条待记跟进。请使用下方「＋新建联系人」「📝写跟进」按钮预览并确认写入。</div>
+          </div>
+        </div>
+
+        <!-- 操作工具栏（新增） -->
+        <div class="px-4 py-2 border-t border-gray-100 flex items-center gap-2 bg-gray-50/40">
+          <span class="text-[11px] text-gray-400 mr-1">基于对话生成操作：</span>
+          <button onclick="openContact()" class="text-xs px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600">＋ 新建联系人</button>
+          <button onclick="openFollow()" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600">📝 写跟进</button>
+          <span class="text-[11px] text-gray-400 ml-auto">继承客户查看权限；写入前需确认</span>
+        </div>
+
+        <!-- 输入框 -->
+        <div class="border-t border-gray-100 p-3 flex gap-2">
+          <textarea class="flex-1 resize-none input rounded-lg border border-gray-200 px-3 py-2 text-sm" style="height:44px" placeholder="问 AI：总结客户 / 下一步建议 / 起草话术…（Enter 发送）"></textarea>
+          <button class="px-5 rounded-lg bg-purple-500 text-white text-sm">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 联系人草稿弹窗（模拟） -->
+  <div id="contactModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl w-[460px] max-h-[85vh] overflow-y-auto p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900">AI 抽取的联系人草稿</h3>
+        <button onclick="closeModals()" class="text-gray-400">✕</button>
+      </div>
+      <p class="text-[11px] text-gray-400 mb-3">来源：当前对话上下文。请确认/微调后写入。</p>
+      <div class="space-y-3 text-sm">
+        <div><label class="text-xs text-gray-500">姓名 *</label><input id="c_name" class="input w-full border rounded px-2 py-1.5" value="Ahmed Hassan" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">职位</label><input id="c_pos" class="input w-full border rounded px-2 py-1.5" value="技术总监" /></div>
+          <div><label class="text-xs text-gray-500">部门</label><input class="input w-full border rounded px-2 py-1.5" value="技术部" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">手机</label><input class="input w-full border rounded px-2 py-1.5" value="+20 100 123 4567" /></div>
+          <div><label class="text-xs text-gray-500">邮箱</label><input class="input w-full border rounded px-2 py-1.5" value="ahmed@cairooxygen.com" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs text-gray-500">微信</label><input class="input w-full border rounded px-2 py-1.5" placeholder="无" /></div>
+          <div><label class="text-xs text-gray-500">WhatsApp</label><input class="input w-full border rounded px-2 py-1.5" placeholder="无" /></div>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-gray-600"><input type="checkbox" checked /> 关键决策人</label>
+        <div><label class="text-xs text-gray-500">备注</label><textarea class="input w-full border rounded px-2 py-1.5" rows="2">线上技术交流会确认，负责整线方案技术评估。</textarea></div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button onclick="closeModals()" class="px-4 py-1.5 rounded-lg border border-gray-200 text-sm">取消</button>
+        <button onclick="confirmContact()" class="px-4 py-1.5 rounded-lg bg-blue-500 text-white text-sm">确认写入 CRM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 跟进草稿弹窗（模拟） -->
+  <div id="followModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl w-[460px] max-h-[85vh] overflow-y-auto p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900">AI 抽取的跟进草稿</h3>
+        <button onclick="closeModals()" class="text-gray-400">✕</button>
+      </div>
+      <p class="text-[11px] text-gray-400 mb-3">来源：当前对话上下文。请确认/微调后写入。</p>
+      <div class="space-y-3 text-sm">
+        <div><label class="text-xs text-gray-500">跟进方式</label>
+          <select class="input w-full border rounded px-2 py-1.5">
+            <option>电话</option><option>微信</option><option selected>邮件</option><option>WhatsApp</option><option>拜访</option><option>备忘</option>
+          </select>
+        </div>
+        <div><label class="text-xs text-gray-500">内容 *</label>
+          <textarea class="input w-full border rounded px-2 py-1.5" rows="3">与 Cairo Oxygen 技术总监 Ahmed 线上沟通，确认整线配套方案技术需求，对方关注交付周期与售后响应。</textarea>
+        </div>
+        <div><label class="text-xs text-gray-500">下一步计划</label>
+          <input class="input w-full border rounded px-2 py-1.5" value="本周内发送整线配置清单与报价" /></div>
+        <div><label class="text-xs text-gray-500">关联联系人</label>
+          <select class="input w-full border rounded px-2 py-1.5">
+            <option>Ahmed Hassan（技术总监）</option>
+            <option>— 不关联 —</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button onclick="closeModals()" class="px-4 py-1.5 rounded-lg border border-gray-200 text-sm">取消</button>
+        <button onclick="confirmFollow()" class="px-4 py-1.5 rounded-lg bg-emerald-500 text-white text-sm">确认写入 CRM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg z-50"></div>
+
+<script>
+  function openContact(){ document.getElementById('contactModal').classList.remove('hidden'); }
+  function openFollow(){ document.getElementById('followModal').classList.remove('hidden'); }
+  function closeModals(){ document.getElementById('contactModal').classList.add('hidden'); document.getElementById('followModal').classList.add('hidden'); }
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2200); }
+  function confirmContact(){ closeModals(); toast('联系人已新建：' + document.getElementById('c_name').value + '（模拟写入）'); }
+  function confirmFollow(){ closeModals(); toast('跟进记录已写入（模拟）'); }
+</script>
+</body>
+</html>

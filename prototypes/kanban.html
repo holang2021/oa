@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HOLANG 每日工作看板</title>
+<style>
+  :root{
+    --bg1:#f4f7fb; --bg2:#eaf0f8;
+    --ink:#1f2a3d; --ink-soft:#5b6b82; --ink-faint:#90a0b8;
+    --card:#ffffff; --line:#e6ecf5;
+    --accent:#2f6bff; --accent-soft:#eaf1ff;
+    --todo:#7a8aa3; --prog:#f5a623; --done:#22b07d; --block:#e5484d;
+    --shadow:0 6px 22px rgba(31,42,61,.08);
+    --shadow-hi:0 12px 34px rgba(31,42,61,.16);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    color:var(--ink); background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:26px 22px 60px}
+
+  /* Header */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:18px;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#2f6bff,#6aa0ff);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;box-shadow:var(--shadow)}
+  .brand h1{font-size:23px;margin:0;letter-spacing:.5px}
+  .brand p{margin:3px 0 0;color:var(--ink-soft);font-size:13px}
+  .date-pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;
+    font-size:13px;color:var(--ink-soft);box-shadow:var(--shadow)}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:1.1fr repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .label{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px}
+  .kpi .val{font-size:30px;font-weight:800;line-height:1}
+  .kpi .sub{font-size:12px;color:var(--ink-faint);margin-top:6px}
+  .ring-card{display:flex;align-items:center;gap:16px}
+  .ring{position:relative;width:84px;height:84px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:21px;font-weight:800;color:var(--accent)}
+  .kpi.todo .val{color:var(--todo)} .kpi.prog .val{color:var(--prog)}
+  .kpi.done .val{color:var(--done)} .kpi.block .val{color:var(--block)}
+
+  /* Filters */
+  .filters{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;
+    color:var(--ink-soft);cursor:pointer;transition:.18s;user-select:none}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(47,107,255,.3)}
+  .spacer{flex:1}
+  .btn{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;
+    color:var(--ink-soft);cursor:pointer;transition:.18s}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* Board */
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .col{background:rgba(255,255,255,.62);border:1px solid var(--line);border-radius:18px;padding:14px 13px 18px;
+    min-height:340px;backdrop-filter:blur(4px);transition:.2s}
+  .col.drag-over{background:var(--accent-soft);border-color:var(--accent)}
+  .col-head{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 12px}
+  .col-head .t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .col.todo .dot{background:var(--todo)} .col.prog .dot{background:var(--prog)}
+  .col.done .dot{background:var(--done)} .col.block .dot{background:var(--block)}
+  .col-head .n{background:#fff;border:1px solid var(--line);border-radius:999px;font-size:12px;
+    color:var(--ink-soft);padding:2px 9px;min-width:26px;text-align:center}
+  .col.done{border-top:3px solid var(--done)} .col.prog{border-top:3px solid var(--prog)}
+  .col.todo{border-top:3px solid var(--todo)} .col.block{border-top:3px solid var(--block)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 13px 12px;
+    margin-bottom:11px;box-shadow:var(--shadow);cursor:grab;transition:.16s;position:relative}
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hi)}
+  .card:active{cursor:grabbing}
+  .card .title{font-size:14px;font-weight:600;line-height:1.45;margin-bottom:9px}
+  .card .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .tag{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600}
+  .tg-cat{background:#eef1f6;color:var(--ink-soft)}
+  .tg-p0{background:#fdeaea;color:var(--block)} .tg-p1{background:#fef3e2;color:#c97a12}
+  .tg-p2{background:#eaf1ff;color:var(--accent)}
+  .card .src{margin-top:9px;font-size:11px;color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace;
+    word-break:break-all;line-height:1.4}
+  .card .link-arrow{position:absolute;top:9px;right:11px;font-size:15px;color:var(--accent);opacity:.5;transition:.16s;pointer-events:none}
+  .card:hover .link-arrow{opacity:1;transform:translate(2px,-2px)}
+  .card .detail-btn{margin-top:11px;background:var(--accent-soft);border:1px solid #d4e2ff;color:var(--accent);
+    border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;transition:.16s}
+  .card .detail-btn:hover{background:var(--accent);color:#fff}
+  .card .bar{height:4px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden}
+  .card .bar > i{display:block;height:100%;border-radius:3px}
+  .empty{text-align:center;color:var(--ink-faint);font-size:12.5px;padding:22px 6px;border:1px dashed var(--line);
+    border-radius:12px;margin-top:4px}
+  .hide{display:none!important}
+
+  /* Modal */
+  .mask{position:fixed;inset:0;background:rgba(20,30,50,.42);display:none;align-items:center;justify-content:center;
+    padding:20px;z-index:50;backdrop-filter:blur(2px)}
+  .mask.show{display:flex}
+  .modal{background:#fff;border-radius:18px;max-width:560px;width:100%;padding:24px 24px 20px;box-shadow:var(--shadow-hi);
+    max-height:84vh;overflow:auto}
+  .modal h3{margin:0 0 6px;font-size:18px}
+  .modal .meta{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+  .modal .body{font-size:13.5px;color:var(--ink-soft);line-height:1.7}
+  .modal .body b{color:var(--ink)}
+  .open-link{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-size:13px;
+    font-weight:600;padding:9px 15px;border-radius:10px;transition:.16s}
+  .open-link:hover{background:#1f54e0;box-shadow:0 6px 16px rgba(47,107,255,.35)}
+  .modal .close{position:absolute}
+  .modal-x{float:right;cursor:pointer;color:var(--ink-faint);font-size:22px;line-height:1;margin:-6px -6px 0 0}
+  .foot{margin-top:26px;font-size:12px;color:var(--ink-faint);text-align:center;line-height:1.7}
+  .foot code{background:#eef1f6;padding:2px 7px;border-radius:6px;color:var(--ink-soft)}
+  @media(max-width:980px){.board{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.board{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">H</div>
+      <div>
+        <h1>HOLANG 每日工作看板</h1>
+        <p>做了什么 · 没做什么 · 卡在哪 — 一眼看清</p>
+      </div>
+    </div>
+    <div class="date-pill" id="datePill">数据截至 —</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi ring-card">
+      <div class="ring">
+        <svg width="84" height="84">
+          <circle cx="42" cy="42" r="36" stroke="#e6ecf5" stroke-width="9" fill="none"/>
+          <circle id="ringFg" cx="42" cy="42" r="36" stroke="#2f6bff" stroke-width="9" fill="none"
+            stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"/>
+        </svg>
+        <div class="pct" id="ringPct">0%</div>
+      </div>
+      <div>
+        <div class="label">整体完成率</div>
+        <div class="sub" id="ringSub">已完成 / 总事项</div>
+      </div>
+    </div>
+    <div class="kpi done"><div class="label">✅ 已完成</div><div class="val" id="kDone">0</div><div class="sub">本周已落地</div></div>
+    <div class="kpi prog"><div class="label">🟡 进行中</div><div class="val" id="kProg">0</div><div class="sub">技术侧推进</div></div>
+    <div class="kpi block"><div class="label">🔴 阻塞/待拍板</div><div class="val" id="kBlock">0</div><div class="sub">等你决策</div></div>
+    <div class="kpi todo"><div class="label">⚪ 待办</div><div class="val" id="kTodo">0</div><div class="sub">技术侧排队</div></div>
+  </div>
+
+  <div class="filters" id="filters">
+    <span class="chip on" data-cat="all">全部</span>
+    <span class="chip" data-cat="部署">部署/运维</span>
+    <span class="chip" data-cat="企微">企微</span>
+    <span class="chip" data-cat="飞书">飞书</span>
+    <span class="chip" data-cat="官网">官网/获客</span>
+    <span class="chip" data-cat="数据">数据/迁移</span>
+    <span class="chip" data-cat="安全">安全/备份</span>
+    <span class="chip" data-cat="产品">产品/功能</span>
+    <span class="spacer"></span>
+    <button class="btn" id="resetBtn">↺ 重置为初始数据</button>
+    <button class="btn" id="addBtn">＋ 加一条</button>
+  </div>
+
+  <div class="board" id="board">
+    <div class="col todo" data-col="todo">
+      <div class="col-head"><div class="t"><span class="dot"></span>待办</div><div class="n" id="nTodo">0</div></div>
+      <div class="list" id="list-todo"></div>
+    </div>
+    <div class="col prog" data-col="prog">
+      <div class="col-head"><div class="t"><span class="dot"></span>进行中</div><div class="n" id="nProg">0</div></div>
+      <div class="list" id="list-prog"></div>
+    </div>
+    <div class="col done" data-col="done">
+      <div class="col-head"><div class="t"><span class="dot"></span>已完成</div><div class="n" id="nDone">0</div></div>
+      <div class="list" id="list-done"></div>
+    </div>
+    <div class="col block" data-col="block">
+      <div class="col-head"><div class="t"><span class="dot"></span>阻塞 / 待拍板</div><div class="n" id="nBlock">0</div></div>
+      <div class="list" id="list-block"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    数据由你的真实工作记录生成：<code>05_运行记录/未闭环提醒</code> 与 <code>.workbuddy/memory/2026-08-16.md</code>。<br/>
+    <b>单击卡片</b>直接进入相关页面（文档/系统）；右下「详情」看来源与说明。拖动可改状态，刷新自动保存（仅本机浏览器）。「重置」恢复初始快照。
+  </div>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="modal-x" id="modalX">×</span>
+    <h3 id="mTitle"></h3>
+    <div class="meta" id="mMeta"></div>
+    <div class="body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+/* ===== 初始数据（从真实记录抽取，2026-08-16 快照） ===== */
+const SEED = [
+  // —— 已完成 ——
+  {id:'d1',col:'done',cat:'部署',pri:'P2',title:'服务器到期核查（TAT+CVM 实测）',src:'memory/2026-08-16.md',
+   note:'唯一实例 <b>ins-4xm95czz</b>（AI+WorkBuddy+OA+WEB 全在一台，单点故障）。到期 8/23 19:48，续费≈¥238/月。实测机器健康、明显闲置。',
+   link:'../.workbuddy/memory/2026-08-16.md', linkLabel:'记忆·2026-08-16'},
+  {id:'d2',col:'done',cat:'安全',pri:'P1',title:'异地备份落地（拉回本机）',src:'server_backup/2026-08-16/',
+   note:'经 TAT 把线上不可替代资产全量拉回：<b>holang-crm.db</b>(2.2MB，sha256 校验一致) + .env + api-configs.json + verify 文件。首次有异地副本。',
+   link:'../.workbuddy/memory/2026-08-16.md', linkLabel:'记忆·2026-08-16（备份记录）'},
+  {id:'d3',col:'done',cat:'部署',pri:'P0',title:'OA 系统上线 oa.holangchina.com',src:'memory/2026-08-04.md',
+   note:'前端 20 模块 + 后端 PM2 已上线，nginx 反代 /api/。密码登录一直可用，OAuth 链路已通。',
+   link:'https://oa.holangchina.com', linkLabel:'OA 系统'},
+  {id:'d4',col:'done',cat:'企微',pri:'P0',title:'企微1000081 通讯录真实同步闭环',src:'memory/2026-08-04.md',
+   note:'后端真实写库：拉 10 成员 + 9 部门写入 OA User/WecomDepartment 表，留 audit_log。角色映射待拍板。',
+   link:'https://work.weixin.qq.com', linkLabel:'企微管理后台'},
+  {id:'d5',col:'done',cat:'飞书',pri:'P1',title:'飞书 Phase1 跟进同步全量完成',src:'deploy/feishu_sync_followups.py',
+   note:'363 条 OA 跟进 → 飞书知识库「OA跟进记录归档」(token QADqwQVJtitMp9kCXifcpvkcnAf)，1:1 对应，已清重复父节点。',
+   link:'../holang-oa/deploy/feishu_sync_followups.py', linkLabel:'飞书同步脚本'},
+  {id:'d6',col:'done',cat:'产品',pri:'P2',title:'客户AI助手操作权限 JS 已上线',src:'docs/客户AI助手操作权限…技术蓝图_v1.md',
+   note:'新增「写联系人/写跟进」两项操作的前端已部署。待你浏览器实验收尾（看实际效果签字）。',
+   link:'../holang-oa/docs/客户AI助手操作权限_新建联系人写跟进_技术蓝图_v1.md', linkLabel:'技术蓝图'},
+
+  // —— 进行中 ——
+  {id:'p1',col:'prog',cat:'安全',pri:'P1',title:'服务器安全加固',src:'memory/2026-08-16.md',
+   note:'默认 <b>admin/admin123</b> 与 JWT 需改为强随机。技术侧可独立完成，建议本周内做。',
+   link:'../.workbuddy/memory/2026-08-16.md', linkLabel:'记忆·2026-08-16'},
+  {id:'p2',col:'prog',cat:'安全',pri:'P1',title:'COS 异地备份升级',src:'memory/2026-08-16.md',
+   note:'当前仅本机备份，COS 异地为下一步。比"到期"更紧迫的是"无异地"，先本机过渡，再上云。',
+   link:'../.workbuddy/memory/2026-08-16.md', linkLabel:'记忆·2026-08-16'},
+
+  // —— 阻塞 / 待拍板 ——
+  {id:'b1',col:'block',cat:'部署',pri:'P0',title:'服务器续费 + 自动续费',src:'memory/2026-08-16.md',
+   note:'<b>待你腾讯云控制台确认</b>（¥238/月）。不续=全公司数字化资产一次性不可逆丢失。建议开自动续费。',
+   link:'https://console.cloud.tencent.com/', linkLabel:'腾讯云控制台'},
+  {id:'b2',col:'block',cat:'企微',pri:'P0',title:'企微角色矩阵拍板',src:'memory + 后端待办清单',
+   note:'内销/外销/技术/生产/财务/审计 等角色映射待你拍板。直接影响 RBAC 权限与数据隔离。',
+   link:'https://work.weixin.qq.com', linkLabel:'企微管理后台'},
+  {id:'b3',col:'block',cat:'官网',pri:'P1',title:'英文官网 holangintl.com 获客闭环',src:'memory/顶层决策',
+   note:'WordPress 推翻重做，询盘回流 OA 外销 CRM。待①域名归属确认②企业邮箱③holanggas.com SSL 处置。',
+   link:'https://holangintl.com', linkLabel:'英文官网'},
+  {id:'b4',col:'block',cat:'数据',pri:'P1',title:'伙伴云数据迁入 OA',src:'memory/系统建设现状',
+   note:'SoR=自建 OA，伙伴云待迁入。待你确认迁移范围与节奏。',
+   link:'../docs/伙伴云迁移映射契约-批次0确认.md', linkLabel:'迁移契约'},
+  {id:'b5',col:'block',cat:'企微',pri:'P1',title:'企微1000083 消息权限开通',src:'未闭环清单_2026-08-08.md',
+   note:'后台「授权机器人→消息」权限未开，导致推送给你的日报失败。需你或管理员在企微后台开通 + 加可信 IP。',
+   link:'https://work.weixin.qq.com', linkLabel:'企微管理后台'},
+  {id:'b6',col:'block',cat:'产品',pri:'P1',title:'商机 M2M 协作与贡献拆分',src:'docs/商机M2M协作与贡献拆分技术蓝图_v1.md',
+   note:'2 项决策待拍板：①删客户时合约/订单如何处理（建议拦截）②贡献拆分规则。',
+   link:'../holang-oa/docs/商机M2M协作与贡献拆分技术蓝图_v1.md', linkLabel:'技术蓝图'},
+  {id:'b7',col:'block',cat:'产品',pri:'P2',title:'客户AI助手浏览器实验收尾',src:'docs/客户AI助手操作权限…v1.md',
+   note:'前端已上线，<b>待你实际打开看效果并签字</b>（preview 会签铁律）。',
+   link:'https://oa.holangchina.com', linkLabel:'OA 系统（实验收）'},
+  {id:'b8',col:'block',cat:'飞书',pri:'P2',title:'飞书同步"现在推"确认',src:'docs/飞书同步_记录查证与检验机制_2026-08-07.md',
+   note:'端到端已验证可推；<b>待你确认是否现在把 AI 对话推到飞书</b>。',
+   link:'../holang-oa/docs/飞书同步_记录查证与检验机制_2026-08-07.md', linkLabel:'检验机制文档'},
+
+  // —— 待办（技术侧排队） ——
+  {id:'t1',col:'todo',cat:'飞书',pri:'P1',title:'飞书 Phase2（AI对话/联系人备注同步）',src:'memory/系统建设现状',
+   note:'Phase1 跟进已通；AI对话(customer_ai_messages)与联系人备注(CONTACT_NOTE)各自独立父节点，待做。',
+   link:'../holang-oa/deploy/feishu_sync_followups.py', linkLabel:'飞书同步脚本'},
+  {id:'t2',col:'todo',cat:'飞书',pri:'P2',title:'OA 飞书密钥替换占位',src:'memory/飞书凭证状态',
+   note:'OA api-configs.json 飞书 appSecret 为占位值（方案A卡点）。方案B 已绕开，但后端密钥仍待真密钥收口。',
+   link:'../server_backup/2026-08-16/backend/config/api-configs.json', linkLabel:'api-configs.json'},
+  {id:'t3',col:'todo',cat:'企微',pri:'P2',title:'企微联系人导入方案实现',src:'docs/企微联系人导入方案_v1.md',
+   note:'需走 Meta 官方 Business API，待拍板后实现 wecom.externalcontact 同步服务。',
+   link:'../holang-oa/docs/企微联系人导入方案_v1.md', linkLabel:'导入方案'},
+  {id:'t4',col:'todo',cat:'部署',pri:'P1',title:'生产库新备份',src:'memory/2026-08-16.md',
+   note:'当前备份 9 天无更新（最后写 8/11 14:57），与本地拉回副本对齐后需建定期备份机制。',
+   link:'../.workbuddy/memory/2026-08-16.md', linkLabel:'记忆·2026-08-16'},
+  {id:'t5',col:'todo',cat:'部署',pri:'P1',title:'架构单点故障拆分规划',src:'memory/压迫式审核结论',
+   note:'一台机器跑全部（OA+AI+企微+frps），单点故障。规划拆分/多实例，降低风险。',
+   link:'../.workbuddy/memory/2026-08-16.md', linkLabel:'记忆·2026-08-16'},
+  {id:'t6',col:'todo',cat:'产品',pri:'P2',title:'后端待办清单批量处理',src:'docs/后端待办清单_2026-08-06.md',
+   note:'清单为「冻结·待确认」态，待你集中梳理范围/优先级/顺序后，由 tech-lead 统一排期实施。',
+   link:'../holang-oa/docs/后端待办清单_2026-08-06.md', linkLabel:'后端待办清单'},
+];
+
+const COLS=['todo','prog','done','block'];
+const STORE='holang_kanban_v1';
+let data = load();
+
+function load(){
+  try{const s=localStorage.getItem(STORE);if(s)return JSON.parse(s);}catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(data));}catch(e){}}
+
+/* ===== 渲染 ===== */
+function render(){
+  const counts={todo:0,prog:0,done:0,block:0};
+  const cat=document.querySelector('.chip.on')?.dataset.cat||'all';
+  COLS.forEach(c=>{
+    const box=document.getElementById('list-'+c);
+    box.innerHTML='';
+    const items=data.filter(d=>d.col===c && (cat==='all'||d.cat===cat));
+    counts[c]=data.filter(d=>d.col===c).length;
+    if(!items.length){box.innerHTML='<div class="empty">— 暂无 —</div>';}
+    items.forEach(it=>box.appendChild(cardEl(it)));
+  });
+  document.getElementById('nTodo').textContent=counts.todo;
+  document.getElementById('nProg').textContent=counts.prog;
+  document.getElementById('nDone').textContent=counts.done;
+  document.getElementById('nBlock').textContent=counts.block;
+  document.getElementById('kTodo').textContent=counts.todo;
+  document.getElementById('kProg').textContent=counts.prog;
+  document.getElementById('kDone').textContent=counts.done;
+  document.getElementById('kBlock').textContent=counts.block;
+  const total=COLS.reduce((a,c)=>a+counts[c],0);
+  const rate= total? Math.round(counts.done/total*100):0;
+  document.getElementById('ringPct').textContent=rate+'%';
+  document.getElementById('ringSub').textContent=counts.done+' / '+total+' 事项';
+  const C=2*Math.PI*36, off=C*(1-rate/100);
+  document.getElementById('ringFg').setAttribute('stroke-dashoffset',off);
+  document.getElementById('ringFg').setAttribute('stroke',rate>=60?'#22b07d':rate>=30?'#f5a623':'#2f6bff');
+}
+function cardEl(it){
+  const el=document.createElement('div');el.className='card';el.draggable=true;el.dataset.id=it.id;
+  const pritx={P0:'tg-p0',P1:'tg-p1',P2:'tg-p2'}[it.pri]||'tg-p2';
+  const barColor={done:'var(--done)',prog:'var(--prog)',block:'var(--block)',todo:'var(--todo)'}[it.col];
+  const hasLink=!!it.link;
+  el.innerHTML=`<span class="link-arrow" title="单击进入相关页面 ↗">↗</span>
+    <div class="title">${esc(it.title)}</div>
+    <div class="tags"><span class="tag tg-cat">${esc(it.cat)}</span><span class="tag ${pritx}">${it.pri}</span></div>
+    <div class="bar"><i style="width:100%;background:${barColor}"></i></div>
+    <div class="src">📄 ${esc(it.src)}</div>
+    <button class="detail-btn" type="button">详情</button>`;
+  el.addEventListener('click',()=>openLink(it));
+  el.querySelector('.detail-btn').addEventListener('click',e=>{e.stopPropagation();openModal(it);});
+  el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',it.id);el.style.opacity=.4;});
+  el.addEventListener('dragend',()=>{el.style.opacity=1;});
+  return el;
+}
+function openLink(it){
+  if(!it.link)return;
+  const w=window.open(it.link,'_blank');
+  if(!w){ location.href=it.link; } // 弹窗被拦截时退回同标签打开
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+/* ===== 拖拽 ===== */
+document.querySelectorAll('.col').forEach(col=>{
+  col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over');});
+  col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+  col.addEventListener('drop',e=>{
+    e.preventDefault();col.classList.remove('drag-over');
+    const id=e.dataTransfer.getData('text/plain');const it=data.find(d=>d.id===id);
+    if(it){it.col=col.dataset.col;save();render();}
+  });
+});
+
+/* ===== 筛选 ===== */
+document.getElementById('filters').addEventListener('click',e=>{
+  const c=e.target.closest('.chip');if(!c)return;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');render();
+});
+
+/* ===== 弹窗 ===== */
+const mask=document.getElementById('mask');
+function openModal(it){
+  document.getElementById('mTitle').textContent=it.title;
+  document.getElementById('mMeta').innerHTML=
+    `<span class="tag tg-cat">${esc(it.cat)}</span><span class="tag ${ {P0:'tg-p0',P1:'tg-p1',P2:'tg-p2'}[it.pri] }">${it.pri}</span>`+
+    `<span class="tag tg-cat">状态：${({todo:'待办',prog:'进行中',done:'已完成',block:'阻塞/待拍板'})[it.col]}</span>`;
+  let body='<b>来源：</b>'+esc(it.src)+'<br/><br/>'+ (it.note||'（无备注）');
+  if(it.link){
+    body+='<div style="margin-top:16px"><a class="open-link" href="'+esc(it.link)+'" target="_blank" rel="noopener">🔗 打开相关页面：'+esc(it.linkLabel||it.link)+'</a></div>';
+  }
+  document.getElementById('mBody').innerHTML=body;
+  mask.classList.add('show');
+}
+document.getElementById('modalX').onclick=()=>mask.classList.remove('show');
+mask.onclick=e=>{if(e.target===mask)mask.classList.remove('show');};
+
+/* ===== 加一条 / 重置 ===== */
+document.getElementById('addBtn').onclick=()=>{
+  const title=prompt('新事项标题：');if(!title)return;
+  const cat=prompt('分类（部署/企微/飞书/官网/数据/安全/产品）：','产品')||'产品';
+  const pri=prompt('优先级（P0/P1/P2）：','P2')||'P2';
+  const col=prompt('状态（todo 待办 / prog 进行中 / done 已完成 / block 阻塞待拍板）：','todo')||'todo';
+  const link=prompt('相关页面链接（本地文件用相对路径如 ../docs/xxx.md，线上用 https://…；留空=无）：','')||'';
+  const item={id:'u'+Date.now(),col,cat,pri,title,src:'手动添加',note:''};
+  if(link){item.link=link;item.linkLabel='手动链接';}
+  data.push(item);
+  save();render();
+};
+document.getElementById('resetBtn').onclick=()=>{
+  if(confirm('重置为 2026-08-16 初始快照？当前手动改动会丢失。')){
+    data=JSON.parse(JSON.stringify(SEED));save();render();
+  }
+};
+
+/* ===== 日期 ===== */
+const now=new Date();
+document.getElementById('datePill').textContent='生成于 '+now.getFullYear()+'-'+
+  String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+
+render();
+</script>
+</body>
+</html>

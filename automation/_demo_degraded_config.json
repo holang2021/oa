@@ -1,0 +1,17 @@
+{
+  "employee": {
+    "name": "HOLANG-中枢-001",
+    "employee_id": "UNKNOWN_ID",
+    "department": "数字化执行中枢",
+    "role": "数字员工（调度+验收+梳理）"
+  },
+  "required_runtimes": ["python", "node", "rust"],
+  "resources": {
+    "server": "shared-115.159.101.193",
+    "memory_mb": 128
+  },
+  "experts": [
+    "holang-digital-product-owner",
+    "holang-tech-lead"
+  ]
+}

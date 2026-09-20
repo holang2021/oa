@@ -1,0 +1,29 @@
+{
+  "employee": {
+    "name": "HOLANG-中枢-001",
+    "employee_id": "DE_001",
+    "department": "数字化执行中枢",
+    "role": "数字员工（调度+验收+梳理）",
+    "email": "digital-owner@holangchina.com"
+  },
+  "required_runtimes": ["python", "node"],
+  "resources": {
+    "server": "shared-115.159.101.193",
+    "memory_mb": 512
+  },
+  "experts": [
+    "holang-digital-product-owner",
+    "holang-tech-lead",
+    "holang-governance-expert",
+    "holang-audit-review",
+    "holang-knowledge-query",
+    "holang-brand-growth",
+    "holang-gas-sales",
+    "holang-product-rd-expert"
+  ],
+  "meeting_prep": {
+    "look_ahead_days": 1,
+    "default_reminder_minutes_before": 15,
+    "material_sources": ["lark_wiki", "holang-knowledge-query"]
+  }
+}

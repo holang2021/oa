@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "=== NS of holangchina.com (8.8.8.8) ==="
+nslookup -type=NS holangchina.com 8.8.8.8 2>&1 | grep -i "nameserver\|holangchina" || echo "NS_QUERY_FAIL"
+echo "=== A oa via 8.8.8.8 ==="
+nslookup oa.holangchina.com 8.8.8.8 2>&1 | grep -A2 "Name:" || echo "A8_FAIL"
+echo "=== A oa via 1.1.1.1 ==="
+nslookup oa.holangchina.com 1.1.1.1 2>&1 | grep -A2 "Name:" || echo "A1_FAIL"
+echo "=== A oa via 223.5.5.5 ==="
+nslookup oa.holangchina.com 223.5.5.5 2>&1 | grep -A2 "Name:" || echo "A223_FAIL"
+echo "=== whois NS (if whois avail) ==="
+which whois >/dev/null 2>&1 && whois holangchina.com 2>/dev/null | grep -i "Name Server" | head -5 || echo "NO_WHOIS"
+echo "=== done ==="

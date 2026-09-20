@@ -1,0 +1,17 @@
+{
+  "apps": [{
+    "name": "wecom-app-1000081",
+    "script": "src/index.js",
+    "cwd": "/opt/holang/wecom-app-1000081",
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "instances": 1,
+    "exec_mode": "fork",
+    "watch": false,
+    "max_memory_restart": "256M",
+    "log_date_format": "YYYY-MM-DD HH:mm:ss",
+    "error_file": "/var/log/holang/wecom-1000081-error.log",
+    "out_file": "/var/log/holang/wecom-1000081-out.log"
+  }]
+}

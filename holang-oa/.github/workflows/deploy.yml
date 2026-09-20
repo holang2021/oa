@@ -1,0 +1,64 @@
+name: Deploy OA to production
+
+# 触发：推送到 main 分支，或手动在 GitHub Actions 页面点 Run workflow
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 关键：runs-on: self-hosted
+# 自托管 Runner 装在生产服务器上（工作目录 /opt/holang/oa）。
+# 不需要 SSH：GitHub 把任务推给服务器上的 runner，runner 自己拉代码 + 构建 + 部署。
+# 这彻底消灭了 TAT 24KB 分块上传、手动 scp、手搓部署脚本三类痛苦。
+#
+# 前置条件（一次性，见 deploy/setup-self-hosted-runner.sh）：
+#   1. 服务器已 git clone holang-oa 到 /opt/holang/oa
+#   2. 已在服务器注册 GitHub Actions 自托管 Runner（服务方式常驻）
+#   3. 已用 `prisma migrate diff` 从历史 schema 生成 migrations/ 目录（弃用 db push，消除 no such column 漂移）
+#   4. 后端 .env 的 DATABASE_URL 指向 /opt/holang/oa/data/holang-oa.db
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---------- 前端 ----------
+      - name: Install frontend deps
+        working-directory: packages/oa
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: packages/oa
+        run: npm run build   # tsc -b && vite build -> packages/oa/dist
+
+      - name: Sync dist to nginx root
+        run: |
+          mkdir -p /var/www/oa/dist
+          rsync -a --delete packages/oa/dist/ /var/www/oa/dist/
+
+      # ---------- 后端 ----------
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      # 可复现迁移：替代 `prisma db push`，从此不再出现 no such column 漂移
+      - name: Prisma migrate (reproducible)
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Restart backend (pm2)
+        run: |
+          pm2 restart holang-oa-backend || \
+          pm2 start "npx tsx src/index.ts" --name holang-oa-backend --cwd backend
+
+      - name: Health check
+        run: curl -fsS http://127.0.0.1:3001/health || (echo "health failed" && exit 1)

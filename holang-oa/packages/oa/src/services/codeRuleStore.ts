@@ -7,7 +7,7 @@
 
 import api from './api'
 
-export type DateFormat = 'none' | 'YYYY' | 'YY' | 'YYYYMM' | 'YYMM' | 'YYYYMMDD' | 'YYYYMM-DD' | 'YYYY-MM' | 'YYYY-MM-DD'
+export type DateFormat = 'none' | 'YYYY' | 'YY' | 'YYYYMM' | 'YYMM' | 'YYMMDD' | 'YY-MM-DD' | 'YYYYMMDD' | 'YYYYMM-DD' | 'YYYY-MM' | 'YYYY-MM-DD'
 export type Separator = '' | '-' | '_' | '.' | '/'
 export type SerialReset = 'never' | 'daily' | 'monthly' | 'quarterly' | 'yearly'
 
@@ -153,6 +153,8 @@ function buildCode(rule: CodeRule, serial: number): string {
       case 'YY': dateStr = String(y).slice(2); break
       case 'YYYYMM': dateStr = `${y}${m}`; break
       case 'YYMM': dateStr = `${String(y).slice(2)}${m}`; break
+      case 'YYMMDD': dateStr = `${String(y).slice(2)}${m}${d}`; break
+      case 'YY-MM-DD': dateStr = `${String(y).slice(2)}-${m}-${d}`; break
       case 'YYYYMMDD': dateStr = `${y}${m}${d}`; break
       case 'YYYY-MM': dateStr = `${y}-${m}`; break
       case 'YYYY-MM-DD': dateStr = `${y}-${m}-${d}`; break
@@ -197,6 +199,8 @@ export const DATE_FORMAT_OPTIONS: { value: DateFormat; label: string; example: s
   { value: 'YY', label: 'YY（短年）', example: 'QU-26-001' },
   { value: 'YYYYMM', label: 'YYYYMM（年月）', example: 'QU-202606-001' },
   { value: 'YYMM', label: 'YYMM（短年短月）', example: 'QU-2606-001' },
+  { value: 'YYMMDD', label: 'YYMMDD（短年短月短日）', example: 'QU-260905-001' },
+  { value: 'YY-MM-DD', label: 'YY-MM-DD（短年月日带分隔）', example: 'QU-26-09-05-001' },
   { value: 'YYYY-MM', label: 'YYYY-MM（年月带分隔）', example: 'QU-2026-06-001' },
   { value: 'YYYYMMDD', label: 'YYYYMMDD（年月日）', example: 'QU-20260630-001' },
   { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD（年月日带分隔）', example: 'QU-2026-06-30-001' },

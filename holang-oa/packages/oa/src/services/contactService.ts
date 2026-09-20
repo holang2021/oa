@@ -50,19 +50,21 @@ export async function getContactById(id: string): Promise<Contact | null> {
   return null
 }
 
+// Phase 1: 指向真实后端路由 POST /contacts（body 含 customerId）
 export async function createContact(customerId: string, data: Partial<Contact>): Promise<Contact | null> {
-  const res = await api.post<Contact>(`/customers/${customerId}/contacts`, data)
+  const res = await api.post<Contact>('/contacts', { ...data, customerId })
   if (res.code === 0 && res.data) return res.data
   return null
 }
 
+// Phase 1: 指向真实后端路由 PUT /contacts/:id
 export async function updateContact(id: string, data: Partial<Contact>): Promise<Contact | null> {
-  const res = await api.put<Contact>(`/customers/${data.customerId}/contacts/${id}`, data)
+  const res = await api.put<Contact>(`/contacts/${id}`, data)
   if (res.code === 0 && res.data) return res.data
   return null
 }
 
+// 联系人删除在后端被统一禁止（治理铁律：禁删）；前端不再调用
 export async function deleteContact(_id: string, _customerId: string): Promise<boolean> {
-  // 联系人删除在后端被统一禁止；前端不再调用
   return false
 }

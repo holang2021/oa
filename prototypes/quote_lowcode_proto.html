@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="QaowyL7j9gJMbxEwzDlhSf">
+<head data-page-node-id="JuY7y4VQcJSZHsNxOkqjF4">
+<meta charset="UTF-8" data-page-node-id="N5voP4TIfHe6sJklgEgOB0" />
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="ebRn9xrtRvG4872xD27tQG" />
+<title>HOLANG 报价单 · 低代码手感验证原型</title>
+<style>
+  :root{
+    --red:#C8102E;            /* HOLANG 红 */
+    --ink:#1f2937;
+    --muted:#6b7280;
+    --line:#e5e7eb;
+    --bg:#f4f5f7;
+    --card:#ffffff;
+    --blue:#2563eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid #fca5a5;border-color:var(--red)}
+
+  /* 顶栏 */
+  .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .topbar .brand{font-weight:800;color:var(--red);letter-spacing:.5px;font-size:16px}
+  .topbar .spacer{flex:1}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#f9fafb}
+  .btn-primary{background:var(--red);border-color:var(--red);color:#fff}
+  .btn-primary:hover{background:#a60d26}
+
+  /* 工作区 */
+  .work{max-width:960px;margin:18px auto;padding:0 16px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h3{margin:0 0 12px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .card h3 .tag{font-size:11px;color:var(--muted);font-weight:400}
+
+  .head{display:flex;align-items:flex-start;gap:16px}
+  .logo{width:120px;height:54px;border:2px solid var(--red);border-radius:8px;color:var(--red);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto}
+  .head .title{flex:1}
+  .head .title .t1{font-size:20px;font-weight:800}
+  .head .title .t2{color:var(--muted);font-size:12px}
+  .head .meta{display:flex;gap:10px}
+  .head .meta label{display:block;font-size:11px;color:var(--muted)}
+  .head .meta input{width:150px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid2 label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+
+  /* 明细表 */
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid var(--line);padding:6px 8px;font-size:13px;text-align:left}
+  th{background:#fafafa;color:var(--muted);font-weight:600;font-size:12px}
+  td.amt{text-align:right;font-variant-numeric:tabular-nums}
+  .handle{cursor:grab;color:#9ca3af;width:28px;text-align:center;user-select:none}
+  .handle:active{cursor:grabbing}
+  tr.dragging{opacity:.4;background:#fff7f7}
+  tr.dropover td{box-shadow:inset 0 2px 0 var(--red)}
+  .rowbtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 7px;font-size:12px}
+  .rowbtn.del{color:var(--red);border-color:#f3c2c9}
+  .addrow{margin-top:10px}
+
+  /* 自定义字段 */
+  .cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cf-item label{display:block;font-size:12px;font-weight:600;margin-bottom:3px}
+  .cf-empty{color:var(--muted);font-size:12px;padding:8px 0}
+
+  /* 合计 */
+  .totals{margin-left:auto;width:260px}
+  .totals .row{display:flex;justify-content:space-between;padding:4px 0}
+  .totals .grand{border-top:2px solid var(--red);margin-top:6px;padding-top:8px;font-weight:800;font-size:16px;color:var(--red)}
+
+  /* 遮罩 / 弹窗 */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:18px}
+  .hidden{display:none!important}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:84vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .modal .m-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .modal .m-head h3{margin:0;font-size:15px}
+  .modal .m-body{padding:18px}
+  .modal .x{border:none;background:none;font-size:20px;color:var(--muted);cursor:pointer}
+  .field-row{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:8px}
+  .cf-list{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+  .cf-chip{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fafafa}
+  .cf-chip .meta{font-size:11px;color:var(--muted)}
+  .hint{font-size:11px;color:var(--muted);margin:2px 0 12px}
+
+  /* A4 预览 */
+  .a4{background:#fff;width:794px;min-height:1123px;padding:48px 54px;box-shadow:0 10px 40px rgba(0,0,0,.3);box-sizing:border-box;position:relative}
+  .a4 .a-logo{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--red);padding-bottom:12px;margin-bottom:18px}
+  .a4 .a-logo .box{width:140px;height:46px;border:2px solid var(--red);color:var(--red);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .a4 .a-logo .co{font-size:12px;color:var(--muted);line-height:1.4}
+  .a4 h1{text-align:center;color:var(--red);font-size:24px;letter-spacing:4px;margin:6px 0 18px}
+  .a4 .a-meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px}
+  .a4 .a-cust{font-size:13px;margin-bottom:14px}
+  .a4 table th{background:#fdecef;color:var(--red)}
+  .a4 .a-total{text-align:right;margin-top:14px;font-size:15px;font-weight:800;color:var(--red)}
+  .a4 .a-other{margin-top:18px;font-size:13px}
+  .a4 .a-other h4{color:var(--red);margin:0 0 6px;font-size:14px}
+  .a4 .a-foot{margin-top:40px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+  .printbar{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:10px;background:#fff;border-top:1px solid var(--line)}
+
+  @media print{
+    body *{visibility:hidden}
+    #printSheet,#printSheet *{visibility:visible}
+    #printSheet{position:absolute;left:0;top:0;box-shadow:none;width:100%}
+    .printbar{display:none!important}
+  }
+</style>
+</head>
+<body data-page-node-id="zRMvf2md6o5IkBnNTUko6H">
+
+  <div class="topbar" data-page-node-id="14XA61lxr8EwOr7YDkTnbC">
+    <div class="brand" data-page-node-id="zyGvvj37YfNznY0iu6sSjD">HOLANG</div>
+    <div style="font-size:12px;color:var(--muted)" data-page-node-id="vV8K08zmXxm2V7jDXSsIJz">报价单 · 低代码手感验证原型（双击即用）</div>
+    <div class="spacer" data-page-node-id="4kjatwWhfrXwinJL7ZfZ7j"></div>
+    <button class="btn" id="btnCfg" data-page-node-id="3blC67HSAAL8UkSCWWWEku">⚙ 字段配置</button>
+    <button class="btn btn-primary" id="btnPreview" data-page-node-id="j3SUFtoLV0oWTqKGLHShGE">🖨 预览 / 打印</button>
+  </div>
+
+  <div class="work" data-page-node-id="zLBp0XV5yj8GJyVlYNbAdR">
+    <!-- 表头 -->
+    <div class="card" data-page-node-id="nww88CKpcWMGGXMb7OyAWp">
+      <div class="head" data-page-node-id="4nuNP2LrATGnS774dGfAaU">
+        <div class="logo" data-page-node-id="KH1IEvyEfGjJfiHPemNIcw">HOLANG</div>
+        <div class="title" data-page-node-id="AgP7DZq3Y7cq5xw3nwKHuM">
+          <div class="t1" data-page-node-id="4x82hW6LRZ8DMdikzJMYqW">报价单 QUOTATION</div>
+          <div class="t2" data-page-node-id="UvsPqeshYoipNFtBaCQ5W8">HOLANG TECH (SUZHOU) CO., LTD · 浩朗（苏州）科技有限公司</div>
+        </div>
+        <div class="meta" data-page-node-id="X2lmjKdfsYQpGj12lVhJzD">
+          <div data-page-node-id="aEWovpb8cDbUMgndkC5Kfa">
+            <label data-page-node-id="eCfENQTyj55QtBAuDvhQpO">报价单号</label>
+            <input id="qNo" value="Q-260905-001" data-page-node-id="hzCFy4nCpFY6CDPrpzSuNj" />
+          </div>
+          <div data-page-node-id="MvMyJ4pvkZbYhjvMHuZsLI">
+            <label data-page-node-id="EqXmCF6zPOfxNItgziQT8N">日期</label>
+            <input id="qDate" type="date" value="2026-09-05" data-page-node-id="xxzBtGO0iDUYBhpuzl3trn" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 客户信息 -->
+    <div class="card" data-page-node-id="lrXNYbDbXHFSlh2OFVGtcm">
+      <h3 data-page-node-id="YbaEMsx9QDGjBTm8Is72jb">客户信息</h3>
+      <div class="grid2" data-page-node-id="DFc72iXhZzrBOt1j0JLUgt">
+        <div data-page-node-id="OdqlCYxcDG4qpMzVj5Q801"><label data-page-node-id="To1ORqj0pFd1d4j6mOCldv">客户名称</label><input style="width:100%" id="cName" value="示例客户 Ltd." data-page-node-id="7DVXqcaG9GT3L88Vqv8bBM" /></div>
+        <div data-page-node-id="6bmkVJiCTJ4EDoM9JLaTzM"><label data-page-node-id="vpy8V1Xt5LohOByZUdFPcX">联系人</label><input style="width:100%" id="cContact" value="Mr. Smith" data-page-node-id="4nbGa8rPR43ZSgkXR26GFL" /></div>
+        <div data-page-node-id="6o82myKCHPWLmkHeyZXT4z"><label data-page-node-id="lDMQdBh7VwWq2Q22P6KJPJ">邮箱</label><input style="width:100%" id="cEmail" value="smith@example.com" data-page-node-id="wXqZ4pl1VjclvuZHO2YqT0" /></div>
+        <div data-page-node-id="cwcdhgAU6a3FoIE29vD95m"><label data-page-node-id="06PWkekwBY5HfAiKE2kKU5">电话</label><input style="width:100%" id="cTel" value="+86 512 0000 0000" data-page-node-id="jXRZ4XMefpzrv7IIfJVWGo" /></div>
+      </div>
+    </div>
+
+    <!-- 商品明细 -->
+    <div class="card" data-page-node-id="xZiGLr7ZPEL9IQSr4ljAHD">
+      <h3 data-page-node-id="y6gcVpKVlNOANxytf3Zw1P">商品明细 <span class="tag" data-page-node-id="EVKjFdFWNB19PKwIulODeq">拖动每行左侧手柄 ↔ 可排序</span></h3>
+      <table id="itemTable" data-page-node-id="gYYCnkdlybBousDIF57YWb">
+        <thead data-page-node-id="J2FdLumIGhKN1BTO2k1H4n">
+          <tr data-page-node-id="G6Dx3jjDQp0OPSIDMxY90B">
+            <th style="width:28px" data-page-node-id="OckWea1Fbw7K0b0VKtOqCi"></th>
+            <th style="width:36px" data-page-node-id="E0eXJNqqABgIqIRtmy2FFN">序号</th>
+            <th data-page-node-id="qvN45IfwLVvewMQBeJJeJO">名称 / 描述</th>
+            <th style="width:70px" data-page-node-id="wTzoFhNHFNDYMcFbjOLGiF">数量</th>
+            <th style="width:60px" data-page-node-id="XRcFgpwwapkDTNuXhRRgH3">单位</th>
+            <th style="width:90px" data-page-node-id="1mM6TyMINCVMfv6eMzkwqv">单价(¥)</th>
+            <th style="width:100px" class="amt" data-page-node-id="kXVXws6sGNy3x6Qd7SILBr">金额(¥)</th>
+            <th style="width:70px" data-page-node-id="Y7GwBHUvibnu0RVF3fEVps"></th>
+          </tr>
+        </thead>
+        <tbody id="itemBody" data-page-node-id="hKkZnK1S3BWAESB96muYUY"></tbody>
+      </table>
+      <button class="btn addrow" id="btnAddRow" data-page-node-id="DSMIRkiT0HCBngD6uB9Iwg">＋ 增加一行</button>
+    </div>
+
+    <!-- 自定义字段 -->
+    <div class="card" data-page-node-id="H58jPt33ygDAQ1eNhcaRC0">
+      <h3 data-page-node-id="IolhgVwjo55bZwrJfcoxLQ">自定义字段 <span class="tag" data-page-node-id="M9c20GK55lH25FVlzgV98K">点右上「字段配置」自己加列，自动出现在这里</span></h3>
+      <div id="cfArea" class="cf-grid" data-page-node-id="HqqFFxAw5oAwMLoE25tYOO"></div>
+    </div>
+
+    <!-- 合计 -->
+    <div class="card" data-page-node-id="oxaT7b58OCyZEzehpzXTA0">
+      <div class="totals" data-page-node-id="AfxysU7quNUQiijDXvvU5u">
+        <div class="row" data-page-node-id="mWCqTZKGm6NRIaUCbJ4wZF"><span data-page-node-id="bSW3AuK3bC1Fr3F5u5vXdv">行项数</span><span id="tCount" data-page-node-id="M9dBc4sOnrY86gYf1zMDqv">0</span></div>
+        <div class="row grand" data-page-node-id="tKlG1VEzFDwXK5msSl7YHa"><span data-page-node-id="1FURsTdYGlaeX5dSqzjB07">合计金额</span><span id="tTotal" data-page-node-id="AkJrU5MTzST1322B7kiyCR">¥0.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 字段配置弹窗 -->
+  <div class="overlay hidden" id="cfgOverlay" data-page-node-id="ui9K6nKemYBhSzNKJZUyVc">
+    <div class="modal" data-page-node-id="0gznurUaaqZcWWUsyFsebI">
+      <div class="m-head" data-page-node-id="Og5o9KAaIonrG83pIERWwd">
+        <h3 data-page-node-id="azXngSMJWxSYld8Jimz4Ah">报价格段配置（自定义字段）</h3>
+        <button class="x" id="cfgClose" data-page-node-id="0HJEu0rYcIQjTTFmnxXXTI">×</button>
+      </div>
+      <div class="m-body" data-page-node-id="7RWUyVxpnHXGL6mHHI6Zh4">
+        <p class="hint" data-page-node-id="HuvlCYP2rDlBH2G5oB2uUE">在这里加的字段会自动出现在报价单「自定义字段」区和打印预览的「其他信息」里。先验证手感，后续再决定存库方式。</p>
+        <div class="field-row" data-page-node-id="GlU7NNbmlZmMwLEYDPA3vj">
+          <input id="cfName" placeholder="字段名称，如：交货地点 / 币种 / 是否含安装" data-page-node-id="5eyqOodV6gU2Dqat0Jv8Iv" />
+          <select id="cfType" data-page-node-id="GTTQjJQP7153dqS4Zr8rVz">
+            <option value="text" data-page-node-id="EUoyVUd5B2Be7X5zuljoM1">文本</option>
+            <option value="number" data-page-node-id="j4LMYD78jXBIPupvTw5BME">数字</option>
+            <option value="date" data-page-node-id="lM6nDUnOlWN61gx2pGPgay">日期</option>
+            <option value="select" data-page-node-id="blUgsmhabMZ7n5ow7924yA">单选</option>
+          </select>
+        </div>
+        <textarea id="cfOptions" class="hidden" rows="2" placeholder="单选选项：每行一个，或用逗号分隔，如：&#10;含安装&#10;不含安装"></textarea>
+        <button class="btn btn-primary" id="cfAdd" style="margin-top:8px" data-page-node-id="aZOHRAqgAiUcm89nlX45Js">＋ 添加字段</button>
+        <div class="cf-list" id="cfList" data-page-node-id="WSrtGmtzHYyarCROrN0p1X"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 打印预览 -->
+  <div class="overlay hidden" id="pvOverlay" data-page-node-id="6X7hS5akp6pbVe1rC3JNFB">
+    <div style="width:794px;max-height:92vh;overflow:auto;background:#fff;border-radius:8px" data-page-node-id="s9ZA5egORJAc8NxjxKY9N8">
+      <div class="printbar" data-page-node-id="OZ1rqLU2VVnJ9rZEVq1g8Y">
+        <button class="btn" id="pvClose" data-page-node-id="vEEW8bSHmR7VNLWdTmBjnA">关闭</button>
+        <button class="btn btn-primary" onclick="window.print()" data-page-node-id="Foa45lzCRLUZQ8m26SxufQ">打印 / 存PDF</button>
+      </div>
+      <div class="a4" id="printSheet" data-page-node-id="WU4J6hoVuffkJYPHUTbnMN"></div>
+    </div>
+  </div>
+
+<script>
+const LS_KEY = 'holang_quote_custom_fields';
+
+/* ---------- 自定义字段存储（与 OA 端 quoteFieldStore 同套路） ---------- */
+function getFields(){
+  try{ const r=localStorage.getItem(LS_KEY); const a=r?JSON.parse(r):[]; return Array.isArray(a)?a:[]; }
+  catch(e){ return []; }
+}
+function saveFields(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+function newId(){ return 'qf_'+Math.random().toString(36).slice(2,9); }
+
+/* ---------- 状态 ---------- */
+let items = [
+  {id:newId(), name:'PSA 制氮机 NPL01B', qty:1, unit:'台', price:88000},
+  {id:newId(), name:'储气罐 300L', qty:1, unit:'台', price:6500},
+];
+let custom = {};                       // { fieldId: value }
+let dragFrom = null;
+
+const TYPE_LABEL = {text:'文本', number:'数字', date:'日期', select:'单选'};
+
+/* ---------- 渲染：明细表 ---------- */
+function renderItems(){
+  const body = document.getElementById('itemBody');
+  body.innerHTML = '';
+  items.forEach((it, idx)=>{
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    tr.innerHTML = `
+      <td class="handle" title="拖动排序">⠿</td>
+      <td>${idx+1}</td>
+      <td><input style="width:100%" value="${esc(it.name)}" data-k="name" data-i="${idx}"></td>
+      <td><input style="width:100%" type="number" min="0" value="${it.qty}" data-k="qty" data-i="${idx}"></td>
+      <td><input style="width:100%" value="${esc(it.unit)}" data-k="unit" data-i="${idx}"></td>
+      <td><input style="width:100%" type="number" min="0" value="${it.price}" data-k="price" data-i="${idx}"></td>
+      <td class="amt" id="amt_${idx}"></td>
+      <td><button class="rowbtn del" data-del="${idx}">删除</button></td>`;
+    body.appendChild(tr);
+  });
+  bindRowEvents();
+  calcTotals();
+}
+
+function bindRowEvents(){
+  document.querySelectorAll('#itemBody input').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i=+e.target.dataset.i, k=e.target.dataset.k;
+      items[i][k] = (k==='qty'||k==='price') ? parseFloat(e.target.value)||0 : e.target.value;
+      if(k==='qty'||k==='price') calcTotals();
+    });
+  });
+  document.querySelectorAll('#itemBody [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{ items.splice(+e.target.dataset.del,1); renderItems(); });
+  });
+  // 拖拽
+  document.querySelectorAll('#itemBody tr').forEach(tr=>{
+    const handle = tr.querySelector('.handle');
+    handle.addEventListener('mousedown', ()=>{ tr.draggable = true; });
+    tr.addEventListener('dragstart', e=>{ dragFrom=+tr.dataset.idx; tr.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    tr.addEventListener('dragover', e=>{ e.preventDefault(); tr.classList.add('dropover'); });
+    tr.addEventListener('dragleave', ()=>{ tr.classList.remove('dropover'); });
+    tr.addEventListener('drop', e=>{
+      e.preventDefault();
+      const to=+tr.dataset.idx;
+      if(dragFrom!==null && dragFrom!==to){
+        const [m]=items.splice(dragFrom,1);
+        items.splice(to,0,m);
+        renderItems();
+      }
+      tr.classList.remove('dropover');
+    });
+    tr.addEventListener('dragend', ()=>{ tr.draggable=false; tr.classList.remove('dragging'); dragFrom=null; });
+  });
+}
+
+function calcTotals(){
+  let total=0;
+  items.forEach((it,idx)=>{ const a=(it.qty||0)*(it.price||0); total+=a; const el=document.getElementById('amt_'+idx); if(el) el.textContent='¥'+a.toFixed(2); });
+  document.getElementById('tCount').textContent = items.length;
+  document.getElementById('tTotal').textContent = '¥'+total.toFixed(2);
+}
+
+/* ---------- 渲染：自定义字段区 ---------- */
+function renderCustomFields(){
+  const area = document.getElementById('cfArea');
+  const fields = getFields();
+  area.innerHTML = '';
+  if(fields.length===0){
+    area.innerHTML = '<div class="cf-empty">还没有自定义字段。点右上「字段配置」加一个试试 —— 加了会自己出现在这里和打印预览。</div>';
+    return;
+  }
+  fields.forEach(f=>{
+    const div = document.createElement('div');
+    div.className='cf-item';
+    let control='';
+    const val = custom[f.id]||'';
+    if(f.type==='select'){
+      const opts = (f.options||[]).map(o=>`<option ${val===o?'selected':''}>${esc(o)}</option>`).join('');
+      control = `<select data-f="${f.id}"><option value="">（未选）</option>${opts}</select>`;
+    } else if(f.type==='date'){
+      control = `<input type="date" data-f="${f.id}" value="${esc(val)}">`;
+    } else if(f.type==='number'){
+      control = `<input type="number" data-f="${f.id}" value="${esc(val)}">`;
+    } else {
+      control = `<input data-f="${f.id}" value="${esc(val)}">`;
+    }
+    div.innerHTML = `<label>${esc(f.label)}</label>${control}`;
+    area.appendChild(div);
+  });
+  area.querySelectorAll('[data-f]').forEach(inp=>{
+    inp.addEventListener('input', e=>{ custom[e.target.dataset.f]=e.target.value; });
+    inp.addEventListener('change', e=>{ custom[e.target.dataset.f]=e.target.value; });
+  });
+}
+
+/* ---------- 字段配置弹窗 ---------- */
+function openCfg(){ renderCfgList(); document.getElementById('cfgOverlay').classList.remove('hidden'); }
+function closeCfg(){ document.getElementById('cfgOverlay').classList.add('hidden'); }
+
+function renderCfgList(){
+  const list = document.getElementById('cfList');
+  const fields = getFields();
+  list.innerHTML='';
+  if(fields.length===0){ list.innerHTML='<div class="cf-empty">暂无字段</div>'; return; }
+  fields.forEach(f=>{
+    const chip=document.createElement('div');
+    chip.className='cf-chip';
+    const opt = (f.type==='select'&&f.options)?`（${f.options.join('/')}）`:'';
+    chip.innerHTML = `<div><span style="font-weight:600">${esc(f.label)}</span> <span class="meta">${TYPE_LABEL[f.type]}${opt}</span></div>
+                      <button class="rowbtn del" data-rm="${f.id}">删除</button>`;
+    list.appendChild(chip);
+  });
+  list.querySelectorAll('[data-rm]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      const id=e.target.dataset.rm;
+      saveFields(getFields().filter(x=>x.id!==id));
+      delete custom[id];
+      renderCfgList(); renderCustomFields();
+    });
+  });
+}
+
+document.getElementById('btnCfg').addEventListener('click', openCfg);
+document.getElementById('cfgClose').addEventListener('click', closeCfg);
+document.getElementById('cfgOverlay').addEventListener('click', e=>{ if(e.target.id==='cfgOverlay') closeCfg(); });
+document.getElementById('cfType').addEventListener('change', e=>{
+  document.getElementById('cfOptions').classList.toggle('hidden', e.target.value!=='select');
+});
+document.getElementById('cfAdd').addEventListener('click', ()=>{
+  const name=document.getElementById('cfName').value.trim();
+  const type=document.getElementById('cfType').value;
+  if(!name) return;
+  const def={id:newId(), label:name, type};
+  if(type==='select'){
+    const opts=document.getElementById('cfOptions').value.split(/[\n,，]/).map(s=>s.trim()).filter(Boolean);
+    def.options=opts;
+  }
+  const next=[...getFields(), def];
+  saveFields(next);
+  document.getElementById('cfName').value='';
+  document.getElementById('cfOptions').value='';
+  renderCfgList(); renderCustomFields();
+});
+
+/* ---------- 预览 / 打印 ---------- */
+function buildPreview(){
+  const fields=getFields();
+  const otherRows = fields.filter(f=>custom[f.id]).map(f=>{
+    let v=custom[f.id];
+    if(f.type==='select') v=custom[f.id];
+    return `<div style="display:flex;gap:8px"><span style="width:160px;color:#6b7280">${esc(f.label)}：</span><span>${esc(v)}</span></div>`;
+  }).join('');
+  let total=0;
+  const rows = items.map((it,idx)=>{
+    const a=(it.qty||0)*(it.price||0); total+=a;
+    return `<tr><td>${idx+1}</td><td>${esc(it.name)}</td><td>${it.qty}</td><td>${esc(it.unit)}</td><td style="text-align:right">¥${(it.price||0).toFixed(2)}</td><td style="text-align:right">¥${a.toFixed(2)}</td></tr>`;
+  }).join('');
+  document.getElementById('printSheet').innerHTML = `
+    <div class="a-logo">
+      <div class="box">HOLANG</div>
+      <div class="co">HOLANG TECH (SUZHOU) CO., LTD<br>浩朗（苏州）科技有限公司</div>
+    </div>
+    <h1>QUOTATION 报价单</h1>
+    <div class="a-meta">
+      <div>客户：${esc(document.getElementById('cName').value)}</div>
+      <div>单号：${esc(document.getElementById('qNo').value)}　日期：${esc(document.getElementById('qDate').value)}</div>
+    </div>
+    <div class="a-cust">联系人：${esc(document.getElementById('cContact').value)}　邮箱：${esc(document.getElementById('cEmail').value)}　电话：${esc(document.getElementById('cTel').value)}</div>
+    <table>
+      <thead><tr><th>序号</th><th>名称 / 描述</th><th>数量</th><th>单位</th><th>单价(¥)</th><th>金额(¥)</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="a-total">合计金额：¥${total.toFixed(2)}</div>
+    ${otherRows?`<div class="a-other"><h4>其他信息</h4>${otherRows}</div>`:''}
+    <div class="a-foot"><span>HOLANG TECH (SUZHOU) CO., LTD</span><span>本报价单仅供验证手感，非正式合同</span></div>`;
+}
+document.getElementById('btnPreview').addEventListener('click', ()=>{ buildPreview(); document.getElementById('pvOverlay').classList.remove('hidden'); });
+document.getElementById('pvClose').addEventListener('click', ()=>document.getElementById('pvOverlay').classList.add('hidden'));
+document.getElementById('pvOverlay').addEventListener('click', e=>{ if(e.target.id==='pvOverlay') document.getElementById('pvOverlay').classList.add('hidden'); });
+
+/* ---------- 工具 ---------- */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- 初始化 ---------- */
+document.getElementById('btnAddRow').addEventListener('click', ()=>{
+  items.push({id:newId(), name:'', qty:1, unit:'台', price:0}); renderItems();
+});
+renderItems();
+renderCustomFields();
+</script>
+</body>
+</html>

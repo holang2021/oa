@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOLANG 跨项目日报聚合</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#fff; --ink:#1f2a3d; --soft:#5b6b82; --faint:#90a0b8;
+    --line:#e6ecf5; --accent:#2f6bff; --accent-soft:#eaf1ff; --ok:#22b07d; --warn:#f5a623;
+    --shadow:0 6px 22px rgba(31,42,61,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1100px;margin:0 auto;padding:26px 22px 60px}
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  h1{margin:0;font-size:23px;letter-spacing:.3px}
+  .sub{color:var(--soft);font-size:13px;margin-top:4px}
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--soft);background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px}
+  .status i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+  .status.live i{background:var(--ok);box-shadow:0 0 0 4px rgba(34,176,125,.15)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--soft);cursor:pointer;transition:.16s;user-select:none}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .datebar{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+  .datebar button{background:var(--accent-soft);border:none;color:var(--accent);width:28px;height:28px;border-radius:8px;cursor:pointer;font-weight:700}
+  .datebar input{border:none;font-size:14px;color:var(--ink);background:transparent;width:130px;text-align:center}
+  .spacer{flex:1}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .label{font-size:12px;color:var(--soft);margin-bottom:5px}
+  .kpi .val{font-size:26px;font-weight:800;line-height:1}
+  .day{display:none}
+  .day.active{display:block}
+  .day-title{display:flex;align-items:center;gap:10px;margin:18px 0 12px}
+  .day-title h2{margin:0;font-size:17px}
+  .day-title .badge{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--soft)}
+  .project{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 8px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .project-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .project-name{font-size:15px;font-weight:700}
+  .project-meta{font-size:12px;color:var(--faint)}
+  .section{margin:10px 0 14px}
+  .section-title{font-size:13px;font-weight:700;color:var(--soft);margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed var(--line)}
+  .item{font-size:13.5px;line-height:1.7;color:var(--ink);margin:5px 0;padding-left:18px;position:relative}
+  .item::before{content:"•";position:absolute;left:2px;color:var(--accent);font-weight:700}
+  .empty{text-align:center;color:var(--faint);padding:40px 10px;background:#fff;border-radius:16px;border:1px dashed var(--line)}
+  .footer{margin-top:30px;font-size:12px;color:var(--faint);text-align:center}
+  code{background:#eef1f6;padding:2px 7px;border-radius:6px}
+  @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.top{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>HOLANG 跨项目日报聚合</h1>
+      <div class="sub">自动汇聚各项目 .workbuddy/memory 工作记录，无需手动触发</div>
+    </div>
+    <div class="status" id="status"><i></i><span>准备中…</span></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="datebar">
+      <button onclick="changeDay(-1)">‹</button>
+      <input type="date" id="dateInput" onchange="selectDate(this.value)">
+      <button onclick="changeDay(1)">›</button>
+    </div>
+    <div class="spacer"></div>
+    <span class="chip on" data-proj="all" onclick="toggleProj(this)">全部项目</span>
+    <span class="chip" id="refreshChip" onclick="toggleRefresh()">⏵ 实时刷新：关</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">项目数</div><div class="val" id="kProjects">0</div></div>
+    <div class="kpi"><div class="label">今日日报数</div><div class="val" id="kToday">0</div></div>
+    <div class="kpi"><div class="label">近 7 天条目</div><div class="val" id="kWeek">0</div></div>
+    <div class="kpi"><div class="label">最近更新</div><div class="val" id="kLast" style="font-size:15px;padding-top:6px">—</div></div>
+  </div>
+
+  <div id="projectFilters" class="toolbar" style="margin-top:-8px;margin-bottom:14px"></div>
+
+  <div id="content"><div class="empty">加载中…</div></div>
+
+  <div class="footer">数据源：各项目 <code>.workbuddy/memory/YYYY-MM-DD.md</code> · 自动发现 · 点击日期切换 · 开启实时刷新后每 10 秒拉取最新</div>
+</div>
+
+<script>
+let allReports=[], projects=[], selectedDate='', activeProjects=new Set(), refreshTimer=null;
+const content=document.getElementById('content');
+const statusEl=document.getElementById('status');
+const dateInput=document.getElementById('dateInput');
+
+function fmtDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function setStatus(live, text){
+  statusEl.className='status'+(live?' live':'');
+  statusEl.querySelector('span').textContent=text;
+}
+async function load(){
+  try{
+    const r=await fetch('/api/reports?days=14');
+    const data=await r.json();
+    allReports=data.reports;
+    projects=data.projects;
+    if(activeProjects.size===0) projects.forEach(p=>activeProjects.add(p.name));
+    renderProjectsFilter();
+    render();
+    setStatus(true, '实时连接 · '+new Date().toLocaleTimeString()+' 更新');
+  }catch(e){
+    setStatus(false, '获取失败：'+e.message);
+  }
+}
+function renderProjectsFilter(){
+  const box=document.getElementById('projectFilters');
+  box.innerHTML='';
+  projects.forEach(p=>{
+    const el=document.createElement('span');
+    el.className='chip'+(activeProjects.has(p.name)?' on':'');
+    el.textContent=p.name;
+    el.onclick=()=>{toggleOneProj(p.name);};
+    box.appendChild(el);
+  });
+}
+function toggleOneProj(name){
+  if(activeProjects.has(name)) activeProjects.delete(name); else activeProjects.add(name);
+  renderProjectsFilter();
+  render();
+}
+function toggleProj(el){
+  if(el.dataset.proj==='all'){
+    projects.forEach(p=>activeProjects.add(p.name));
+    document.querySelectorAll('#projectFilters .chip').forEach(c=>c.classList.add('on'));
+  }
+  render();
+}
+function toggleRefresh(){
+  const el=document.getElementById('refreshChip');
+  if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null;el.textContent='⏵ 实时刷新：关';el.classList.remove('on');}
+  else{refreshTimer=setInterval(load,10000);el.textContent='⏵ 实时刷新：开';el.classList.add('on');load();}
+}
+function selectDate(d){selectedDate=d;render();}
+function changeDay(delta){
+  const d=new Date(selectedDate||Date.now());
+  d.setDate(d.getDate()+delta);
+  selectDate(fmtDate(d));
+}
+function render(){
+  // 统计
+  document.getElementById('kProjects').textContent=projects.length;
+  const today=fmtDate(new Date());
+  document.getElementById('kToday').textContent=allReports.filter(r=>r.date===today && activeProjects.has(r.project)).length;
+  const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
+  document.getElementById('kWeek').textContent=allReports.filter(r=>new Date(r.date)>=weekAgo && activeProjects.has(r.project))
+    .reduce((a,r)=>a+r.sections.reduce((s,sec)=>s+sec.items.length,0),0);
+  const mt=allReports.map(r=>r.mtime).sort().pop();
+  document.getElementById('kLast').textContent=mt?new Date(mt).toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'—';
+
+  // 日期选择器默认值
+  if(!selectedDate){selectedDate=today;}
+  dateInput.value=selectedDate;
+
+  // 按日期分组
+  const byDate={};
+  allReports.forEach(r=>{
+    if(!activeProjects.has(r.project)) return;
+    if(!byDate[r.date]) byDate[r.date]=[];
+    byDate[r.date].push(r);
+  });
+  const dates=Object.keys(byDate).sort().reverse();
+  if(!dates.length){content.innerHTML='<div class="empty">暂无数据</div>';return;}
+
+  content.innerHTML='';
+  dates.forEach(date=>{
+    const day=document.createElement('div');
+    day.className='day'+(date===selectedDate?' active':'');
+    const reps=byDate[date];
+    const itemCount=reps.reduce((a,r)=>a+r.sections.reduce((s,sec)=>s+sec.items.length,0),0);
+    day.innerHTML=`<div class="day-title"><h2>${date}</h2><span class="badge">${reps.length} 个项目 · ${itemCount} 条记录</span></div>`;
+    reps.forEach(r=>{
+      const secHtml=r.sections.map(sec=>{
+        const items=sec.items.map(i=>`<div class="item">${esc(i)}</div>`).join('');
+        return `<div class="section"><div class="section-title">${esc(sec.title)}</div>${items}</div>`;
+      }).join('');
+      const proj=document.createElement('div');
+      proj.className='project';
+      proj.innerHTML=`<div class="project-head"><div class="project-name">${esc(r.project)}${r.suffix?' · '+esc(r.suffix):''}</div>
+        <div class="project-meta"><a href="file:///${esc(r.file_path.replace(/\\/g,'/'))}" target="_blank">打开原文</a> · ${new Date(r.mtime).toLocaleString('zh-CN')}</div></div>
+        ${secHtml}`;
+      day.appendChild(proj);
+    });
+    content.appendChild(day);
+  });
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+// 默认开启实时刷新
+toggleRefresh();
+</script>
+</body>
+</html>

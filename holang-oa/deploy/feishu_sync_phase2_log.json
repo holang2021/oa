@@ -1,0 +1,19 @@
+{
+  "stage": "done",
+  "summary": {
+    "ai": {
+      "parent": "OA AI对话归档",
+      "pushed": 4,
+      "skipped": 0,
+      "failed": 0,
+      "failed_detail": []
+    },
+    "note": {
+      "parent": "OA联系人备注",
+      "pushed": 31,
+      "skipped": 0,
+      "failed": 0,
+      "failed_detail": []
+    }
+  }
+}

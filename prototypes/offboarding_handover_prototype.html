@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HOLANG OA · 人员离职交接（原型预览 v2）</title>
+<style>
+  :root{
+    --brand:#0b6e99; --brand-d:#08506f; --accent:#0f9d8c;
+    --bg:#f4f6f9; --panel:#ffffff; --line:#e3e8ef; --line2:#eef2f7;
+    --txt:#1f2a37; --txt2:#6b7785; --txt3:#9aa6b2;
+    --warn:#c9631a; --warnbg:#fdf1e7; --ok:#1f9d57; --okbg:#e8f6ee;
+    --ext:#7a4bd0; --extbg:#f1ebfb; --int:#0b6e99; --intbg:#e7f1f7;
+    --pool:#5b6b7c;
+    --shadow:0 2px 10px rgba(20,40,70,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  .top{height:56px;background:var(--brand);display:flex;align-items:center;padding:0 20px;color:#fff;position:sticky;top:0;z-index:30}
+  .top .logo{font-weight:700;font-size:17px;letter-spacing:.5px}
+  .top .logo small{font-weight:400;opacity:.8;margin-left:6px;font-size:12px}
+  .top .sp{flex:1}
+  .top .switch{background:rgba(255,255,255,.16);border-radius:16px;padding:4px;display:flex;font-size:12px}
+  .top .switch span{padding:4px 12px;border-radius:13px;cursor:pointer}
+  .top .switch span.on{background:#fff;color:var(--brand);font-weight:600}
+  .top .me{margin-left:16px;display:flex;align-items:center;gap:8px;font-size:13px}
+  .top .me .av{width:30px;height:30px;border-radius:50%;background:#fff;color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .wrap{display:flex;min-height:calc(100vh - 56px)}
+  .side{width:208px;background:var(--panel);border-right:1px solid var(--line);padding:14px 0}
+  .side .grp{font-size:11px;color:var(--txt3);padding:10px 18px 6px}
+  .side a{display:flex;align-items:center;gap:10px;padding:9px 18px;color:var(--txt2);text-decoration:none;font-size:13px}
+  .side a .ic{width:18px;text-align:center;opacity:.8}
+  .side a.on{background:var(--intbg);color:var(--brand);font-weight:600;border-right:3px solid var(--brand)}
+  .main{flex:1;padding:22px 26px;max-width:1080px}
+  .crumbs{color:var(--txt3);font-size:12px;margin-bottom:6px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--txt2);font-size:13px;margin-bottom:16px}
+  .note{background:var(--intbg);border:1px solid #cfe3f0;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--brand-d);line-height:1.7;margin-bottom:18px}
+  .note b{color:var(--brand)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .card .hd{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line2)}
+  .card .hd .t{font-weight:600}
+  .card .hd .f{margin-left:auto;font-size:12px;color:var(--txt3)}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line2);font-size:13px}
+  th{color:var(--txt3);font-weight:500;font-size:12px;background:#fafbfc}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11.5px;font-weight:600}
+  .pill.int{background:var(--intbg);color:var(--int)}
+  .pill.ext{background:var(--extbg);color:var(--ext)}
+  .pill.admin{background:#fdeecf;color:#9a6b00}
+  .pill.non{background:#eef1f4;color:var(--pool)}
+  .st{font-size:12px;font-weight:600}
+  .st.on{color:var(--ok)}
+  .st.off{color:var(--txt3)}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--txt);padding:6px 13px;border-radius:8px;font-size:12.5px;cursor:pointer}
+  .btn:hover{border-color:var(--brand);color:var(--brand)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand-d)}
+  .btn.danger{background:#fff;border-color:#e3b4b4;color:#b3402f}
+  .btn.danger:hover{background:#fcebe9}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .cnt{font-variant-numeric:tabular-nums;font-weight:600}
+  /* drawer */
+  .mask{position:fixed;inset:0;background:rgba(20,35,55,.42);display:none;z-index:40;align-items:flex-end;justify-content:flex-end}
+  .mask.show{display:flex}
+  .drawer{width:560px;max-width:96vw;height:100%;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;animation:slide .22s ease}
+  @keyframes slide{from{transform:translateX(40px);opacity:.4}to{transform:none;opacity:1}}
+  .drawer .dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start}
+  .drawer .dh .x{margin-left:auto;cursor:pointer;color:var(--txt3);font-size:20px;line-height:1}
+  .drawer .dh h3{margin:0;font-size:16px}
+  .drawer .dh .meta{font-size:12px;color:var(--txt2);margin-top:3px}
+  .drawer .db{padding:18px 20px;overflow:auto;flex:1}
+  .stats{display:flex;gap:10px;margin-bottom:18px}
+  .stat{flex:1;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:#fafbfc}
+  .stat .n{font-size:22px;font-weight:700;color:var(--brand)}
+  .stat .l{font-size:12px;color:var(--txt2);margin-top:2px}
+  .field{margin-bottom:16px}
+  .field > .lab{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .radio{display:flex;gap:10px;margin-bottom:12px}
+  .radio label{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;display:flex;gap:10px;align-items:flex-start}
+  .radio label.on{border-color:var(--brand);background:var(--intbg)}
+  .radio input{margin-top:3px}
+  .radio .rt{font-weight:600;font-size:13px}
+  .radio .rd{font-size:11.5px;color:var(--txt2);margin-top:2px;line-height:1.5}
+  select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;color:var(--txt)}
+  .hint{font-size:12px;color:var(--txt2);background:var(--line2);border-radius:8px;padding:9px 11px;line-height:1.6;margin-top:8px}
+  .hint b{color:var(--brand-d)}
+  .filterbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+  .filterbar input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px}
+  .filterbar span{font-size:12px;color:var(--txt2);white-space:nowrap}
+  .clist{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fafbfc}
+  .chead{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line2);background:#f4f6f9;font-size:12px;color:var(--txt2)}
+  .chead input{margin-right:8px}
+  .chead .sp{flex:1}
+  .chead .btn-tiny{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--txt2)}
+  .chead .btn-tiny:hover{border-color:var(--brand);color:var(--brand)}
+  .citem{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line2);background:#fff;font-size:12.5px}
+  .citem:last-child{border-bottom:none}
+  .citem input{margin-right:10px}
+  .citem .name{flex:1;font-weight:500}
+  .citem .domain{font-size:11px;padding:2px 7px;border-radius:6px;margin-right:8px}
+  .citem .domain.int{background:var(--intbg);color:var(--int)}
+  .citem .domain.ext{background:var(--extbg);color:var(--ext)}
+  .citem .dt{font-size:11px;color:var(--txt3);font-variant-numeric:tabular-nums}
+  .citem.hide{display:none}
+  .preview{display:none;margin-top:14px;border:1px dashed var(--brand);border-radius:10px;padding:13px;background:#fbfdff}
+  .preview.show{display:block}
+  .preview .pt{font-size:12px;font-weight:600;color:var(--brand);margin-bottom:9px}
+  .cust{border:1px solid var(--line);border-radius:9px;padding:11px;background:#fff;margin-bottom:9px}
+  .cust .cn{font-weight:600;display:flex;align-items:center;gap:8px}
+  .cust .tag{font-size:11px;background:var(--warnbg);color:var(--warn);border:1px solid #f0d3b8;border-radius:6px;padding:2px 7px;font-weight:600;white-space:nowrap}
+  .cust .dom{font-size:11px;color:var(--txt3);background:#f4f6f9;border-radius:6px;padding:2px 7px;white-space:nowrap}
+  .tl{font-size:12px;color:var(--txt2);padding-left:12px;border-left:2px solid var(--line);margin:6px 0 0 4px;line-height:1.7}
+  .tl .sys{color:var(--accent);font-weight:600}
+  .tl .old{color:var(--txt3)}
+  .drawer .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px}
+  .drawer .df .btn{flex:1}
+  .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);z-index:60;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
+  .tag-done{font-size:11px;color:var(--ok);font-weight:600}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--txt2)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .foot{margin-top:18px;font-size:11.5px;color:var(--txt3);line-height:1.7}
+  kbd{background:#eef2f7;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
+  .smalltxt{font-size:11px;color:var(--txt3)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">HOLANG<span style="opacity:.5">·</span>OA <small>工业气体管理系统</small></div>
+  <div class="sp"></div>
+  <div class="switch"><span>员工</span><span class="on">管理员</span></div>
+  <div class="me"><div class="av">刘</div>刘世光（管理员）</div>
+</div>
+
+<div class="wrap">
+  <div class="side">
+    <div class="grp">业务</div>
+    <a><span class="ic">▦</span>客户管理</a>
+    <a><span class="ic">◆</span>商机</a>
+    <a><span class="ic">✎</span>跟进记录</a>
+    <a><span class="ic">☷</span>公海（内销/外销）</a>
+    <div class="grp">配置</div>
+    <a><span class="ic">☰</span>组织架构</a>
+    <a class="on"><span class="ic">⇄</span>人员离职交接</a>
+    <a><span class="ic">⚙</span>角色权限</a>
+  </div>
+
+  <div class="main">
+    <div class="crumbs">系统设置 / 人员离职交接</div>
+    <h1>人员离职交接</h1>
+    <div class="sub">员工离职只停用、不删除；可筛选客户后批量交接或退回对应公海，历史跟进完整保留。</div>
+
+    <div class="note">
+      <b>交接铁律（预览版设计）：</b><br>
+      ① 离职 = <b>仅 isActive=0 停用</b>，绝不删 user，历史跟进挂客户永久保留、接手可见前任姓名。<br>
+      ② 办理时自动统计 <b>客户 / 商机 / 跟进</b>，可<b>筛选、勾选后批量移交</b>（不是一把全交）。<br>
+      ③ 交接路径：<b>A 指定同域接班人</b>（默认仅本部门，可勾选「允许移交给其他部门」跨部，但<b>内销/外销绝对隔离</b>）+ 自动写"系统交接"跟进；<b>B 退回公海</b>（内销→内销公海，外销→外销公海）。员工<b>部门可留空</b>。
+      ④ 接手即见全貌：客户打「原负责人：X（已离职）」标签 + 系统交接跟进进时间线。
+    </div>
+
+    <div class="legend">
+      <span><i class="dot" style="background:var(--int)"></i>内销域</span>
+      <span><i class="dot" style="background:var(--ext)"></i>外销域</span>
+      <span><i class="dot" style="background:var(--pool)"></i>非销售</span>
+      <span><i class="dot" style="background:#9a6b00"></i>管理员</span>
+    </div>
+
+    <div class="card">
+      <div class="hd"><div class="t">员工列表</div><div class="f">点击「办理离职」体验筛选+批量交接（原型）</div></div>
+      <table>
+        <thead><tr><th>姓名</th><th>角色 / 域</th><th>部门</th><th>状态</th><th>名下客户</th><th>操作</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="foot">
+      原型预览 · 仅用于确认交互与规则，<b>未连接生产库、未写入任何数据</b>。确认后由建设方按增量范式落地真实代码（前端页面 + 后端交接 API + 离职待办）。<br>
+      提示：庞中北 / 庞中东 / 杨博阳 / 尚旆帆 等为<b>非销售角色</b>，不派客户，其"我的客户"为空属正常。
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="mask" id="mask">
+  <div class="drawer">
+    <div class="dh">
+      <div>
+        <h3 id="dName">—</h3>
+        <div class="meta" id="dMeta">—</div>
+      </div>
+      <div class="x" onclick="closeDrawer()">✕</div>
+    </div>
+    <div class="db">
+      <div class="stats">
+        <div class="stat"><div class="n" id="sCust">0</div><div class="l">名下客户</div></div>
+        <div class="stat"><div class="n" id="sOpp">0</div><div class="l">商机</div></div>
+        <div class="stat"><div class="n" id="sFoll">0</div><div class="l">跟进记录</div></div>
+      </div>
+
+      <!-- customer selection with filter -->
+      <div class="field" id="custBlock">
+        <div class="lab">
+          <span>待交接客户（可筛选、可勾选、批量操作）</span>
+          <span class="smalltxt" id="selCounter">已选 0 / 共 0</span>
+        </div>
+        <div class="filterbar">
+          <input id="filter" type="text" placeholder="输入客户名/地区筛选..." oninput="filterCustomers()" />
+          <span class="smalltxt" id="filterCount">显示 0 / 0</span>
+        </div>
+        <div class="clist">
+          <div class="chead">
+            <input type="checkbox" id="checkAll" onchange="toggleAll()" />
+            <span class="sp">客户名称</span>
+            <button class="btn-tiny" onclick="selectAllVisible()">全选可见</button>
+            <button class="btn-tiny" onclick="clearVisible()">清空可见</button>
+          </div>
+          <div id="cbody"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="lab">交接方式</div>
+        <div class="radio">
+          <label id="optA" class="on" onclick="pick('A')">
+            <input type="radio" name="mode" checked />
+            <div><div class="rt">A · 指定同域接班人</div><div class="rd">把勾选客户/商机批量移交给在职销售，不进公海、不丢记录</div></div>
+          </label>
+          <label id="optB" onclick="pick('B')">
+            <input type="radio" name="mode" />
+            <div><div class="rt">B · 退回公海</div><div class="rd">无明确接班人时，按域退回内销公海 / 外销公海，由新人认领</div></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="fSucc">
+        <div class="lab">选择接班人（同域在职销售）</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--txt2);margin-bottom:9px;cursor:pointer">
+          <input type="checkbox" id="crossDept" onchange="fillSucc();updatePreview();" />
+          允许移交给<b style="color:var(--brand);margin:0 2px">其他部门</b>（同域；默认仅本部门）
+        </label>
+        <select id="succSel"></select>
+        <div class="hint" id="succHint"></div>
+      </div>
+
+      <div class="field" id="fPool" style="display:none">
+        <div class="lab">退回公海（按域隔离）</div>
+        <div class="hint" id="poolHint"></div>
+      </div>
+
+      <div class="preview" id="preview">
+        <div class="pt">▸ 批量交接后效果预览（客户卡片 + 时间线）</div>
+        <div id="prevBody"></div>
+      </div>
+    </div>
+    <div class="df">
+      <button class="btn" onclick="closeDrawer()">取消</button>
+      <button class="btn primary" id="confirmBtn" onclick="confirmHandover()">确认批量移交</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">交接已生成 ✔</div>
+
+<script>
+// ---- 原型数据（样例，非生产）----
+const EMP = [
+  {id:'zx', name:'张思旭', role:'内销销售', dom:'int', dept:'内销一部', sales:true, active:true, cust:4, opp:1, foll:9, wecom:'zhangsixu'},
+  {id:'dl', name:'董丽华', role:'内销销售', dom:'int', dept:'内销一部', sales:true, active:true, cust:2, opp:0, foll:5, wecom:'donglihua'},
+  {id:'wx', name:'王红艳', role:'外销销售', dom:'ext', dept:'外销部', sales:true, active:true, cust:19, opp:3, foll:42, wecom:'Christine'},
+  {id:'ln', name:'李娜', role:'外销销售', dom:'ext', dept:'外销部', sales:true, active:true, cust:14, opp:2, foll:31, wecom:'LiNa'},
+  {id:'hx', name:'韩程旭', role:'内销销售', dom:'int', dept:'', sales:true, active:true, cust:5, opp:1, foll:12, wecom:'hanchengxu'},
+  {id:'yh', name:'殷天龙', role:'内销销售', dom:'int', dept:'内销二部', sales:true, active:true, cust:3, opp:1, foll:7, wecom:'yintianlong'},
+  {id:'ls', name:'刘世光', role:'管理员', dom:'int', dept:'总经办', sales:false, active:true, cust:142, opp:8, foll:120, wecom:'Holang'},
+  {id:'pb', name:'庞中北', role:'财务', dom:'-', dept:'财务部', sales:false, active:true, cust:0, opp:0, foll:0, wecom:'pangzhongbei'},
+  {id:'pz', name:'庞中东', role:'售后', dom:'-', dept:'', sales:false, active:true, cust:0, opp:0, foll:0, wecom:'pangzhongdong'},
+  {id:'yby',name:'杨博阳', role:'内销支持', dom:'-', dept:'内销支持部', sales:false, active:true, cust:0, opp:0, foll:0, wecom:'yangboyang'},
+  {id:'spf',name:'尚旆帆', role:'采购', dom:'-', dept:'采购部', sales:false, active:true, cust:0, opp:0, foll:0, wecom:'shangpeifan'},
+];
+const CUST = {
+  zx:[
+    {id:'zx1',name:'常州库尔盈节能科技有限公司',domain:'int',dt:'2025-09-12'},
+    {id:'zx2',name:'苏州精工金属制品厂',domain:'int',dt:'2025-10-05'},
+    {id:'zx3',name:'无锡恒达气体设备有限公司',domain:'int',dt:'2025-11-20'},
+    {id:'zx4',name:'南京顺通焊接材料厂',domain:'int',dt:'2026-01-08'},
+  ],
+  dl:[
+    {id:'dl1',name:'徐州鼎盛机械有限公司',domain:'int',dt:'2025-08-15'},
+    {id:'dl2',name:'南通海门金属制品有限公司',domain:'int',dt:'2025-12-02'},
+  ],
+  wx:[
+    {id:'wx1',name:'Europe/Istanbul Trading Co.',domain:'ext',dt:'2024-07-10'},
+    {id:'wx2',name:'Southeast Asia Gas Supply Ltd.',domain:'ext',dt:'2024-09-22'},
+    {id:'wx3',name:'Middle East Industrial Gases',domain:'ext',dt:'2025-01-18'},
+    {id:'wx4',name:'North America Industrial LLC',domain:'ext',dt:'2025-03-30'},
+    {id:'wx5',name:'South America Welding Co.',domain:'ext',dt:'2025-05-14'},
+  ].concat(Array.from({length:14},(_,i)=>({id:'wxm'+i,name:'海外客户示例-'+(i+6),domain:'ext',dt:'2025-0'+((i%9)+1)+'-10'}))),
+  ln:Array.from({length:14},(_,i)=>({id:'ln'+i,name:'外贸客户-'+(i+1),domain:'ext',dt:'2025-0'+((i%9)+1)+'-15'})),
+  hx:Array.from({length:5},(_,i)=>({id:'hx'+i,name:'内销客户-'+(i+1),domain:'int',dt:'2025-0'+((i%9)+1)+'-20'})),
+  yh:Array.from({length:3},(_,i)=>({id:'yh'+i,name:'内销二部客户-'+(i+1),domain:'int',dt:'2025-0'+((i%9)+1)+'-18'})),
+  ls:Array.from({length:142},(_,i)=>({id:'ls'+i,name:'公司直客-'+(i+1),domain:'int',dt:'2024-01-01'})),
+};
+let cur = null;
+let customers = [];
+
+function domPill(e){
+  if(e.role==='管理员') return '<span class="pill admin">管理员</span>';
+  if(!e.sales) return '<span class="pill non">非销售</span>';
+  return e.dom==='ext' ? '<span class="pill ext">外销</span>' : '<span class="pill int">内销</span>';
+}
+function render(){
+  const tb=document.getElementById('rows'); tb.innerHTML='';
+  EMP.forEach(e=>{
+    const tr=document.createElement('tr');
+    const done = !e.active;
+    tr.innerHTML=`<td><b>${e.name}</b>${done?' <span class="tag-done">已交接</span>':''}</td>
+      <td>${domPill(e)} <span style="color:var(--txt2)">${e.role}</span></td>
+      <td style="color:var(--txt2)">${e.dept||'<span style="color:var(--txt3)">未分配</span>'}</td>
+      <td><span class="st ${done?'off':'on'}">${done?'离职':'在职'}</span></td>
+      <td><span class="cnt">${e.cust}</span></td>
+      <td>${done?'<button class="btn" disabled>已停用</button>':`<button class="btn danger" onclick="openDrawer('${e.id}')">办理离职</button>`}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function openDrawer(id){
+  cur=EMP.find(x=>x.id===id);
+  document.getElementById('dName').textContent=cur.name;
+  document.getElementById('dMeta').textContent=`${cur.role} · 部门 ${cur.dept||'未分配'} · 企微 ${cur.wecom} · 当前在职`;
+  document.getElementById('sCust').textContent=cur.cust;
+  document.getElementById('sOpp').textContent=cur.opp;
+  document.getElementById('sFoll').textContent=cur.foll;
+  customers = (CUST[cur.id]||[]).map(c=>({...c,sel:true}));
+  document.getElementById('custBlock').style.display = cur.cust>0?'block':'none';
+  document.getElementById('filter').value='';
+  document.getElementById('crossDept').checked=false;
+  pick('A');
+  renderCustomers();
+  document.getElementById('mask').classList.add('show');
+}
+function closeDrawer(){document.getElementById('mask').classList.remove('show');cur=null;customers=[];}
+
+function renderCustomers(){
+  const body=document.getElementById('cbody'); body.innerHTML='';
+  const term = document.getElementById('filter').value.trim().toLowerCase();
+  let visible=0, selVisible=0, totalSel=0;
+  customers.forEach(c=>{
+    const match = !term || c.name.toLowerCase().includes(term) || c.dt.includes(term);
+    totalSel += c.sel?1:0;
+    if(match){
+      visible++;
+      if(c.sel) selVisible++;
+      const row=document.createElement('div'); row.className='citem'+(match?'':' hide');
+      row.innerHTML=`<input type="checkbox" ${c.sel?'checked':''} onchange="toggleOne('${c.id}')" />
+        <span class="name">${c.name}</span>
+        <span class="domain ${c.domain}">${c.domain==='ext'?'外销':'内销'}</span>
+        <span class="dt">${c.dt}</span>`;
+      body.appendChild(row);
+    }
+  });
+  document.getElementById('checkAll').checked = visible>0 && selVisible===visible;
+  document.getElementById('checkAll').indeterminate = selVisible>0 && selVisible<visible;
+  document.getElementById('selCounter').textContent = `已选 ${totalSel} / 共 ${customers.length}`;
+  document.getElementById('filterCount').textContent = `显示 ${visible} / ${customers.length}`;
+  updateBtn();
+  updatePreview();
+}
+function filterCustomers(){renderCustomers();}
+function toggleOne(id){
+  const c=customers.find(x=>x.id===id); if(c)c.sel=!c.sel;
+  renderCustomers();
+}
+function toggleAll(){
+  const on=document.getElementById('checkAll').checked;
+  const term=document.getElementById('filter').value.trim().toLowerCase();
+  customers.forEach(c=>{
+    const match = !term || c.name.toLowerCase().includes(term) || c.dt.includes(term);
+    if(match) c.sel=on;
+  });
+  renderCustomers();
+}
+function selectAllVisible(){
+  const term=document.getElementById('filter').value.trim().toLowerCase();
+  customers.forEach(c=>{
+    const match = !term || c.name.toLowerCase().includes(term) || c.dt.includes(term);
+    if(match) c.sel=true;
+  });
+  renderCustomers();
+}
+function clearVisible(){
+  const term=document.getElementById('filter').value.trim().toLowerCase();
+  customers.forEach(c=>{
+    const match = !term || c.name.toLowerCase().includes(term) || c.dt.includes(term);
+    if(match) c.sel=false;
+  });
+  renderCustomers();
+}
+
+function pick(m){
+  const A=document.getElementById('optA'),B=document.getElementById('optB');
+  if(m==='A'){A.classList.add('on');B.classList.remove('on');A.querySelector('input').checked=true;B.querySelector('input').checked=false;
+    document.getElementById('fSucc').style.display='block';document.getElementById('fPool').style.display='none';fillSucc();}
+  else{B.classList.add('on');A.classList.remove('on');B.querySelector('input').checked=true;A.querySelector('input').checked=false;
+    document.getElementById('fSucc').style.display='none';document.getElementById('fPool').style.display='block';fillPool();}
+  updateBtn();updatePreview();
+}
+function fillSucc(){
+  const sel=document.getElementById('succSel');
+  const cross=document.getElementById('crossDept').checked;
+  if(!cur.sales){
+    sel.innerHTML='<option>非销售角色无客户可交接（仅停用账号）</option>';
+    document.getElementById('succHint').innerHTML='该员工为<b>非销售角色</b>，名下无客户/商机，办理离职仅停用账号，历史数据保留。';
+    return;
+  }
+  // 同域在职销售；默认仅本部门，勾选跨部门后放开部门限制（部门可留空=不限）
+  const cands=EMP.filter(x=>x.sales && x.active && x.id!==cur.id && x.dom===cur.dom && (cross || (!cur.dept || x.dept===cur.dept)));
+  if(cands.length===0){sel.innerHTML='<option>同域无可用接班人</option>';}
+  else{
+    sel.innerHTML=cands.map(c=>`<option value="${c.id}">${c.name}（${c.dom==='ext'?'外销':'内销'}·${c.dept||'未分配部门'}）</option>`).join('');
+  }
+  const domTxt=cur.dom==='ext'?'外销':'内销';
+  let baseHint;
+  if(!cur.dept){
+    baseHint = `该员工<b>部门未分配</b>，默认已列出同域（${domTxt}）<b>全部在职销售（含其他部门）</b>；勾选「跨部门」无额外变化。选中客户批量移交，未勾选保持原地不动。`;
+  }else{
+    baseHint = `默认仅显示<b>同域同部门</b>在职销售；如需跨本部门，勾选上方「允许移交给其他部门」。选中客户批量移交，未勾选保持原地不动。`;
+  }
+  document.getElementById('succHint').innerHTML = cross
+    ? `已开启<b>跨部门</b>：显示<b>同域（${domTxt}）全部在职销售</b>（含其他部门，如内销二部）；<b>跨域仍不可选</b>——保证内销/外销绝对隔离。选中客户批量移交，未勾选客户保持原地不动。`
+    : baseHint;
+}
+function fillPool(){
+  if(!cur.sales){document.getElementById('poolHint').innerHTML='非销售角色无客户，退回公海无客户可处理；仅停用账号。';return;}
+  const domTxt=cur.dom==='ext'?'外销公海':'内销公海';
+  document.getElementById('poolHint').innerHTML=`已勾选的 ${selectedCount()} 个客户将退回 <b>${domTxt}</b>（按 salesType 域隔离，内销不串外销），由同域新人从公海认领；未勾选客户保持原地不动。`;
+}
+function selectedCount(){return customers.filter(c=>c.sel).length;}
+function updateBtn(){
+  const modeA=document.getElementById('optA').classList.contains('on');
+  const n=selectedCount();
+  const btn=document.getElementById('confirmBtn');
+  if(n===0){btn.textContent='请先勾选客户';btn.disabled=true;}
+  else if(modeA){btn.textContent=`确认批量移交给接班人（${n}个客户）`;btn.disabled=false;}
+  else{btn.textContent=`确认批量退回公海（${n}个客户）`;btn.disabled=false;}
+}
+function updatePreview(){
+  const pv=document.getElementById('preview');
+  const n=selectedCount();
+  if(!cur || n===0){pv.classList.remove('show');return;}
+  pv.classList.add('show');
+  const modeA=document.getElementById('optA').classList.contains('on');
+  const chosen=customers.filter(c=>c.sel).slice(0,2);
+  const sel=document.getElementById('succSel');
+  let body='';
+  chosen.forEach(c=>{
+    const domTxt=c.domain==='ext'?'外销':'内销';
+    if(modeA && cur.sales){
+      const succ=sel.value?EMP.find(x=>x.id===sel.value):null;
+      const succName=succ?succ.name:'(请选择接班人)';
+      body+=`<div class="cust"><div class="cn">${c.name}<span class="tag">原负责人：${cur.name}（已离职）</span><span class="dom">${domTxt}</span></div>
+        <div class="tl"><span class="sys">系统交接</span>：客户于 2026-08-17 由 ${cur.name} 批量移交至 <b>${succName}</b>（${domTxt}）<br>
+        <span class="old">— 历史跟进保留（原作者 ${cur.name}），接手人可见完整前情 —</span></div></div>`;
+    }else{
+      body+=`<div class="cust"><div class="cn">${c.name}<span class="tag">原负责人：${cur.name}（已离职）</span><span class="dom">${domTxt}</span></div>
+        <div class="tl"><span class="sys">系统交接</span>：客户于 2026-08-17 批量退回 <b>${domTxt}公海</b><br>
+        <span class="old">— 历史跟进保留（原作者 ${cur.name}），等待同域新人认领 —</span></div></div>`;
+    }
+  });
+  if(n>2) body+=`<div class="smalltxt" style="margin-top:6px">还有 ${n-2} 个已勾选客户效果相同，略。</div>`;
+  document.getElementById('prevBody').innerHTML=body;
+}
+function confirmHandover(){
+  if(!cur)return;
+  const modeA=document.getElementById('optA').classList.contains('on');
+  const n=selectedCount();
+  let msg;
+  if(n===0){toast('请先勾选客户');return;}
+  if(!cur.sales){msg=`${cur.name}（非销售）已停用，历史数据保留`;}
+  else if(modeA && cur.sales){
+    const succ=document.getElementById('succSel').value?EMP.find(x=>x.id===document.getElementById('succSel').value):null;
+    msg=`${cur.name} 的 ${n} 个客户已批量移交给 ${succ?succ.name:'接班人'}`;
+  } else {msg=`${cur.name} 的 ${n} 个客户已批量退回${cur.dom==='ext'?'外销':'内销'}公海`;}
+  cur.active=false;
+  closeDrawer();render();
+  toast(msg+' ✔');
+}
+function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600);}
+document.getElementById('succSel').addEventListener('change',updatePreview);
+document.getElementById('mask').addEventListener('click',e=>{if(e.target.id==='mask')closeDrawer();});
+render();
+</script>
+</body>
+</html>
