@@ -117,7 +117,7 @@ HOLANG 内部 **All-In-One 业务系统**（CRM + ERP + 审批 + 企微），支
 ## 7. 已知风险与阻塞
 
 1. **生产服务器回收**：部署通道双断；唯一有效备份在 `server_backup/`（已被 `.gitignore` 排除，含明文 `.env` 与生产库副本，**须线下安全保管，禁止入库**）。
-2. **GitHub 凭据失效（本次发现）**：`credentials.json` 中 `github.token`（经典 `ghp_`）对 `holang2021/oa` 的 Git 操作鉴权失败（GitHub 报错 "Password authentication is not supported"），疑似**过期/吊销**。需刘总在 GitHub 重新生成具 `repo` 权限的 PAT，回填 `credentials.json` 的 `github.token`，再执行 `git push origin system-build`。
+2. **GitHub 写入通道现状（本次实测，2026-09-23）**：本地 `system-build` 领先远端 9 个提交未推送。两条可行写入通道均不通：① `credentials.json` 的 `github.token` 其 `repo` 字段指向 `holang-workbuddy-skills`（与 `holang2021/oa` 非同一仓库），对该仓库无写权限且已失效；② 已连接的 GitHub 连接器（MCP，账号 holang2021）对 `holang2021/oa` **仅只读**（实推返回 `403 Resource not accessible by integration`）。需刘总用 holang2021 账号（oa 仓库 owner）生成一枚对 `holang2021/oa` 具 `repo` 写权限的 classic PAT，回填 `credentials.json` 的 `github.token`（并改 repo 字段为 oa）后，执行 `git push origin system-build`。
 3. **本地预览库为样例 fork**：禁止本地造业务数据（单一版本铁律：生产库唯一真源）。
 
 ---

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOLANG OA + 网站 · 单线推进看板</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --ink:#1f2937; --sub:#6b7280;
+    --line:#e5e7eb; --blue:#2563eb; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:24px;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:16px;}
+  .note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:20px;}
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .col{background:#eef2f7;border-radius:10px;padding:12px;min-height:120px;}
+  .col h2{font-size:14px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
+  .col.c1 h2{border-color:var(--blue);} .col.c2 h2{border-color:var(--amber);}
+  .col.c3 h2{border-color:var(--green);} .col.c4 h2{border-color:var(--red);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .card h3{font-size:13px;margin:0 0 6px;}
+  .card .pf{font-size:11px;color:var(--blue);word-break:break-all;margin:0 0 6px;font-family:Consolas,monospace;}
+  .card .nx{font-size:12px;color:var(--sub);margin:0;line-height:1.5;}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;margin-right:4px;}
+  .t-b{background:#dbeafe;color:#1e40af;} .t-g{background:#dcfce7;color:#166534;}
+  .t-a{background:#fef3c7;color:#92400e;} .t-r{background:#fee2e2;color:#991b1b;}
+  table{width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;background:#fff;}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#eef2f7;}
+  caption{font-size:14px;font-weight:600;text-align:left;margin-bottom:8px;color:var(--ink);}
+</style>
+</head>
+<body>
+<h1>HOLANG OA + 网站 · 单线推进看板</h1>
+<div class="meta">基于 prototypes/ 真源收敛 · 生成于 2026-09-30 · 状态以本地验证为准，生产部署待服务器恢复</div>
+
+<div class="note">⚠️ <b>唯一硬阻塞</b>：生产服务器 <code>ins-4xm95czz</code> 被重建/替换、TAT 通道断、<code>oa.holangchina.com</code> 不可达 → OA 所有"已完工"功能推不上去。需刘总确认服务器状态（给新实例 ID / 公网 IP 或恢复）。<br>
+✅ 本次已归档 3 个被取代/早期原型：<code>customer_dup_check_proto.html</code>（被 v2 取代）、<code>crm-ui-prototype.html</code>、<code>crm-full-blueprint-prototype.html</code>（被 crm-system-full 取代）→ 见 <code>prototypes/archive/</code>。</div>
+
+<div class="board">
+  <div class="col c1">
+    <h2>① 原型待你确认</h2>
+    <div class="card"><h3>客户详情快捷操作</h3><p class="pf">customer_detail_quick_actions_v1.html</p><p class="nx">你拍板"像不像"→ 再转代码</p></div>
+    <div class="card"><h3>联系人治理（4 子特性合一）</h3><p class="pf">customer_contact_gov / onetomany / softfields / fix</p><p class="nx">4 个原型覆盖治理红线/一对多/软字段/修复，需收敛成 1 个主线</p></div>
+    <div class="card"><h3>客户查重 v2</h3><p class="pf">customer_dup_v2_proto.html</p><p class="nx">v1 已归档；你确认后转代码</p></div>
+    <div class="card"><h3>WordPress 首页</h3><p class="pf">holang-wp-home-v1.html</p><p class="nx">网站首页原型已出，待确认</p></div>
+    <div class="card"><h3>落地页草稿</h3><p class="pf">holang-oa/prototypes/lead-landing-draft.html</p><p class="nx">未跟踪草稿，归并到网站主线</p></div>
+  </div>
+
+  <div class="col c2">
+    <h2>② 代码进行中</h2>
+    <div class="card"><h3>CRM 整体框架</h3><p class="pf">crm-system-full-prototype.html</p><p class="nx">Phase 1 基础框架进行中</p></div>
+    <div class="card"><h3>统一打印模板</h3><p class="pf">含于 quote_real_replica.html 打印区</p><p class="nx">PI / 报价合同复用，前端进行中</p></div>
+    <div class="card"><h3>CI/PL 发货单据</h3><p class="pf">—</p><p class="nx">仅代码层未验证 → 先出原型确认</p></div>
+    <div class="card"><h3>审批引擎</h3><p class="pf">—</p><p class="nx">仅代码层未验证 → 先出原型确认</p></div>
+    <div class="card"><h3>SystemSettings 前 3 Tab</h3><p class="pf">—</p><p class="nx">仅代码层未验证 → 先出原型确认</p></div>
+  </div>
+
+  <div class="col c3">
+    <h2>③ 已完工·待部署</h2>
+    <div class="card"><h3>报价管理</h3><p class="pf">quote_lowcode_proto / quote_real_replica</p><p class="nx"><span class="tag t-g">本地验证通过</span>随服务器恢复即上线</p></div>
+    <div class="card"><h3>币种/编码规则/字段配置/外销 PI</h3><p class="pf">GOV-2026-026 四功能</p><p class="nx"><span class="tag t-g">本地闭环通过</span>待部署</p></div>
+    <div class="card"><h3>离职继承</h3><p class="pf">offboarding_handover_prototype.html</p><p class="nx"><span class="tag t-a">曾生产·随服务器回收</span>需重部署到新服（当前头号业务优先级）</p></div>
+  </div>
+
+  <div class="col c4">
+    <h2>④ 阻塞·待你决策</h2>
+    <div class="card"><h3>生产服务器重建确认</h3><p class="pf">ins-4xm95czz</p><p class="nx">确认是否被重建 → 给新实例 ID / IP 或恢复（OA 上线唯一硬阻塞）</p></div>
+    <div class="card"><h3>网站主线确认</h3><p class="pf">WP 站 vs Laravel(holanggas.com)</p><p class="nx">确认谁先跑通、当前谁在维护、代码主场在哪</p></div>
+  </div>
+</div>
+
+<table>
+<caption>模块 ↔ 原型 ↔ 状态 ↔ 下一步（单线对照）</caption>
+<tr><th>模块</th><th>对应原型</th><th>当前状态</th><th>下一步动作</th><th>阻塞/风险</th></tr>
+<tr><td>CRM 整体框架</td><td>crm-system-full-prototype.html</td><td>框架参考 + Phase1 代码进行中</td><td>按模块拆分续做</td><td>—</td></tr>
+<tr><td>离职继承</td><td>offboarding_handover_prototype.html</td><td>曾生产，随服务器回收</td><td>重部署到新服（头号优先级）</td><td>服务器</td></tr>
+<tr><td>报价管理</td><td>quote_lowcode_proto / quote_real_replica</td><td>✅ 本地验证通过</td><td>随服务器恢复部署</td><td>服务器</td></tr>
+<tr><td>客户详情快捷操作</td><td>customer_detail_quick_actions_v1.html</td><td>原型已出</td><td>你确认 → 转代码</td><td>—</td></tr>
+<tr><td>联系人治理</td><td>customer_contact_gov/onetomany/softfields/fix（4）</td><td>原型已出（4 子特性）</td><td>收敛为 1 主线 → 你确认</td><td>多版本未合并</td></tr>
+<tr><td>客户查重</td><td>customer_dup_v2_proto.html（v1 已归档）</td><td>原型 v2 已出</td><td>你确认 → 转代码</td><td>—</td></tr>
+<tr><td>统一打印模板</td><td>含于报价单原型打印区</td><td>前端进行中</td><td>PI / 报价合同复用</td><td>—</td></tr>
+<tr><td>CI/PL 发货单据</td><td>—</td><td>仅代码层未验证</td><td>先出原型确认</td><td>—</td></tr>
+<tr><td>审批引擎</td><td>—</td><td>仅代码层未验证</td><td>先出原型确认</td><td>—</td></tr>
+<tr><td>SystemSettings 前3Tab</td><td>—</td><td>仅代码层未验证</td><td>先出原型确认</td><td>—</td></tr>
+<tr><td>WordPress 独立站</td><td>holang-wp-home-v1.html + wp_build_*.py</td><td>首页原型 + 建站脚本动手中</td><td>你确认 → 灌内容 → 上线接询盘</td><td>主线/维护人待定</td></tr>
+<tr><td>落地页</td><td>lead-landing-draft.html（未跟踪）</td><td>草稿</td><td>归并网站主线</td><td>—</td></tr>
+</table>
+</body>
+</html>

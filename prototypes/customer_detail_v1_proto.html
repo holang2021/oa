@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HOLANG OA · 客户详情（V0.1 收敛原型）</title>
+<style>
+:root{
+  /* 品牌主色 */
+  --oa-primary:#09348B; --oa-primary-hover:#0D47A1; --oa-primary-active:#072C73; --oa-primary-soft:#E8F0FE;
+  /* 强调色（少量） */
+  --oa-accent:#E45124;
+  /* 中性 */
+  --oa-bg:#F6F8FB; --oa-surface:#FFFFFF;
+  --oa-text-primary:#1F2937; --oa-text-secondary:#667085; --oa-text-muted:#98A2B3;
+  --oa-border:#D7DDE5; --oa-divider:#EAECF0;
+  /* 状态色 */
+  --oa-success:#15803D; --oa-warning:#B45309; --oa-danger:#B42318; --oa-info:#2563EB;
+  --oa-success-bg:#ECFDF3; --oa-warning-bg:#FFFAEB; --oa-danger-bg:#FEF3F2; --oa-info-bg:#EFF6FF;
+  /* 圆角 */
+  --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+  /* 间距 */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+  /* 字号 */
+  --fs-page-title:24px; --fs-module-title:18px; --fs-sub-title:16px; --fs-body:14px; --fs-label:14px; --fs-aux:13px;
+  /* 尺寸 */
+  --nav-w:224px; --nav-w-collapsed:64px; --header-h:56px; --btn-h:36px; --btn-h-compact:32px;
+  --input-h:36px; --table-header-h:40px; --table-row-h:44px; --status-tag-h:24px;
+  --font: Inter,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--oa-bg);color:var(--oa-text-primary);font-size:var(--fs-body);-webkit-font-smoothing:antialiased;}
+/* 布局 */
+.app{display:flex;min-height:100vh;}
+/* 侧栏 */
+.sidebar{width:var(--nav-w);background:var(--oa-surface);border-right:1px solid var(--oa-border);flex-shrink:0;padding:var(--space-4) 0;}
+.sidebar .logo{display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4) var(--space-4);border-bottom:1px solid var(--oa-divider);}
+.sidebar .logo img{height:28px;}
+.sidebar .logo .sys{font-size:var(--fs-sub-title);font-weight:600;color:var(--oa-primary);}
+.nav-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);color:var(--oa-text-secondary);font-size:var(--fs-body);cursor:pointer;border-left:3px solid transparent;}
+.nav-item:hover{background:#F2F5F9;color:var(--oa-text-primary);}
+.nav-item.active{background:var(--oa-primary-soft);color:var(--oa-primary);border-left-color:var(--oa-primary);font-weight:600;}
+.nav-item .ico{width:18px;text-align:center;opacity:.8;}
+/* 主区 */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.header{height:var(--header-h);background:var(--oa-surface);border-bottom:1px solid var(--oa-border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);}
+.header .crumb{color:var(--oa-text-secondary);font-size:var(--fs-aux);}
+.header .user{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-aux);color:var(--oa-text-secondary);}
+.header .avatar{width:28px;height:28px;border-radius:50%;background:var(--oa-primary-soft);color:var(--oa-primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;}
+.content{padding:var(--space-5);}
+/* 客户信息头 */
+.cust-head{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:var(--space-5);}
+.cust-head .top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-4);}
+.cust-head .name{font-size:var(--fs-module-title);font-weight:600;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.cust-head .meta{display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-3);color:var(--oa-text-secondary);font-size:var(--fs-aux);}
+.cust-head .meta span{display:inline-flex;align-items:center;gap:4px;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--oa-divider);}
+.stat{background:var(--oa-bg);border-radius:var(--radius-md);padding:var(--space-3);text-align:center;}
+.stat .k{font-size:var(--fs-aux);color:var(--oa-text-muted);}
+.stat .v{font-size:18px;font-weight:600;margin-top:2px;}
+/* 标签 */
+.tag{display:inline-flex;align-items:center;height:var(--status-tag-h);padding:0 10px;border-radius:var(--radius-sm);font-size:var(--fs-aux);font-weight:500;}
+.tag-level{background:var(--oa-primary-soft);color:var(--oa-primary);}
+.tag-status{background:var(--oa-info-bg);color:var(--oa-info);}
+.tag-success{background:var(--oa-success-bg);color:var(--oa-success);}
+.tag-warning{background:var(--oa-warning-bg);color:var(--oa-warning);}
+.tag-danger{background:var(--oa-danger-bg);color:var(--oa-danger);}
+.tag-muted{background:#F2F4F7;color:var(--oa-text-muted);}
+.tag-key{background:#FFF1E9;color:var(--oa-accent);}
+/* Tab */
+.tabs{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);margin-top:var(--space-5);overflow:hidden;}
+.tab-bar{display:flex;border-bottom:1px solid var(--oa-divider);overflow-x:auto;}
+.tab-bar button{padding:var(--space-3) var(--space-4);background:none;border:none;border-bottom:2px solid transparent;color:var(--oa-text-secondary);font-size:var(--fs-body);cursor:pointer;white-space:nowrap;font-family:var(--font);}
+.tab-bar button.active{color:var(--oa-primary);border-bottom-color:var(--oa-primary);font-weight:600;}
+.tab-body{padding:var(--space-5);}
+/* 面板 */
+.panel{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:var(--space-4);}
+.panel + .panel{margin-top:var(--space-4);}
+.panel h3{font-size:var(--fs-sub-title);font-weight:600;margin-bottom:var(--space-3);}
+/* 概览 */
+.stepper{display:flex;gap:var(--space-2);align-items:stretch;}
+.step{flex:1;min-width:120px;border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:var(--space-3);background:var(--oa-bg);}
+.step.done{border-color:var(--oa-success);background:var(--oa-success-bg);}
+.step .l{font-size:var(--fs-aux);color:var(--oa-text-secondary);display:flex;justify-content:space-between;}
+.step .c{font-size:18px;font-weight:600;margin-top:2px;}
+.step .s{font-size:11px;margin-top:2px;}
+.step.done .s{color:var(--oa-success);}
+.step .s.todo{color:var(--oa-text-muted);}
+.stage-bar{display:flex;border:1px solid var(--oa-border);border-radius:var(--radius-md);overflow:hidden;}
+.stage-bar div{flex:1;text-align:center;padding:10px 0;font-size:var(--fs-aux);border-right:1px solid var(--oa-divider);color:var(--oa-text-muted);}
+.stage-bar div.cur{background:var(--oa-primary);color:#fff;font-weight:600;}
+.stage-bar div.past{background:var(--oa-primary-soft);color:var(--oa-primary);}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);}
+.info-item{background:var(--oa-bg);border-radius:var(--radius-md);padding:var(--space-3);}
+.info-item .k{font-size:11px;color:var(--oa-text-muted);text-transform:uppercase;}
+.info-item .v{font-size:var(--fs-body);margin-top:2px;color:var(--oa-text-primary);}
+/* 按钮 */
+.btn{height:var(--btn-h);padding:0 var(--space-4);border-radius:var(--radius-md);font-size:var(--fs-body);font-family:var(--font);cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--oa-primary);color:#fff;}
+.btn-primary:hover{background:var(--oa-primary-hover);}
+.btn-secondary{background:var(--oa-surface);border-color:var(--oa-border);color:#344054;}
+.btn-secondary:hover{background:#F2F5F9;}
+.btn-ghost{background:none;color:var(--oa-text-secondary);}
+.btn-danger{background:var(--oa-danger);color:#fff;}
+.btn-compact{height:var(--btn-h-compact);padding:0 10px;font-size:var(--fs-aux);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+/* 联系人表 */
+.contact-list{display:flex;flex-direction:column;gap:var(--space-3);}
+.contact-row{display:flex;align-items:center;gap:var(--space-3);border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:var(--space-3);background:var(--oa-surface);}
+.contact-row .ava{width:40px;height:40px;border-radius:50%;background:var(--oa-primary-soft);color:var(--oa-primary);display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;}
+.contact-row .main{flex:1;min-width:0;}
+.contact-row .nm{font-weight:600;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.contact-row .sub{font-size:var(--fs-aux);color:var(--oa-text-secondary);margin-top:2px;}
+.contact-row .soft{font-size:12px;color:var(--oa-text-muted);margin-top:4px;}
+.contact-row .acts{display:flex;gap:var(--space-2);flex-shrink:0;}
+.icon-btn{width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--oa-border);background:var(--oa-surface);cursor:pointer;color:var(--oa-text-secondary);display:flex;align-items:center;justify-content:center;}
+.icon-btn:hover{color:var(--oa-primary);border-color:var(--oa-primary);}
+.contact-row.left{opacity:.7;background:#F8F9FB;}
+.contact-row.left .nm::after{content:"已离职";font-size:11px;background:var(--oa-warning-bg);color:var(--oa-warning);padding:1px 6px;border-radius:var(--radius-sm);margin-left:6px;font-weight:400;}
+/* 模态 */
+.modal-mask{position:fixed;inset:0;background:rgba(16,24,40,.4);display:none;align-items:center;justify-content:center;padding:var(--space-4);z-index:50;}
+.modal-mask.show{display:flex;}
+.modal{background:var(--oa-surface);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:90vh;overflow:auto;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--oa-divider);}
+.modal-head h3{font-size:var(--fs-sub-title);font-weight:600;}
+.modal-body{padding:var(--space-5);}
+.modal-foot{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-top:1px solid var(--oa-divider);background:var(--oa-bg);}
+/* 表单 */
+.field{margin-bottom:var(--space-3);}
+.field label{display:block;font-size:var(--fs-label);color:var(--oa-text-secondary);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;height:var(--input-h);border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:0 10px;font-size:var(--fs-body);font-family:var(--font);color:var(--oa-text-primary);background:var(--oa-surface);}
+.field textarea{height:auto;padding:8px 10px;resize:vertical;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--oa-primary);box-shadow:0 0 0 2px var(--oa-primary-soft);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);}
+.section-title{font-size:var(--fs-sub-title);font-weight:600;margin:var(--space-5) 0 var(--space-3);}
+.soft-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);}
+.hint{font-size:var(--fs-aux);color:var(--oa-text-muted);background:var(--oa-info-bg);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);}
+.audit{border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:var(--space-3);background:var(--oa-bg);font-size:var(--fs-aux);color:var(--oa-text-secondary);}
+.audit .row{padding:4px 0;border-bottom:1px dashed var(--oa-divider);}
+.audit .row:last-child{border-bottom:none;}
+.muted-note{font-size:var(--fs-aux);color:var(--oa-text-muted);margin-top:var(--space-2);}
+.empty{text-align:center;color:var(--oa-text-muted);padding:var(--space-6);}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 侧栏 -->
+  <aside class="sidebar">
+    <div class="logo"><img src="./HOLANG_Logo_Official.png" alt="HOLANG" /><span class="sys">OA</span></div>
+    <div class="nav-item"><span class="ico">▦</span>工作台</div>
+    <div class="nav-item active"><span class="ico">☷</span>客户</div>
+    <div class="nav-item"><span class="ico">◇</span>商机</div>
+    <div class="nav-item"><span class="ico">✎</span>报价</div>
+    <div class="nav-item"><span class="ico">▤</span>订单</div>
+    <div class="nav-item"><span class="ico">$</span>回款</div>
+    <div class="nav-item"><span class="ico">⎙</span>单据</div>
+    <div class="nav-item"><span class="ico">⚙</span>系统设置</div>
+  </aside>
+
+  <!-- 主区 -->
+  <div class="main">
+    <header class="header">
+      <div class="crumb">CRM · 客户 · 客户详情</div>
+      <div class="user"><span>刘世光（管理员）</span><span class="avatar">刘</span></div>
+    </header>
+
+    <div class="content">
+      <!-- 客户信息头 -->
+      <section class="cust-head">
+        <div class="top">
+          <div>
+            <div class="name">武汉华工激光工程有限责任公司 <span class="tag tag-level">A级</span> <span class="tag tag-muted" style="font-family:monospace">C00000409</span></div>
+            <div class="meta">
+              <span>🌐 中国 · 湖北</span>
+              <span>🏭 激光设备制造</span>
+              <span>📍 武汉东湖高新区</span>
+              <span>👤 张明（销售）</span>
+              <span>↗ 官网询盘</span>
+              <span>📅 创建 2024-11-03</span>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-compact">编辑</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="k">商机总数</div><div class="v">3</div></div>
+          <div class="stat"><div class="k">商机金额</div><div class="v" style="color:var(--oa-primary)">¥1.28M</div></div>
+          <div class="stat"><div class="k">订单金额</div><div class="v" style="color:var(--oa-primary)">¥860K</div></div>
+          <div class="stat"><div class="k">已回款</div><div class="v" style="color:var(--oa-success)">¥520K</div></div>
+        </div>
+      </section>
+
+      <!-- Tab -->
+      <div class="tabs">
+        <div class="tab-bar">
+          <button class="active" data-tab="overview">概览</button>
+          <button data-tab="contacts">联系人</button>
+          <button data-tab="opps">商机</button>
+          <button data-tab="quotes">报价</button>
+          <button data-tab="orders">订单</button>
+          <button data-tab="payments">回款</button>
+          <button data-tab="timeline">时间轴</button>
+        </div>
+
+        <div class="tab-body">
+          <!-- 概览 -->
+          <div id="overview" class="tab-pane">
+            <div class="panel">
+              <h3>销售闭环</h3>
+              <div class="stepper">
+                <div class="step done"><div class="l">商机<span>3</span></div><div class="c">●</div><div class="s">已完成</div></div>
+                <div class="step done"><div class="l">报价<span>2</span></div><div class="c">●</div><div class="s">已完成</div></div>
+                <div class="step done"><div class="l">合同<span>1</span></div><div class="c">●</div><div class="s">已完成</div></div>
+                <div class="step done"><div class="l">订单<span>1</span></div><div class="c">●</div><div class="s">已完成</div></div>
+                <div class="step"><div class="l">回款<span>1</span></div><div class="c">○</div><div class="s todo">未完成</div></div>
+              </div>
+            </div>
+            <div class="panel">
+              <h3>跟进阶段</h3>
+              <div class="stage-bar">
+                <div class="past">初步接洽</div><div class="past">需求确认</div><div class="cur">方案报价</div>
+                <div>商务谈判</div><div>合同签订</div><div>赢单</div>
+              </div>
+            </div>
+            <div class="panel">
+              <h3>基本信息</h3>
+              <div class="info-grid">
+                <div class="info-item"><div class="k">客户规模</div><div class="v">200-500人</div></div>
+                <div class="info-item"><div class="k">销售部门</div><div class="v">外销</div></div>
+                <div class="info-item"><div class="k">负责人</div><div class="v">张明</div></div>
+                <div class="info-item"><div class="k">公司网站</div><div class="v">hgtech.com</div></div>
+                <div class="info-item"><div class="k">主要联系人</div><div class="v">赵磊 · 采购总监</div></div>
+                <div class="info-item"><div class="k">联系电话</div><div class="v">+86 138****</div></div>
+                <div class="info-item"><div class="k">联系邮箱</div><div class="v">zhaol@hgtech.com</div></div>
+                <div class="info-item"><div class="k">WhatsApp</div><div class="v">+86 138****</div></div>
+                <div class="info-item"><div class="k">开票抬头</div><div class="v">武汉华工激光...</div></div>
+                <div class="info-item"><div class="k">税号</div><div class="v">91420100****</div></div>
+                <div class="info-item"><div class="k">开户行</div><div class="v">工行光谷支行</div></div>
+                <div class="info-item"><div class="k">银行账号</div><div class="v">3202****</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 联系人（收敛重点） -->
+          <div id="contacts" class="tab-pane hidden">
+            <div class="hint">治理规则（已锁定）：① 一对多——一个公司可挂多个联系人；② 离职可迁移——标记离职后原记录保留并留痕，可迁到新公司；③ <b>禁删</b>——本界面无删除按钮，员工不允许删除联系人。</div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:var(--space-3)">
+              <button class="btn btn-primary btn-compact" onclick="openContactModal()">+ 新增联系人</button>
+            </div>
+            <div class="contact-list" id="contactList"></div>
+          </div>
+
+          <!-- 其他 tab 占位 -->
+          <div id="opps" class="tab-pane hidden"><div class="empty">商机列表（沿用现有 CustomerDetail 已实现结构，本次仅重做视觉规范）</div></div>
+          <div id="quotes" class="tab-pane hidden"><div class="empty">报价列表</div></div>
+          <div id="orders" class="tab-pane hidden"><div class="empty">订单列表</div></div>
+          <div id="payments" class="tab-pane hidden"><div class="empty">回款列表</div></div>
+          <div id="timeline" class="tab-pane hidden"><div class="empty">时间轴（沿用现有跟进记录结构）</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/编辑联系人 模态 -->
+<div class="modal-mask" id="contactModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="cmTitle">新增联系人</h3><button class="icon-btn" onclick="closeContactModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field"><label>姓名 *</label><input id="c_name" placeholder="姓名" /></div>
+        <div class="field"><label>类型</label><select id="c_type"><option value="PRIMARY">主联系人</option><option value="PURCHASE">采购</option><option value="TECH">技术</option><option value="DECISION">决策人</option></select></div>
+        <div class="field"><label>职位</label><input id="c_position" placeholder="职位" /></div>
+        <div class="field"><label>部门</label><input id="c_dept" placeholder="部门" /></div>
+        <div class="field"><label>手机</label><input id="c_phone" placeholder="手机" /></div>
+        <div class="field"><label>邮箱</label><input id="c_email" placeholder="邮箱" /></div>
+        <div class="field"><label>微信</label><input id="c_wechat" placeholder="微信" /></div>
+        <div class="field"><label>WhatsApp</label><input id="c_whatsapp" placeholder="WhatsApp" /></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:var(--fs-aux);color:var(--oa-text-secondary);margin:var(--space-2) 0 var(--space-4)"><input type="checkbox" id="c_key" style="width:auto;height:auto" /> 关键决策人</label>
+      <div class="section-title">软信息 · 销售跟进决策</div>
+      <div class="soft-grid" id="softGrid"></div>
+      <div class="muted-note">软信息走 JSONB + 字段配置机制（铁律：禁止写死加列）。点右上「字段配置」可自主加列。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeContactModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveContact()">保存联系人</button>
+    </div>
+  </div>
+</div>
+
+<!-- 离职/迁移 模态 -->
+<div class="modal-mask" id="leaveModal">
+  <div class="modal">
+    <div class="modal-head"><h3>标记离职 / 迁移</h3><button class="icon-btn" onclick="closeLeaveModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="hint">确认后：原公司保留该联系人并标记「已离职」，全程审计留痕。如需迁到新公司，填写目标客户后将在新公司新建在职记录。</div>
+      <div class="field"><label>联系人</label><input id="lv_name" disabled /></div>
+      <div class="field"><label>离职说明</label><input id="lv_note" placeholder="如：跳槽至某集成商" /></div>
+      <div class="field"><label>迁移到新公司（可选）</label><input id="lv_target" placeholder="目标客户名称" /></div>
+      <div class="audit" id="leaveAudit"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeLeaveModal()">取消</button>
+      <button class="btn btn-danger" onclick="confirmLeave()">确认标记离职</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 默认软信息字段（字段扩展铁律：8 项） ============ */
+const DEFAULT_SOFT = [
+  {id:'sf_birthday', label:'生日', type:'date'},
+  {id:'sf_hometown', label:'故乡/籍贯', type:'text'},
+  {id:'sf_hobby', label:'兴趣爱好', type:'text'},
+  {id:'sf_family', label:'家庭情况', type:'text'},
+  {id:'sf_edu', label:'教育背景', type:'text'},
+  {id:'sf_personality', label:'性格标签', type:'text'},
+  {id:'sf_diet', label:'饮食禁忌', type:'text'},
+  {id:'sf_religion', label:'宗教/文化禁忌', type:'text'},
+];
+let softFields = [...DEFAULT_SOFT];
+
+/* ============ 联系人数据（含已离职示例） ============ */
+let contacts = [
+  {id:1, name:'赵磊', type:'DECISION', position:'采购总监', dept:'采购部', phone:'+86 138****', email:'zhaol@hgtech.com', wechat:'', whatsapp:'+86 138****', key:true, left:false, soft:{sf_hometown:'湖北武汉', sf_personality:'数据派'}},
+  {id:2, name:'孙倩', type:'TECH', position:'设备工程师', dept:'技术部', phone:'+86 159****', email:'sunq@hgtech.com', wechat:'', whatsapp:'', key:false, left:false, soft:{sf_birthday:'1989-05-12'}},
+  {id:3, name:'王浩', type:'PURCHASE', position:'采购经理', dept:'采购部', phone:'+86 137****', email:'', wechat:'', whatsapp:'', key:false, left:true, soft:{}},
+];
+let auditLog = [
+  {ts:'2025-01-15 09:00', who:'赵销售', what:'首次录入客户 3 名联系人'},
+];
+
+/* ============ Tab 切换 ============ */
+document.querySelectorAll('.tab-bar button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.tab-bar button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.add('hidden'));
+    document.getElementById(b.dataset.tab).classList.remove('hidden');
+  };
+});
+
+/* ============ 渲染联系人 ============ */
+function renderContacts(){
+  const box=document.getElementById('contactList');
+  const TYPE={PRIMARY:'主联系人',PURCHASE:'采购',TECH:'技术',DECISION:'决策人'};
+  box.innerHTML = contacts.map(c=>`
+    <div class="contact-row ${c.left?'left':''}">
+      <div class="ava">${c.name.charAt(0)}</div>
+      <div class="main">
+        <div class="nm">${c.name} ${c.key?'<span class="tag tag-key">关键决策人</span>':''} <span class="tag tag-muted">${TYPE[c.type]}</span></div>
+        <div class="sub">${c.position||''} ${c.dept?'· '+c.dept:''} ${c.phone?'· '+c.phone:''} ${c.email?'· '+c.email:''}</div>
+        <div class="soft">${Object.entries(c.soft||{}).filter(([k,v])=>v).map(([k,v])=>{const f=softFields.find(x=>x.id===k);return (f?f.label:k)+'：'+v;}).join('　')||'（无软信息）'}</div>
+      </div>
+      <div class="acts">
+        <button class="icon-btn" title="编辑" onclick="editContact(${c.id})">✎</button>
+        <button class="icon-btn" title="标记离职/迁移" onclick="openLeave(${c.id})">⇄</button>
+      </div>
+    </div>`).join('') || '<div class="empty">暂无联系人</div>';
+}
+function renderSoft(){
+  document.getElementById('softGrid').innerHTML = softFields.map(f=>`
+    <div class="field"><label>${f.label}</label><input id="${f.id}" placeholder="选填" /></div>`).join('');
+}
+
+/* ============ 新增/编辑 ============ */
+let editingId=null;
+function openContactModal(){editingId=null;document.getElementById('cmTitle').textContent='新增联系人';clearForm();renderSoft();show('contactModal');}
+function editContact(id){editingId=id;const c=contacts.find(x=>x.id===id);document.getElementById('cmTitle').textContent='编辑联系人 · '+c.name;
+  c_name.value=c.name;c_type.value=c.type;c_position.value=c.position||'';c_dept.value=c.dept||'';c_phone.value=c.phone||'';c_email.value=c.email||'';c_wechat.value=c.wechat||'';c_whatsapp.value=c.whatsapp||'';c_key.checked=!!c.key;
+  renderSoft();softFields.forEach(f=>{const el=document.getElementById(f.id);if(el&&c.soft)el.value=c.soft[f.id]||'';});show('contactModal');}
+function clearForm(){['c_name','c_position','c_dept','c_phone','c_email','c_wechat','c_whatsapp'].forEach(i=>document.getElementById(i).value='');c_type.value='PRIMARY';c_key.checked=false;}
+function saveContact(){
+  if(!c_name.value.trim()){alert('姓名必填');return;}
+  const soft={};softFields.forEach(f=>{const el=document.getElementById(f.id);if(el&&el.value.trim())soft[f.id]=el.value.trim();});
+  if(editingId){const c=contacts.find(x=>x.id===editingId);Object.assign(c,{name:c_name.value,type:c_type.value,position:c_position.value,dept:c_dept.value,phone:c_phone.value,email:c_email.value,wechat:c_wechat.value,whatsapp:c_whatsapp.value,key:c_key.checked,soft});pushAudit('编辑联系人「'+c.name+'」');}
+  else{const id=Math.max(0,...contacts.map(c=>c.id))+1;contacts.unshift({id,name:c_name.value,type:c_type.value,position:c_position.value,dept:c_dept.value,phone:c_phone.value,email:c_email.value,wechat:c_wechat.value,whatsapp:c_whatsapp.value,key:c_key.checked,left:false,soft});pushAudit('新建联系人「'+c_name.value+'」');}
+  closeContactModal();renderContacts();
+}
+function closeContactModal(){hide('contactModal');}
+
+/* ============ 离职/迁移 ============ */
+let leaveId=null;
+function openLeave(id){leaveId=id;const c=contacts.find(x=>x.id===id);lv_name.value=c.name;lv_note.value='';lv_target.value='';renderLeaveAudit();show('leaveModal');}
+function renderLeaveAudit(){document.getElementById('leaveAudit').innerHTML=auditLog.slice().reverse().map(a=>`<div class="row">${a.ts} · ${a.who} · ${a.what}</div>`).join('');}
+function confirmLeave(){
+  const c=contacts.find(x=>x.id===leaveId);
+  c.left=true;
+  pushAudit('标记离职：'+c.name+(lv_target.value.trim()?'（迁移至 '+lv_target.value.trim()+'，原记录保留）':'（原记录保留）'));
+  closeLeaveModal();renderContacts();
+}
+
+/* ============ 工具 ============ */
+function show(id){document.getElementById(id).classList.add('show');}
+function hide(id){document.getElementById(id).classList.remove('show');}
+function pushAudit(what){auditLog.push({ts:new Date().toISOString().slice(0,16).replace('T',' '),who:'当前用户',what});}
+
+renderContacts();
+</script>
+</body>
+</html>

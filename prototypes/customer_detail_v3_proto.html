@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客户详情 · HOLANG OA（内销 CRM · V0.1 验证原型）</title>
+<style>
+  :root{
+    --oa-primary:#09348B; --oa-primary-hover:#0D47A1; --oa-primary-active:#072C73; --oa-primary-soft:#E8F0FE;
+    --oa-accent:#E45124;
+    --oa-bg:#F6F8FB; --oa-surface:#FFFFFF;
+    --oa-text-primary:#1F2937; --oa-text-secondary:#667085; --oa-text-muted:#98A2B3;
+    --oa-border:#D7DDE5; --oa-divider:#EAECF0;
+    --oa-success:#15803D; --oa-warning:#B45309; --oa-danger:#B42318; --oa-info:#2563EB;
+    --oa-success-bg:#ECFDF3; --oa-warning-bg:#FFFAEB; --oa-danger-bg:#FEF3F2; --oa-info-bg:#EFF6FF;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--oa-bg);color:var(--oa-text-primary);font-size:14px;line-height:1.5}
+  /* 布局 */
+  .layout{display:flex;min-height:100vh}
+  .sidebar{width:224px;background:var(--oa-surface);border-right:1px solid var(--oa-border);padding:var(--space-4) 0;flex-shrink:0}
+  .sidebar .brand{display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4) var(--space-4);border-bottom:1px solid var(--oa-divider)}
+  .sidebar .brand img{height:28px}
+  .sidebar .brand b{font-size:15px;color:var(--oa-primary);font-weight:600}
+  .nav-group{margin-top:var(--space-4)}
+  .nav-group .gtitle{font-size:12px;color:var(--oa-text-muted);padding:var(--space-2) var(--space-4);font-weight:600;letter-spacing:.3px}
+  .nav-item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);font-size:14px;color:var(--oa-text-secondary);cursor:pointer}
+  .nav-item:hover{background:var(--oa-bg);color:var(--oa-text-primary)}
+  .nav-item.active{background:var(--oa-primary-soft);color:var(--oa-primary);font-weight:600;border-right:3px solid var(--oa-primary)}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:var(--oa-surface);border-bottom:1px solid var(--oa-border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);flex-shrink:0}
+  .topbar .domain-badge{display:inline-flex;align-items:center;gap:6px;background:var(--oa-primary-soft);color:var(--oa-primary);font-size:13px;font-weight:600;padding:4px 10px;border-radius:var(--radius-md)}
+  .topbar .right{display:flex;align-items:center;gap:var(--space-4);color:var(--oa-text-secondary);font-size:13px}
+  .content{padding:var(--space-5);overflow:auto}
+  /* 客户头 */
+  .chead{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4)}
+  .chead .row1{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+  .chead h1{font-size:24px;font-weight:600}
+  .tag{padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600}
+  .tag-A{background:#FEF3F2;color:var(--oa-danger)}
+  .tag-domain{background:var(--oa-info-bg);color:var(--oa-info)}
+  .chead .meta{display:flex;gap:var(--space-5);margin-top:var(--space-3);color:var(--oa-text-secondary);font-size:14px;flex-wrap:wrap}
+  .chead .meta b{color:var(--oa-text-primary);font-weight:500}
+  .stats{display:flex;gap:var(--space-4);margin-top:var(--space-4)}
+  .stat{flex:1;background:var(--oa-bg);border:1px solid var(--oa-divider);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)}
+  .stat .n{font-size:20px;font-weight:600;color:var(--oa-primary)}
+  .stat .l{font-size:13px;color:var(--oa-text-muted)}
+  /* Tabs */
+  .tabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--oa-border);margin-bottom:var(--space-4)}
+  .tab{padding:var(--space-3) var(--space-4);font-size:14px;color:var(--oa-text-secondary);cursor:pointer;border-bottom:2px solid transparent}
+  .tab:hover{color:var(--oa-text-primary)}
+  .tab.active{color:var(--oa-primary);font-weight:600;border-bottom-color:var(--oa-primary)}
+  .panel{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-4)}
+  .panel h3{font-size:18px;font-weight:600;margin-bottom:var(--space-3)}
+  .panel h4{font-size:16px;font-weight:600;margin:var(--space-4) 0 var(--space-2)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+  .kv{display:flex;justify-content:space-between;padding:var(--space-2) 0;border-bottom:1px solid var(--oa-divider);font-size:14px}
+  .kv .k{color:var(--oa-text-secondary)}
+  .kv .v{color:var(--oa-text-primary);font-weight:500}
+  /* 销售闭环 stepper */
+  .stepper{display:flex;align-items:center;gap:var(--space-2);margin:var(--space-3) 0}
+  .step{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .step .dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;background:var(--oa-success-bg);color:var(--oa-success)}
+  .step.todo .dot{background:var(--oa-bg);color:var(--oa-text-muted)}
+  .step .lab{font-size:12px;color:var(--oa-text-secondary)}
+  .step-line{flex:1;height:2px;background:var(--oa-divider)}
+  .step-line.done{background:var(--oa-success)}
+  /* 阶段条 */
+  .stagebar{display:flex;gap:var(--space-2);margin:var(--space-3) 0}
+  .stage{flex:1;text-align:center;padding:var(--space-2);border-radius:var(--radius-md);font-size:13px;border:1px solid var(--oa-border)}
+  .stage.on{background:var(--oa-primary-soft);color:var(--oa-primary);border-color:var(--oa-primary);font-weight:600}
+  .stage.off{color:var(--oa-text-muted)}
+  /* 联系人卡片 */
+  .contact-card{border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-3)}
+  .contact-card .ct{display:flex;justify-content:space-between;align-items:center}
+  .contact-card .name{font-weight:600}
+  .contact-card .role{font-size:13px;color:var(--oa-text-secondary)}
+  .contact-card .acts{display:flex;gap:var(--space-2)}
+  .btn{height:36px;padding:0 16px;border-radius:var(--radius-md);font-size:14px;font-weight:500;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--oa-primary);color:#fff}
+  .btn-primary:hover{background:var(--oa-primary-hover)}
+  .btn-secondary{background:#fff;color:#344054;border:1px solid var(--oa-border)}
+  .btn-sm{height:32px;padding:0 12px;font-size:13px}
+  .status-tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600}
+  .st-done{background:var(--oa-success-bg);color:var(--oa-success)}
+  .st-proc{background:var(--oa-info-bg);color:var(--oa-info)}
+  .st-wait{background:var(--oa-warning-bg);color:var(--oa-warning)}
+  .st-left{background:var(--oa-danger-bg);color:var(--oa-danger)}
+  /* 业务卡片列表 */
+  .biz-card{border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-3);display:flex;justify-content:space-between;align-items:center}
+  .biz-card .tt{font-weight:600}
+  .biz-card .sub{font-size:13px;color:var(--oa-text-secondary)}
+  .hide{display:none}
+  /* 编辑弹窗 */
+  .modal-mask{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center}
+  .modal{width:520px;background:#fff;border-radius:var(--radius-lg);padding:var(--space-5)}
+  .modal h3{font-size:18px;font-weight:600;margin-bottom:var(--space-4)}
+  .field{margin-bottom:var(--space-3)}
+  .field label{display:block;font-size:14px;font-weight:500;margin-bottom:6px}
+  .field input,.field select{width:100%;height:36px;border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:0 12px;font-size:14px}
+  .field input:focus,.field select:focus{outline:2px solid var(--oa-primary-soft);border-color:var(--oa-primary)}
+  .modal-acts{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-4)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- 侧边栏：体现内销/外销双轨 -->
+  <aside class="sidebar">
+    <div class="brand"><img src="HOLANG_Logo_Official.png" alt="HOLANG"/><b>HOLANG OA</b></div>
+    <div class="nav-group">
+      <div class="gtitle">CRM · 内销</div>
+      <div class="nav-item">客户</div>
+      <div class="nav-item active">客户详情</div>
+      <div class="nav-item">线索</div>
+      <div class="nav-item">商机</div>
+      <div class="nav-item">报价</div>
+      <div class="nav-item">订单</div>
+      <div class="nav-item">回款</div>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle">CRM · 外销</div>
+      <div class="nav-item">客户（外销）</div>
+      <div class="nav-item">形式发票 PI</div>
+      <div class="nav-item">WhatsApp</div>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle">支撑</div>
+      <div class="nav-item">产品</div>
+      <div class="nav-item">审批引擎</div>
+      <div class="nav-item">系统设置</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- 顶栏 -->
+    <header class="topbar">
+      <div class="domain-badge">● 当前域：内销 CRM（/domestic）</div>
+      <div class="right"><span>刘世光（管理员）</span><span>|</span><span>退出</span></div>
+    </header>
+
+    <div class="content">
+      <!-- 客户头 -->
+      <section class="chead">
+        <div class="row1">
+          <h1>苏州恒瑞气体设备有限公司</h1>
+          <span class="tag tag-A">A 级</span>
+          <span class="tag tag-domain">内销客户</span>
+          <span class="status-tag st-done">已成交</span>
+        </div>
+        <div class="meta">
+          <span>客户编码 <b>KH20240087</b></span>
+          <span>国家/地区 <b>中国 · 江苏</b></span>
+          <span>行业 <b>工业气体</b></span>
+          <span>负责人 <b>李娜</b></span>
+          <span>来源 <b>官网询盘</b></span>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="n">12</div><div class="l">商机数</div></div>
+          <div class="stat"><div class="n">8</div><div class="l">报价数</div></div>
+          <div class="stat"><div class="n">5</div><div class="l">订单数</div></div>
+          <div class="stat"><div class="n">¥386万</div><div class="l">累计成交</div></div>
+        </div>
+      </section>
+
+      <!-- Tabs：真实系统 8 个 -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('overview')">概览</div>
+        <div class="tab" onclick="switchTab('contact')">联系人</div>
+        <div class="tab" onclick="switchTab('opp')">商机</div>
+        <div class="tab" onclick="switchTab('quote')">报价</div>
+        <div class="tab" onclick="switchTab('order')">订单</div>
+        <div class="tab" onclick="switchTab('pay')">回款</div>
+        <div class="tab" onclick="switchTab('timeline')">时间轴</div>
+        <div class="tab" onclick="switchTab('ai')">AI 助手</div>
+      </div>
+
+      <!-- 概览 -->
+      <section data-panel="overview">
+        <div class="panel">
+          <h3>销售闭环</h3>
+          <div class="stepper">
+            <div class="step"><div class="dot">✓</div><div class="lab">线索</div></div>
+            <div class="step-line done"></div>
+            <div class="step"><div class="dot">✓</div><div class="lab">商机</div></div>
+            <div class="step-line done"></div>
+            <div class="step"><div class="dot">✓</div><div class="lab">报价</div></div>
+            <div class="step-line done"></div>
+            <div class="step"><div class="dot">✓</div><div class="lab">合同</div></div>
+            <div class="step-line done"></div>
+            <div class="step"><div class="dot">✓</div><div class="lab">订单</div></div>
+          </div>
+          <h4>跟进阶段</h4>
+          <div class="stagebar">
+            <div class="stage off">初步接触</div>
+            <div class="stage off">需求确认</div>
+            <div class="stage on">方案报价</div>
+            <div class="stage off">谈判</div>
+            <div class="stage off">成交</div>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="panel">
+            <h3>基本信息</h3>
+            <div class="kv"><span class="k">客户名称</span><span class="v">苏州恒瑞气体设备有限公司</span></div>
+            <div class="kv"><span class="k">统一信用代码</span><span class="v">91320500MA1XXXX</span></div>
+            <div class="kv"><span class="k">行业</span><span class="v">工业气体设备</span></div>
+            <div class="kv"><span class="k">地区</span><span class="v">江苏 · 苏州</span></div>
+            <div class="kv"><span class="k">负责人</span><span class="v">李娜</span></div>
+            <div class="kv"><span class="k">客户等级</span><span class="v">A</span></div>
+            <div class="kv"><span class="k">客户来源</span><span class="v">官网询盘</span></div>
+            <div class="kv"><span class="k">创建时间</span><span class="v">2024-03-12</span></div>
+            <div class="kv"><span class="k">最后跟进</span><span class="v">2026-09-18</span></div>
+            <div class="kv"><span class="k">电话</span><span class="v">0512-6XXX</span></div>
+            <div class="kv"><span class="k">邮箱</span><span class="v">sales@hengrui.com</span></div>
+            <div class="kv"><span class="k">地址</span><span class="v">苏州市工业园区</span></div>
+          </div>
+          <div class="panel">
+            <h3>全渠道互动</h3>
+            <div class="kv"><span class="k">电话</span><span class="v">23 次</span></div>
+            <div class="kv"><span class="k">微信</span><span class="v">41 次</span></div>
+            <div class="kv"><span class="k">邮件</span><span class="v">17 次</span></div>
+            <div class="kv"><span class="k">拜访</span><span class="v">6 次</span></div>
+            <h4>社媒绑定</h4>
+            <div class="kv"><span class="k">官网</span><span class="v">hengrui.com</span></div>
+            <div class="kv"><span class="k">LinkedIn</span><span class="v">未绑定</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 联系人 -->
+      <section data-panel="contact" class="hide">
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+            <h3>联系人（一对多）</h3>
+            <button class="btn btn-primary btn-sm" onclick="openEdit()">+ 新增联系人</button>
+          </div>
+          <div class="contact-card">
+            <div class="ct">
+              <div><div class="name">王强</div><div class="role">采购总监</div></div>
+              <div class="acts"><button class="btn btn-secondary btn-sm" onclick="openEdit()">编辑</button><span class="status-tag st-done">在职</span></div>
+            </div>
+            <div class="kv" style="margin-top:var(--space-2)"><span class="k">电话</span><span class="v">138-XXXX</span></div>
+            <div class="kv"><span class="k">邮箱</span><span class="v">wang@hengrui.com</span></div>
+          </div>
+          <div class="contact-card">
+            <div class="ct">
+              <div><div class="name">陈敏</div><div class="role">技术经理</div></div>
+              <div class="acts"><button class="btn btn-secondary btn-sm" onclick="openEdit()">编辑</button><span class="status-tag st-left">已离职</span></div>
+            </div>
+            <div class="kv" style="margin-top:var(--space-2)"><span class="k">留痕</span><span class="v">2026-08-02 标记离职（李娜）</span></div>
+          </div>
+          <p style="font-size:13px;color:var(--oa-text-muted);margin-top:var(--space-2)">注：真实系统尚无「软信息 8 项 / 离职迁移」—— 见治理增量规划，不混入本轮。</p>
+        </div>
+      </section>
+
+      <!-- 商机/报价/订单/回款 业务卡片 -->
+      <section data-panel="opp" class="hide">
+        <div class="panel"><h3>商机</h3>
+          <div class="biz-card"><div><div class="tt">PSA 制氮机 NPL01B ×2</div><div class="sub">金额 ¥86万 · 阶段 方案报价</div></div><span class="status-tag st-proc">进行中</span></div>
+          <div class="biz-card"><div><div class="tt">储气罐配套</div><div class="sub">金额 ¥22万 · 阶段 需求确认</div></div><span class="status-tag st-wait">待确认</span></div>
+        </div>
+      </section>
+      <section data-panel="quote" class="hide">
+        <div class="panel"><h3>报价</h3>
+          <div class="biz-card"><div><div class="tt">QUO-2026-0142</div><div class="sub">¥86万 · 2026-09-10</div></div><span class="status-tag st-done">已发</span></div>
+        </div>
+      </section>
+      <section data-panel="order" class="hide">
+        <div class="panel"><h3>订单</h3>
+          <div class="biz-card"><div><div class="tt">ORD-2026-0098</div><div class="sub">¥86万 · 已发货</div></div><span class="status-tag st-done">已完成</span></div>
+        </div>
+      </section>
+      <section data-panel="pay" class="hide">
+        <div class="panel"><h3>回款</h3>
+          <div class="biz-card"><div><div class="tt">COL-2026-0033</div><div class="sub">¥51.6万 · 预收30%</div></div><span class="status-tag st-proc">已收</span></div>
+        </div>
+      </section>
+      <section data-panel="timeline" class="hide">
+        <div class="panel"><h3>时间轴</h3>
+          <div class="kv"><span class="k">2026-09-18</span><span class="v">李娜 电话跟进：客户确认第二批采购意向</span></div>
+          <div class="kv"><span class="k">2026-09-10</span><span class="v">发出报价 QUO-2026-0142</span></div>
+          <div class="kv"><span class="k">2026-08-02</span><span class="v">联系人陈敏标记离职（留痕）</span></div>
+        </div>
+      </section>
+      <section data-panel="ai" class="hide">
+        <div class="panel"><h3>AI 助手</h3>
+          <div class="kv"><span class="k">建议</span><span class="v">该客户 30 天未推进新订单，建议触发回访</span></div>
+          <div class="kv"><span class="k">洞察</span><span class="v">储气罐配套商机停留「需求确认」超 14 天</span></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-mask hide" id="editMask">
+  <div class="modal">
+    <h3>编辑联系人</h3>
+    <div class="field"><label>姓名</label><input value="王强"/></div>
+    <div class="field"><label>职务</label><input value="采购总监"/></div>
+    <div class="field"><label>电话</label><input value="138-XXXX"/></div>
+    <div class="field"><label>邮箱</label><input value="wang@hengrui.com"/></div>
+    <div class="field"><label>状态</label><select><option>在职</option><option>已离职</option></select></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeEdit()">取消</button>
+      <button class="btn btn-primary" onclick="closeEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(name){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('[data-panel]').forEach(p=>p.classList.add('hide'));
+    document.querySelector('[data-panel="'+name+'"]').classList.remove('hide');
+  }
+  function openEdit(){document.getElementById('editMask').classList.remove('hide');}
+  function closeEdit(){document.getElementById('editMask').classList.add('hide');}
+</script>
+</body>
+</html>

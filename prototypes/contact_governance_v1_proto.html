@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户详情 · 联系人治理（V0.1 验证原型）</title>
+<style>
+:root{
+  --oa-primary:#09348B; --oa-primary-hover:#0D47A1; --oa-primary-active:#072C73; --oa-primary-soft:#E8F0FE;
+  --oa-accent:#E45124;
+  --oa-bg:#F6F8FB; --oa-surface:#FFFFFF;
+  --oa-text-primary:#1F2937; --oa-text-secondary:#667085; --oa-text-muted:#98A2B3;
+  --oa-border:#D7DDE5; --oa-divider:#EAECF0;
+  --oa-success:#15803D; --oa-warning:#B45309; --oa-danger:#B42318; --oa-info:#2563EB;
+  --oa-success-bg:#ECFDF3; --oa-warning-bg:#FFFAEB; --oa-danger-bg:#FEF3F2; --oa-info-bg:#EFF6FF;
+  --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--oa-bg);color:var(--oa-text-primary);font-size:14px;line-height:1.5}
+.topbar{height:56px;background:var(--oa-surface);border-bottom:1px solid var(--oa-border);display:flex;align-items:center;gap:12px;padding:0 24px;position:sticky;top:0;z-index:10}
+.topbar .logo{height:28px}
+.topbar .title{font-size:16px;font-weight:600}
+.domain-badge{font-size:12px;font-weight:600;color:var(--oa-primary);background:var(--oa-primary-soft);padding:4px 10px;border-radius:var(--radius-md)}
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:224px;background:var(--oa-surface);border-right:1px solid var(--oa-border);padding:16px 12px;flex-shrink:0}
+.nav-group-title{font-size:12px;font-weight:600;color:var(--oa-text-muted);padding:8px 12px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-md);font-size:14px;color:var(--oa-text-secondary);cursor:pointer;margin-bottom:2px}
+.nav-item.active{background:var(--oa-primary-soft);color:var(--oa-primary);font-weight:600}
+.nav-item:hover{background:var(--oa-bg)}
+.main{flex:1;padding:24px;max-width:100%}
+.crumbs{font-size:13px;color:var(--oa-text-secondary);margin-bottom:8px}
+.crumbs b{color:var(--oa-text-primary)}
+.page-title{font-size:24px;font-weight:600;margin-bottom:4px}
+.cust-head{display:flex;align-items:center;gap:12px;background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:16px;margin-bottom:24px}
+.cust-name{font-size:18px;font-weight:600}
+.level-tag{font-size:12px;font-weight:600;padding:2px 10px;border-radius:var(--radius-md);background:var(--oa-danger-bg);color:var(--oa-danger)}
+.cust-meta{font-size:13px;color:var(--oa-text-secondary);margin-left:auto;display:flex;gap:20px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--oa-border);margin-bottom:20px}
+.tab{padding:10px 16px;font-size:14px;font-weight:500;color:var(--oa-text-secondary);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--oa-primary);font-weight:600;border-bottom-color:var(--oa-primary)}
+.panel{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:16px}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.btn-primary{height:36px;background:var(--oa-primary);color:#fff;border:none;border-radius:var(--radius-md);padding:0 16px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-primary:hover{background:var(--oa-primary-hover)}
+.btn-secondary{height:36px;background:#fff;border:1px solid var(--oa-border);color:#344054;border-radius:var(--radius-md);padding:0 14px;font-size:13px;cursor:pointer}
+.btn-secondary:hover{background:var(--oa-bg)}
+.btn-danger-ghost{height:32px;background:#fff;border:1px solid var(--oa-border);color:var(--oa-danger);border-radius:var(--radius-md);padding:0 12px;font-size:13px;cursor:pointer}
+.btn-danger-ghost:hover{background:var(--oa-danger-bg)}
+.count{font-size:13px;color:var(--oa-text-muted)}
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.contact-card{background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:16px}
+.cc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.avatar{width:40px;height:40px;border-radius:var(--radius-md);background:var(--oa-primary-soft);color:var(--oa-primary);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;flex-shrink:0}
+.cc-name{font-size:15px;font-weight:600}
+.cc-pos{font-size:12px;color:var(--oa-text-secondary)}
+.cc-lines{font-size:13px;color:var(--oa-text-secondary);space-y:4px;margin:8px 0}
+.cc-lines div{margin:3px 0;display:flex;gap:6px;align-items:center}
+.cc-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--oa-divider)}
+.status-tag{font-size:12px;font-weight:600;padding:2px 10px;border-radius:var(--radius-md)}
+.st-active{background:var(--oa-success-bg);color:var(--oa-success)}
+.st-left{background:var(--oa-danger-bg);color:var(--oa-danger)}
+.left-note{font-size:12px;color:var(--oa-danger);background:var(--oa-danger-bg);border-radius:var(--radius-sm);padding:6px 10px;margin-top:8px}
+.key-tag{font-size:11px;font-weight:600;color:var(--oa-warning);background:var(--oa-warning-bg);padding:1px 8px;border-radius:var(--radius-sm)}
+.audit-box{margin-top:24px;background:var(--oa-surface);border:1px solid var(--oa-border);border-radius:var(--radius-lg);padding:16px}
+.audit-title{font-size:16px;font-weight:600;margin-bottom:12px}
+.audit-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--oa-divider);font-size:13px}
+.audit-item:last-child{border-bottom:none}
+.audit-dot{width:8px;height:8px;border-radius:50%;background:var(--oa-info);margin-top:6px;flex-shrink:0}
+.audit-meta{color:var(--oa-text-muted);font-size:12px}
+.modal-mask{position:fixed;inset:0;background:rgba(16,24,40,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);width:560px;max-width:92vw;max-height:88vh;overflow:auto;padding:24px}
+.modal h3{font-size:18px;font-weight:600;margin-bottom:16px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:14px;font-weight:500;margin-bottom:6px;color:var(--oa-text-primary)}
+.field .help{font-size:12px;color:var(--oa-text-muted);margin-top:4px}
+.field input,.field textarea,.field select{width:100%;height:36px;border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:0 12px;font-size:14px;font-family:inherit}
+.field textarea{height:72px;padding:8px 12px;resize:vertical}
+.field:focus-within input,.field:focus-within textarea{border-color:var(--oa-primary);outline:2px solid var(--oa-primary-soft)}
+.soft-group{margin-top:8px;padding-top:12px;border-top:1px dashed var(--oa-border)}
+.soft-group-title{font-size:13px;font-weight:600;color:var(--oa-primary);margin-bottom:12px}
+.modal-footer{display:flex;justify-content:flex-end;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--oa-divider)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:3px 10px;border:1px solid var(--oa-border);border-radius:999px;background:var(--oa-bg);color:var(--oa-text-secondary)}
+.hint{font-size:12px;color:var(--oa-text-muted);background:var(--oa-info-bg);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <img class="logo" src="HOLANG_Logo_Official.png" alt="HOLANG">
+  <span class="title">客户详情</span>
+  <span class="domain-badge">当前域：内销 CRM</span>
+</div>
+<div class="layout">
+  <div class="sidebar">
+    <div class="nav-group-title">内销</div>
+    <div class="nav-item active">客户</div>
+    <div class="nav-item">联系人</div>
+    <div class="nav-item">线索</div>
+    <div class="nav-item">商机</div>
+    <div class="nav-item">报价</div>
+    <div class="nav-item">订单</div>
+    <div class="nav-group-title">外销</div>
+    <div class="nav-item">客户（海外）</div>
+    <div class="nav-item">PI / 形式发票</div>
+    <div class="nav-item">WhatsApp</div>
+  </div>
+  <div class="main">
+    <div class="crumbs">内销 CRM / 客户 / <b>苏州某气体设备有限公司</b></div>
+    <div class="page-title">苏州某气体设备有限公司</div>
+    <div class="cust-head">
+      <span class="level-tag">A 级</span>
+      <span class="cust-name">苏州某气体设备有限公司</span>
+      <div class="cust-meta">
+        <span>客户编码：C-2024-0136</span>
+        <span>国家：中国</span>
+        <span>行业：工业气体</span>
+        <span>负责人：张销</span>
+        <span>来源：展会</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab">概览</div>
+      <div class="tab active">联系人</div>
+      <div class="tab">商机</div>
+      <div class="tab">报价</div>
+      <div class="tab">订单</div>
+      <div class="tab">回款</div>
+      <div class="tab">时间轴</div>
+      <div class="tab">AI 助手</div>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <button class="btn-primary" onclick="openAdd()">+ 新增联系人</button>
+        <span class="count">共 3 位联系人 · 含 1 位已离职（保留不删）</span>
+      </div>
+
+      <div class="contact-grid">
+        <!-- 在职关键人 -->
+        <div class="contact-card">
+          <div class="cc-head">
+            <div class="avatar">王</div>
+            <div>
+              <div class="cc-name">王建国 <span class="key-tag">关键人</span></div>
+              <div class="cc-pos">采购总监</div>
+            </div>
+            <span class="status-tag st-active" style="margin-left:auto">在职</span>
+          </div>
+          <div class="cc-lines">
+            <div>📞 138-0000-0001</div>
+            <div>✉ wang@sample.com</div>
+            <div>💬 微信 wang_jg</div>
+          </div>
+          <div class="cc-actions">
+            <button class="btn-secondary" onclick="openEdit('王建国')">编辑</button>
+            <button class="btn-secondary" onclick="openLeave('王建国')">标记离职</button>
+            <button class="btn-secondary" onclick="openMove('王建国')">迁移</button>
+          </div>
+        </div>
+
+        <!-- 在职普通 -->
+        <div class="contact-card">
+          <div class="cc-head">
+            <div class="avatar">李</div>
+            <div>
+              <div class="cc-name">李娜</div>
+              <div class="cc-pos">技术工程师</div>
+            </div>
+            <span class="status-tag st-active" style="margin-left:auto">在职</span>
+          </div>
+          <div class="cc-lines">
+            <div>📞 139-0000-0002</div>
+            <div>✉ lina@sample.com</div>
+          </div>
+          <div class="cc-actions">
+            <button class="btn-secondary" onclick="openEdit('李娜')">编辑</button>
+            <button class="btn-secondary" onclick="openLeave('李娜')">标记离职</button>
+            <button class="btn-secondary" onclick="openMove('李娜')">迁移</button>
+          </div>
+        </div>
+
+        <!-- 已离职（保留，禁删） -->
+        <div class="contact-card" style="border-color:var(--oa-danger)">
+          <div class="cc-head">
+            <div class="avatar" style="background:var(--oa-danger-bg);color:var(--oa-danger)">陈</div>
+            <div>
+              <div class="cc-name">陈伟</div>
+              <div class="cc-pos">原销售对接人</div>
+            </div>
+            <span class="status-tag st-left" style="margin-left:auto">已离职</span>
+          </div>
+          <div class="cc-lines">
+            <div>📞 137-0000-0003</div>
+            <div>✉ chen@sample.com</div>
+          </div>
+          <div class="left-note">⚠ 离职留痕：2026-08-12 由张销标记离职。原属本公司，未删除，仅冻结。</div>
+          <div class="cc-actions">
+            <button class="btn-secondary" onclick="openEdit('陈伟')">查看</button>
+            <button class="btn-secondary" onclick="openMove('陈伟')">迁移至新公司</button>
+            <!-- 无删除按钮：禁删铁律 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 审计留痕 -->
+    <div class="audit-box">
+      <div class="audit-title">联系人治理留痕（AuditLog）</div>
+      <div class="audit-item">
+        <div class="audit-dot"></div>
+        <div>
+          <div>陈伟 标记为「离职」</div>
+          <div class="audit-meta">2026-08-12 14:30 · 操作人：张销 · 原客户：苏州某气体设备有限公司 · 说明：跳槽至竞品</div>
+        </div>
+      </div>
+      <div class="audit-item">
+        <div class="audit-dot"></div>
+        <div>
+          <div>王建国 软信息更新（生日 / 兴趣爱好）</div>
+          <div class="audit-meta">2026-07-20 09:15 · 操作人：张销 · 字段配置机制：JSONB extension</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/编辑弹窗：基础字段 + 软信息8项（动态，来自字段配置） -->
+<div class="modal-mask" id="editModal">
+  <div class="modal">
+    <h3 id="editTitle">编辑联系人 · 王建国</h3>
+    <div class="hint">软信息用于销售跟进决策，按「字段配置」动态渲染；以下为默认 8 项，管理员可在系统设置加列。</div>
+    <div class="field"><label>姓名 *</label><input value="王建国"></div>
+    <div class="field"><label>职位</label><input value="采购总监"></div>
+    <div class="field"><label>电话</label><input value="138-0000-0001"></div>
+    <div class="field"><label>邮箱</label><input value="wang@sample.com"></div>
+    <div class="field"><label>微信</label><input value="wang_jg"></div>
+    <div class="field"><label>WhatsApp</label><input></div>
+
+    <div class="soft-group">
+      <div class="soft-group-title">软信息（销售跟进决策价值）</div>
+      <div class="field"><label>生日</label><input type="date" value="1985-03-12"><div class="help">提前 7 天提醒，用于关怀跟进</div></div>
+      <div class="field"><label>故乡 / 籍贯</label><input value="江苏南通"><div class="help">同乡/同区域易建立信任</div></div>
+      <div class="field"><label>兴趣爱好</label><div class="chips"><span class="chip">高尔夫</span><span class="chip">钓鱼</span><span class="chip">+ 添加</span></div><div class="help">找共同话题，破冰用</div></div>
+      <div class="field"><label>家庭情况</label><textarea>已婚，一子（读小学）</textarea><div class="help">判断决策周期与关注点</div></div>
+      <div class="field"><label>教育背景</label><input value="浙江大学 机械工程"><div class="help">专业背景影响技术沟通深度</div></div>
+      <div class="field"><label>性格标签</label><div class="chips"><span class="chip">理性</span><span class="chip">数据驱动</span><span class="chip">+ 添加</span></div><div class="help">决定沟通风格（数据派 vs 关系派）</div></div>
+      <div class="field"><label>饮食禁忌</label><div class="chips"><span class="chip">不吃辣</span><span class="chip">+ 添加</span></div><div class="help">商务宴请避免踩雷</div></div>
+      <div class="field"><label>宗教 / 文化禁忌</label><textarea>无特殊</textarea><div class="help">跨文化客户（外销）尤为重要</div></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="closeModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 标记离职弹窗 -->
+<div class="modal-mask" id="leaveModal">
+  <div class="modal">
+    <h3>标记离职 · 王建国</h3>
+    <div class="hint">离职后原联系人保留、状态置「已离职」，绝不删除；可选迁移至新公司。</div>
+    <div class="field"><label>离职说明 *</label><textarea placeholder="如：跳槽至竞品 / 退休 / 岗位调整"></textarea><div class="help">写入审计留痕，原公司可查</div></div>
+    <div class="field"><label>迁移至新客户（可选）</label><input placeholder="输入目标客户名称，留空则仅标记离职"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-danger-ghost" onclick="closeModal()">确认标记离职</button>
+    </div>
+  </div>
+</div>
+
+<!-- 迁移弹窗 -->
+<div class="modal-mask" id="moveModal">
+  <div class="modal">
+    <h3>迁移联系人 · 王建国</h3>
+    <div class="hint">联系人离职去新公司 → 迁移到目标客户，原记录保留并写血缘（migratedFromId）。</div>
+    <div class="field"><label>目标客户 *</label><input placeholder="输入新公司名称"></div>
+    <div class="field"><label>迁移说明</label><textarea placeholder="如：客户跳槽至 XX 公司，关系带走"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="closeModal()">确认迁移</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openAdd(){document.getElementById('editTitle').textContent='新增联系人';show('editModal')}
+function openEdit(n){document.getElementById('editTitle').textContent='编辑联系人 · '+n;show('editModal')}
+function openLeave(n){show('leaveModal')}
+function openMove(n){show('moveModal')}
+function show(id){document.getElementById(id).classList.add('show')}
+function closeModal(){document.querySelectorAll('.modal-mask').forEach(m=>m.classList.remove('show'))}
+document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal()}))
+</script>
+</body>
+</html>

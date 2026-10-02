@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客户详情 · 复刻真实前端（CustomerDetail.tsx）+ V0.1 规范</title>
+<style>
+  :root{
+    --oa-primary:#09348B; --oa-primary-hover:#0D47A1; --oa-primary-active:#072C73; --oa-primary-soft:#E8F0FE;
+    --oa-accent:#E45124;
+    --oa-bg:#F6F8FB; --oa-surface:#FFFFFF;
+    --oa-text-primary:#1F2937; --oa-text-secondary:#667085; --oa-text-muted:#98A2B3;
+    --oa-border:#D7DDE5; --oa-divider:#EAECF0;
+    --oa-success:#15803D; --oa-success-bg:#ECFDF3;
+    --oa-warning:#B45309; --oa-warning-bg:#FFFAEB;
+    --oa-danger:#B42318; --oa-danger-bg:#FEF3F2;
+    --oa-info:#2563EB; --oa-info-bg:#EFF6FF;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--oa-bg);color:var(--oa-text-primary);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  /* App shell */
+  .topbar{height:56px;background:var(--oa-surface);border-bottom:1px solid var(--oa-divider);display:flex;align-items:center;gap:12px;padding:0 24px}
+  .topbar img{height:28px}
+  .topbar .sys{font-weight:600;color:var(--oa-primary);font-size:15px;margin-left:4px}
+  .topbar .spacer{flex:1}
+  .topbar .who{font-size:13px;color:var(--oa-text-secondary)}
+  .shell{display:flex;min-height:calc(100vh - 56px)}
+  .sidebar{width:224px;background:var(--oa-surface);border-right:1px solid var(--oa-divider);padding:16px 12px;flex-shrink:0}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-md);font-size:14px;color:var(--oa-text-secondary);cursor:pointer;margin-bottom:2px}
+  .nav-item:hover{background:#F2F4F7;color:var(--oa-text-primary)}
+  .nav-item.active{background:var(--oa-primary-soft);color:var(--oa-primary);font-weight:500}
+  .main{flex:1;padding:24px;min-width:0}
+  /* Page header */
+  .page-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .back{width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--oa-text-muted);border:1px solid transparent;cursor:pointer}
+  .back:hover{background:var(--oa-primary-soft);color:var(--oa-primary)}
+  h1{font-size:20px;font-weight:600}
+  /* Customer info card */
+  .panel{background:var(--oa-surface);border:1px solid var(--oa-divider);border-radius:var(--radius-lg);padding:16px}
+  .cust-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .cust-id{display:flex;gap:16px;align-items:flex-start}
+  .avatar{width:48px;height:48px;border-radius:var(--radius-md);background:var(--oa-primary-soft);color:var(--oa-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cust-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cust-name h2{font-size:18px;font-weight:600}
+  .tag{padding:1px 8px;border-radius:999px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+  .lvl-A{background:var(--oa-danger-bg);color:var(--oa-danger)}
+  .lvl-B{background:var(--oa-warning-bg);color:var(--oa-warning)}
+  .lvl-C{background:var(--oa-info-bg);color:var(--oa-info)}
+  .lvl-D{background:var(--oa-info-bg);color:var(--oa-info)}
+  .lvl-E{background:#F2F4F7;color:var(--oa-text-muted)}
+  .code{font-size:12px;color:var(--oa-text-muted);font-family:ui-monospace,Menlo,monospace}
+  .meta{display:flex;flex-wrap:wrap;gap:12px 16px;margin-top:8px;font-size:12px;color:var(--oa-text-secondary)}
+  .meta span{display:inline-flex;align-items:center;gap:4px;cursor:default}
+  .meta .edit-country{color:var(--oa-primary);cursor:pointer}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--oa-divider)}
+  .stat{background:#F9FAFB;border-radius:var(--radius-md);padding:12px;text-align:center}
+  .stat .k{font-size:12px;color:var(--oa-text-muted)}
+  .stat .v{font-size:18px;font-weight:700;margin-top:2px}
+  .v-brand{color:var(--oa-primary)} .v-green{color:var(--oa-success)}
+  /* Tabs */
+  .tabs{background:var(--oa-surface);border:1px solid var(--oa-divider);border-radius:var(--radius-lg);margin-top:16px;overflow:hidden}
+  .tabbar{display:flex;border-bottom:1px solid var(--oa-divider);overflow-x:auto}
+  .tab{padding:12px 16px;font-size:14px;font-weight:500;white-space:nowrap;border-bottom:2px solid transparent;color:var(--oa-text-secondary);cursor:pointer;background:none;border-top:none;border-left:none;border-right:none}
+  .tab:hover{color:var(--oa-text-primary)}
+  .tab.active{color:var(--oa-primary);border-bottom-color:var(--oa-primary)}
+  .tabbody{padding:16px 24px}
+  /* Section */
+  .sec-title{font-size:14px;font-weight:600;color:var(--oa-text-primary);margin:0 0 12px}
+  .sec{margin-bottom:24px}
+  /* Loop stepper */
+  .loop{display:flex;align-items:stretch;gap:4px;overflow-x:auto;padding-bottom:4px}
+  .loop-step{flex:1;min-width:120px;border-radius:var(--radius-md);border:1px solid var(--oa-border);padding:12px;text-align:left;cursor:pointer;background:#F9FAFB}
+  .loop-step.done{border-color:#BBF7D0;background:var(--oa-success-bg)}
+  .loop-step .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .loop-step .lab{font-size:12px;font-weight:500;color:var(--oa-text-secondary)}
+  .loop-step.done .lab{color:var(--oa-success)}
+  .badge-count{width:20px;height:20px;border-radius:999px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:#D1D5DB;color:#fff}
+  .loop-step.done .badge-count{background:var(--oa-success)}
+  .loop-step .st{font-size:10px;margin-top:6px;color:var(--oa-text-muted)}
+  .loop-step.done .st{color:var(--oa-success)}
+  .chev{color:var(--oa-border);align-self:center;flex-shrink:0}
+  /* Follow stage bar */
+  .stagebar{display:flex;border:1px solid #BFDBFE;border-radius:var(--radius-md);overflow:hidden}
+  .stage{flex:1;padding:10px 4px;text-align:center;font-size:12px;color:var(--oa-text-muted);border-right:1px solid var(--oa-divider)}
+  .stage:last-child{border-right:none}
+  .stage.done{background:var(--oa-success-bg);color:var(--oa-success)}
+  .stage.current{background:var(--oa-success);color:#fff;font-weight:700}
+  /* Channel grid */
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .ch{background:#F9FAFB;border-radius:var(--radius-md);padding:12px;text-align:center}
+  .ch .k{font-size:12px;color:var(--oa-text-secondary)}
+  .ch .v{font-size:20px;font-weight:700;color:var(--oa-text-primary);margin-top:2px}
+  .ch .u{font-size:10px;color:var(--oa-text-muted)}
+  /* Social binding */
+  .soc{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .soc-item{border:1px dashed var(--oa-border);background:#F9FAFB;border-radius:var(--radius-md);padding:12px;display:flex;align-items:center;gap:12px}
+  .soc-item.bound{border:1px solid #BBF7D0;background:var(--oa-success-bg)}
+  .soc-ic{width:36px;height:36px;border-radius:var(--radius-md);background:var(--oa-primary-soft);color:var(--oa-primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+  .soc-item.bound .soc-ic{background:var(--oa-success-bg);color:var(--oa-success)}
+  .soc-item .name{font-size:12px;font-weight:500;color:var(--oa-text-primary)}
+  .soc-item .st{font-size:10px;color:var(--oa-text-muted)}
+  .soc-item.bound .st{color:var(--oa-success)}
+  /* Info grid */
+  .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .info{display:flex;flex-direction:column;gap:2px}
+  .info .l{font-size:13px;color:var(--oa-text-secondary)}
+  .info .val{font-size:14px;color:var(--oa-text-primary)}
+  /* Buttons */
+  .btn-primary{background:var(--oa-primary);color:#fff;border:none;border-radius:var(--radius-md);height:36px;padding:0 16px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-primary:hover{background:var(--oa-primary-hover)}
+  .btn-secondary{background:var(--oa-surface);color:var(--oa-text-primary);border:1px solid var(--oa-border);border-radius:var(--radius-md);height:36px;padding:0 16px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-secondary:hover{background:#F2F4F7}
+  .btn-sm{height:32px;padding:0 12px;font-size:13px}
+  /* Contacts */
+  .contact-card{background:var(--oa-surface);border:1px solid var(--oa-divider);border-radius:var(--radius-lg);padding:16px;display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+  .contact-card:hover{border-color:var(--oa-border)}
+  .c-left{display:flex;gap:12px;align-items:flex-start;flex:1}
+  .c-av{width:40px;height:40px;border-radius:999px;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#667085}
+  .c-name{font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .c-role{font-size:12px;color:var(--oa-text-muted);margin-top:2px}
+  .c-line{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:12px;color:var(--oa-text-secondary)}
+  .soft{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:500;background:var(--oa-success-bg);color:var(--oa-success)}
+  .soft-w{background:var(--oa-info-bg);color:var(--oa-info)}
+  .soft-gray{background:#F2F4F7;color:var(--oa-text-muted)}
+  .icon-btn{width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--oa-text-muted);cursor:pointer;border:1px solid transparent}
+  .icon-btn:hover{background:var(--oa-primary-soft);color:var(--oa-primary)}
+  /* Form */
+  .form-card{border:1px solid var(--oa-primary);background:var(--oa-primary-soft);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
+  .form-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
+  input,select,textarea{width:100%;height:40px;border:1px solid var(--oa-border);border-radius:var(--radius-md);padding:0 12px;font-size:14px;color:var(--oa-text-primary);background:var(--oa-surface);font-family:inherit}
+  textarea{height:auto;padding:8px 12px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--oa-primary);box-shadow:0 0 0 2px var(--oa-primary-soft)}
+  .lbl{display:block;font-size:13px;color:var(--oa-text-secondary);margin-bottom:4px}
+  .modal-mask{position:fixed;inset:0;background:rgba(16,24,40,.4);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal-mask.open{display:flex}
+  .modal{background:var(--oa-surface);border-radius:var(--radius-lg);width:100%;max-width:520px;max-height:90vh;overflow:auto}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--oa-divider)}
+  .modal-body{padding:20px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:12px;padding:16px 20px;border-top:1px solid var(--oa-divider);background:#F9FAFB}
+  /* List cards (opp/quote/order/payment) */
+  .rcard{background:var(--oa-surface);border:1px solid var(--oa-divider);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+  .rcard .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--oa-text-secondary)}
+  .rcard .sub{font-size:12px;color:var(--oa-text-muted);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+  .amt{font-size:18px;font-weight:700;color:var(--oa-primary)}
+  .empty{text-align:center;color:var(--oa-text-muted);padding:48px 0}
+  .stt{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:500}
+  .st-success{background:var(--oa-success-bg);color:var(--oa-success)}
+  .st-info{background:var(--oa-info-bg);color:var(--oa-info)}
+  .st-warning{background:var(--oa-warning-bg);color:var(--oa-warning)}
+  .st-danger{background:var(--oa-danger-bg);color:var(--oa-danger)}
+  .st-gray{background:#F2F4F7;color:var(--oa-text-muted)}
+  .hint{font-size:10px;color:var(--oa-text-muted);margin-top:8px}
+  /* Timeline */
+  .tl-add{display:flex;justify-content:flex-end;margin-bottom:12px}
+  .tl-filters{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .tl-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--oa-divider)}
+  .tl-ic{width:32px;height:32px;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px}
+  .tl-body{flex:1}
+  .tl-meta{font-size:12px;color:var(--oa-text-muted);margin-top:2px}
+  .ai-box{background:var(--oa-primary-soft);border:1px solid var(--oa-primary);border-radius:var(--radius-lg);padding:20px;text-align:center;color:var(--oa-text-secondary)}
+</style>
+</head>
+<body>
+  <!-- App shell -->
+  <div class="topbar">
+    <img src="HOLANG_Logo_Official.png" alt="HOLANG" />
+    <span class="sys">HOLANG OA</span>
+    <div class="spacer"></div>
+    <span class="who">张伟 · 销售</span>
+  </div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="nav-item">客户</div>
+      <div class="nav-item">商机</div>
+      <div class="nav-item">报价</div>
+      <div class="nav-item">订单</div>
+      <div class="nav-item">回款</div>
+      <div class="nav-item">发票</div>
+      <div class="nav-item active">联系人</div>
+      <div class="nav-item">跟进</div>
+      <div class="nav-item">AI 助手</div>
+    </aside>
+    <main class="main">
+      <!-- Page header -->
+      <div class="page-head">
+        <div class="back" title="返回">←</div>
+        <h1>客户详情</h1>
+      </div>
+
+      <!-- Customer info card -->
+      <div class="panel">
+        <div class="cust-head">
+          <div class="cust-id">
+            <div class="avatar">🏢</div>
+            <div>
+              <div class="cust-name">
+                <h2>苏州恒丰工业气体设备有限公司</h2>
+                <span class="tag lvl-A">A级</span>
+                <span class="code">CUS-2024-0815</span>
+              </div>
+              <div class="meta">
+                <span class="edit-country">🌐 中国 ✎</span>
+                <span>🏷 工业气体</span>
+                <span>📍 江苏省苏州市</span>
+                <span>👤 张伟</span>
+                <span>📈 来源：官网</span>
+                <span>📅 创建：2024-03-12</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <button class="btn-secondary btn-sm">编辑</button>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="k">商机总数</div><div class="v">2</div></div>
+          <div class="stat"><div class="k">商机金额</div><div class="v">¥1,280,000</div></div>
+          <div class="stat"><div class="k">订单金额</div><div class="v v-brand">¥860,000</div></div>
+          <div class="stat"><div class="k">已回款</div><div class="v v-green">¥430,000</div></div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tabbar" id="tabbar">
+          <button class="tab active" data-tab="overview">概览</button>
+          <button class="tab" data-tab="contacts">联系人</button>
+          <button class="tab" data-tab="opportunities">商机</button>
+          <button class="tab" data-tab="quotations">报价</button>
+          <button class="tab" data-tab="orders">订单</button>
+          <button class="tab" data-tab="payments">回款</button>
+          <button class="tab" data-tab="timeline">时间轴</button>
+          <button class="tab" data-tab="ai">AI 助手</button>
+        </div>
+        <div class="tabbody">
+
+          <!-- ===== Overview ===== -->
+          <section data-panel="overview">
+            <div class="sec">
+              <h3 class="sec-title">销售闭环</h3>
+              <div class="loop">
+                <div class="loop-step done"><div class="row"><span class="lab">商机</span><span class="badge-count">2</span></div><div class="st">已完成</div></div>
+                <span class="chev">›</span>
+                <div class="loop-step done"><div class="row"><span class="lab">报价</span><span class="badge-count">1</span></div><div class="st">已完成</div></div>
+                <span class="chev">›</span>
+                <div class="loop-step done"><div class="row"><span class="lab">合同</span><span class="badge-count">1</span></div><div class="st">已完成</div></div>
+                <span class="chev">›</span>
+                <div class="loop-step done"><div class="row"><span class="lab">订单</span><span class="badge-count">1</span></div><div class="st">已完成</div></div>
+                <span class="chev">›</span>
+                <div class="loop-step done"><div class="row"><span class="lab">回款</span><span class="badge-count">1</span></div><div class="st">已完成</div></div>
+              </div>
+            </div>
+
+            <div class="sec">
+              <h3 class="sec-title">跟进阶段</h3>
+              <div class="stagebar">
+                <div class="stage done">初步接洽</div>
+                <div class="stage done">需求确认</div>
+                <div class="stage done">方案报价</div>
+                <div class="stage done">商务谈判</div>
+                <div class="stage current">合同签订</div>
+                <div class="stage">赢单</div>
+                <div class="stage">输单</div>
+              </div>
+            </div>
+
+            <div class="sec">
+              <h3 class="sec-title">全渠道互动概览</h3>
+              <div class="grid4">
+                <div class="ch"><div class="k">电话</div><div class="v">12</div><div class="u">次互动</div></div>
+                <div class="ch"><div class="k">邮件</div><div class="v">8</div><div class="u">次互动</div></div>
+                <div class="ch"><div class="k">WhatsApp</div><div class="v">5</div><div class="u">次互动</div></div>
+                <div class="ch"><div class="k">官网</div><div class="v">3</div><div class="u">次互动</div></div>
+              </div>
+            </div>
+
+            <div class="sec">
+              <h3 class="sec-title">社媒账号关联</h3>
+              <div class="soc">
+                <div class="soc-item bound"><div class="soc-ic">W</div><div><div class="name">WhatsApp</div><div class="st">已关联</div></div></div>
+                <div class="soc-item"><div class="soc-ic">in</div><div><div class="name">LinkedIn</div><div class="st">待绑定</div></div></div>
+                <div class="soc-item"><div class="soc-ic">微</div><div><div class="name">企业微信</div><div class="st">待绑定</div></div></div>
+                <div class="soc-item"><div class="soc-ic">f</div><div><div class="name">Facebook</div><div class="st">待绑定</div></div></div>
+              </div>
+              <p class="hint">第二阶段将支持员工绑定个人社媒账号，自动同步客户互动记录</p>
+            </div>
+
+            <div class="sec">
+              <h3 class="sec-title">基本信息</h3>
+              <div class="info-grid">
+                <div class="info"><span class="l">客户规模</span><span class="val">中型企业</span></div>
+                <div class="info"><span class="l">销售部门</span><span class="val">外销部</span></div>
+                <div class="info"><span class="l">负责人</span><span class="val">张伟</span></div>
+                <div class="info"><span class="l">公司网站</span><span class="val">www.hengfeng-gas.com</span></div>
+                <div class="info"><span class="l">主要联系人</span><span class="val">李强 · 采购经理</span></div>
+                <div class="info"><span class="l">联系电话</span><span class="val">139 1234 5678</span></div>
+                <div class="info"><span class="l">联系邮箱</span><span class="val">liqiang@hengfeng-gas.com</span></div>
+                <div class="info"><span class="l">微信</span><span class="val">-</span></div>
+                <div class="info"><span class="l">WhatsApp</span><span class="val">+86 139 1234 5678</span></div>
+                <div class="info"><span class="l">开票抬头</span><span class="val">苏州恒丰工业气体设备有限公司</span></div>
+                <div class="info"><span class="l">税号</span><span class="val">91320500XXXXX</span></div>
+                <div class="info"><span class="l">开户行</span><span class="val">工行苏州分行</span></div>
+                <div class="info"><span class="l">银行账号</span><span class="val">1102 0234 0900 XXXX</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Contacts ===== -->
+          <section data-panel="contacts" style="display:none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+              <button class="btn-primary btn-sm" onclick="document.getElementById('addForm').style.display='block'">+ 新增联系人</button>
+            </div>
+            <div class="form-card" id="addForm" style="display:none">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <span style="font-weight:500">新增联系人</span>
+                <span style="cursor:pointer;color:var(--oa-text-muted)" onclick="document.getElementById('addForm').style.display='none'">✕</span>
+              </div>
+              <div class="form-row">
+                <div><label class="lbl">姓名 *</label><input placeholder="姓名" /></div>
+                <div><label class="lbl">职位</label><input placeholder="职位" /></div>
+                <div><label class="lbl">部门</label><input placeholder="部门" /></div>
+                <div><label class="lbl">性别</label><select><option>未知</option><option>男</option><option>女</option></select></div>
+                <div><label class="lbl">手机</label><input placeholder="手机" /></div>
+                <div><label class="lbl">邮箱</label><input placeholder="邮箱" /></div>
+                <div><label class="lbl">微信</label><input placeholder="微信" /></div>
+                <div><label class="lbl">WhatsApp</label><input placeholder="WhatsApp" /></div>
+              </div>
+              <label class="lbl">备注</label>
+              <textarea rows="2" placeholder="备注"></textarea>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--oa-text-secondary)"><input type="checkbox" /> 关键决策人</label>
+                <button class="btn-primary btn-sm" style="margin-left:auto">保存</button>
+              </div>
+            </div>
+
+            <div class="contact-card">
+              <div class="c-left">
+                <div class="c-av">李</div>
+                <div>
+                  <div class="c-name">李强 <span class="soft">关键决策人</span></div>
+                  <div class="c-role">采购经理 · 采购部</div>
+                  <div class="c-line">
+                    <span>📞 139 1234 5678</span>
+                    <span>✉ liqiang@hengfeng-gas.com</span>
+                  </div>
+                  <div class="c-line"><span class="soft-w">💬 WhatsApp: +86 139 1234 5678</span></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div class="icon-btn" title="编辑" onclick="openEdit()">✎</div>
+                <div class="icon-btn" title="查看">›</div>
+              </div>
+            </div>
+
+            <div class="contact-card">
+              <div class="c-left">
+                <div class="c-av">王</div>
+                <div>
+                  <div class="c-name">王敏</div>
+                  <div class="c-role">技术总监 · 技术部</div>
+                  <div class="c-line"><span>📞 138 0000 1234</span><span>✉ wangmin@hengfeng-gas.com</span></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div class="icon-btn" title="编辑" onclick="openEdit()">✎</div>
+                <div class="icon-btn" title="查看">›</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Opportunities ===== -->
+          <section data-panel="opportunities" style="display:none">
+            <div class="rcard">
+              <div>
+                <div style="font-weight:600">PSA 制氮机 NPL01B 批量采购</div>
+                <div class="sub"><span>📅 预计成交：2024-06-30</span><span>👤 张伟</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span class="stt st-warning">商务谈判</span>
+                <span class="amt">¥860,000</span>
+              </div>
+            </div>
+            <div class="rcard">
+              <div>
+                <div style="font-weight:600">制氧机 OPS 项目前期咨询</div>
+                <div class="sub"><span>📅 预计成交：2024-09-15</span><span>👤 张伟</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span class="stt st-info">方案报价</span>
+                <span class="amt">¥420,000</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Quotations ===== -->
+          <section data-panel="quotations" style="display:none">
+            <div class="rcard">
+              <div>
+                <div class="mono">Q-2024-0098</div>
+                <div style="font-weight:600;margin-top:4px">苏州恒丰工业气体设备有限公司</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span class="stt st-success">已通过</span>
+                <span class="amt">¥860,000</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Orders ===== -->
+          <section data-panel="orders" style="display:none">
+            <div class="rcard">
+              <div>
+                <div class="mono">SO-2024-0156</div>
+                <div class="sub"><span>下单：2024-05-20</span><span>交付：2024-07-10</span><span>张伟</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span class="stt st-success">已交付</span>
+                <span class="amt">¥860,000</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Payments ===== -->
+          <section data-panel="payments" style="display:none">
+            <div style="display:flex;gap:16px;margin-bottom:12px">
+              <div style="font-size:14px;color:var(--oa-text-secondary)">回款总额：<span style="font-weight:700;color:var(--oa-success)">¥430,000</span></div>
+              <div style="font-size:14px;color:var(--oa-text-secondary)">待回款：<span style="font-weight:700;color:var(--oa-warning)">¥430,000</span></div>
+            </div>
+            <div class="rcard">
+              <div>
+                <div class="mono">PAY-2024-0042</div>
+                <div class="sub"><span>定金</span><span>计划回款：2024-05-25</span><span>到账：2024-05-23</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span class="stt st-success">已到账</span>
+                <span class="amt" style="color:var(--oa-success)">¥430,000</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Timeline ===== -->
+          <section data-panel="timeline" style="display:none">
+            <div class="tl-add"><button class="btn-primary btn-sm" onclick="document.getElementById('tlForm').style.display='block'">+ 添加跟进</button></div>
+            <div class="form-card" id="tlForm" style="display:none">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:500">添加跟进记录</span><span style="cursor:pointer;color:var(--oa-text-muted)" onclick="document.getElementById('tlForm').style.display='none'">✕</span></div>
+              <div style="display:flex;gap:12px;margin-bottom:12px">
+                <select style="width:140px"><option>备注</option><option>电话</option><option>邮件</option><option>拜访</option><option>会议</option><option>WhatsApp</option></select>
+                <button class="btn-primary btn-sm">AI 辅助生成</button>
+              </div>
+              <textarea rows="3" placeholder="跟进内容"></textarea>
+            </div>
+            <div class="tl-filters">
+              <span style="font-size:13px;color:var(--oa-text-secondary)">渠道：</span>
+              <select style="width:120px"><option>全部</option><option>电话</option><option>邮件</option><option>WhatsApp</option></select>
+              <span style="font-size:13px;color:var(--oa-text-secondary)">范围：</span>
+              <select style="width:120px"><option>全部</option><option>近30天</option><option>近90天</option></select>
+            </div>
+            <div class="tl-item">
+              <div class="tl-ic" style="background:var(--oa-info)">电</div>
+              <div class="tl-body">
+                <div style="font-weight:500">电话沟通确认交付排期</div>
+                <div class="tl-meta">电话 · 2024-05-18 14:30 · 张伟</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-ic" style="background:var(--oa-success)">邮</div>
+              <div class="tl-body">
+                <div style="font-weight:500">发送 PSA 技术方案与报价单</div>
+                <div class="tl-meta">邮件 · 2024-05-10 09:12 · 张伟</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== AI ===== -->
+          <section data-panel="ai" style="display:none">
+            <div class="ai-box">
+              <div style="font-size:28px;margin-bottom:8px">🤖</div>
+              <div>AI 销售助手</div>
+              <div style="font-size:13px;margin-top:6px">基于客户资料与跟进记录，提供跟进建议、方案话术、风险提醒。</div>
+              <button class="btn-primary btn-sm" style="margin-top:16px">开始对话</button>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Edit contact modal -->
+  <div class="modal-mask" id="editModal">
+    <div class="modal">
+      <div class="modal-head"><h3 style="font-weight:600">编辑联系人</h3><span style="cursor:pointer;color:var(--oa-text-muted)" onclick="closeEdit()">✕</span></div>
+      <div class="modal-body">
+        <div style="margin-bottom:12px"><label class="lbl">姓名 *</label><input value="李强" /></div>
+        <div class="form-row">
+          <div><label class="lbl">职位</label><input value="采购经理" /></div>
+          <div><label class="lbl">部门</label><input value="采购部" /></div>
+          <div><label class="lbl">称谓</label><input value="先生" /></div>
+          <div><label class="lbl">性别</label><select><option>男</option><option>女</option><option>未知</option></select></div>
+        </div>
+        <div style="margin-bottom:12px"><label class="lbl">类型</label><select><option>主要联系人</option><option>次要联系人</option><option>决策人</option><option>技术对接人</option></select></div>
+        <div class="form-row">
+          <div><label class="lbl">手机</label><input value="139 1234 5678" /></div>
+          <div><label class="lbl">邮箱</label><input value="liqiang@hengfeng-gas.com" /></div>
+          <div><label class="lbl">微信</label><input /></div>
+          <div><label class="lbl">WhatsApp</label><input value="+86 139 1234 5678" /></div>
+        </div>
+        <div style="margin-bottom:12px"><label class="lbl">备注</label><textarea rows="3"></textarea></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--oa-text-primary)"><input type="checkbox" checked /> 关键决策人</label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" onclick="closeEdit()">取消</button>
+        <button class="btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('#tabbar .tab').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#tabbar .tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      var t = btn.getAttribute('data-tab');
+      document.querySelectorAll('[data-panel]').forEach(function(p){
+        p.style.display = (p.getAttribute('data-panel')===t) ? '' : 'none';
+      });
+    });
+  });
+  function openEdit(){ document.getElementById('editModal').classList.add('open'); }
+  function closeEdit(){ document.getElementById('editModal').classList.remove('open'); }
+  document.getElementById('editModal').addEventListener('click', function(e){ if(e.target===this) closeEdit(); });
+</script>
+</body>
+</html>

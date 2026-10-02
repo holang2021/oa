@@ -1,0 +1,11 @@
+﻿- generic
+  - generic
+    - image
+    - generic
+      - heading "鏃犳硶璁块棶姝ょ綉绔? [level=1, ref=e1]
+      - StaticText "缃戝潃涓?"
+      - strong
+        - StaticText "https://leadscloud.com/"
+      - StaticText " 鐨勭綉椤靛彲鑳芥殏鏃舵棤娉曡繛鎺ワ紝鎴栬€呭畠宸叉案涔呮€у湴绉诲姩鍒颁簡鏂扮綉鍧€銆?
+      - StaticText "ERR_NO_SUPPORTED_PROXIES"
+

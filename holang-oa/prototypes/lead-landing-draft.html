@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>获取定制制气方案 | 昊朗科技 HOLANG</title>
+  <style>
+    :root { --brand:#0b5cab; --bg:#f5f7fa; --ok:#1a8f4a; --err:#d4380d; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); margin:0; color:#1f2329; }
+    .wrap { max-width: 560px; margin: 40px auto; background:#fff; border-radius:12px; padding:28px 30px; box-shadow:0 4px 20px rgba(0,0,0,.06); }
+    h1 { font-size:20px; margin:0 0 4px; color:var(--brand); }
+    p.sub { margin:0 0 20px; color:#6b7280; font-size:13px; }
+    label { display:block; font-size:13px; margin:14px 0 6px; font-weight:600; }
+    .req::after { content:" *"; color:var(--err); }
+    input, select, textarea { width:100%; padding:10px 12px; border:1px solid #d9dde3; border-radius:8px; font-size:14px; }
+    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--brand); }
+    button { margin-top:22px; width:100%; background:var(--brand); color:#fff; border:0; padding:13px; border-radius:8px; font-size:15px; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    .msg { margin-top:14px; font-size:13px; min-height:18px; }
+    .msg.ok { color:var(--ok); } .msg.err { color:var(--err); }
+    /* 蜜罐：对真人隐藏，机器人会填 */
+    .hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+    .row { display:flex; gap:12px; } .row > div { flex:1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>获取您的定制制气方案</h1>
+    <p class="sub">制氮 / 制氧 / 制氢设备 · 现场制气 · 出口 50+ 国家</p>
+    <form id="leadForm" novalidate>
+      <label class="req">联系人</label>
+      <input name="contactName" required placeholder="您的称呼" />
+
+      <div class="row">
+        <div>
+          <label class="req">手机号</label>
+          <input name="phone" required placeholder="11 位手机号" inputmode="numeric" />
+        </div>
+        <div>
+          <label>微信</label>
+          <input name="wechat" placeholder="选填" />
+        </div>
+      </div>
+
+      <label>公司名称</label>
+      <input name="company" placeholder="选填" />
+
+      <div class="row">
+        <div>
+          <label>需求气量</label>
+          <input name="demandVolume" placeholder="如 500 Nm³/h" />
+        </div>
+        <div>
+          <label>纯度需求</label>
+          <input name="purity" placeholder="如 99.9%" />
+        </div>
+      </div>
+
+      <label>行业 / 应用</label>
+      <input name="industry" placeholder="如 食品包装 / 化工 / 电子" />
+
+      <label>地区</label>
+      <input name="region" placeholder="省 / 市 / 国家" />
+
+      <label>邮箱</label>
+      <input name="email" type="email" placeholder="选填" />
+
+      <label>需求备注</label>
+      <textarea name="remark" rows="3" placeholder="选填：具体工况、 deadline 等"></textarea>
+
+      <!-- 蜜罐字段：CSS 隐藏，真人不会填写；机器人填了就丢弃 -->
+      <div class="hp"><label>请勿填写本栏</label><input name="hp_url" tabindex="-1" autocomplete="off" /></div>
+
+      <!-- source 由部署时按渠道注入；默认官网落地页，可用 ?src= 覆盖 -->
+      <input type="hidden" name="source" id="srcField" value="官网落地页" />
+
+      <button type="submit" id="submitBtn">提交需求</button>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+
+  <script>
+    // 部署时改为真实 OA 接口地址（/api/v1/leads/public）
+    const API = "https://oa.holangchina.com/api/v1/leads/public";
+
+    // 渠道来源：?src=百度SEM 等
+    const src = new URLSearchParams(location.search).get("src");
+    if (src) document.getElementById("srcField").value = src;
+
+    const form = document.getElementById("leadForm");
+    const msg = document.getElementById("msg");
+    const btn = document.getElementById("submitBtn");
+
+    const phoneRe = /^1[3-9]\d{9}$/;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = ""; msg.className = "msg";
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      // 蜜罐命中：伪装成功，不写库
+      if (data.hp_url && data.hp_url.trim() !== "") {
+        btn.disabled = true; form.reset();
+        msg.textContent = "提交成功，我们会尽快与您联系。"; msg.className = "msg ok";
+        return;
+      }
+      if (!data.contactName || !data.phone) {
+        msg.textContent = "请填写联系人和手机号。"; msg.className = "msg err"; return;
+      }
+      if (!phoneRe.test(data.phone)) {
+        msg.textContent = "手机号格式不正确。"; msg.className = "msg err"; return;
+      }
+      // 清理空字段
+      Object.keys(data).forEach(k => { if (data[k] === "") delete data[k]; });
+      delete data.hp_url;
+
+      btn.disabled = true; btn.textContent = "提交中…";
+      try {
+        const r = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.code === 0) {
+          msg.textContent = "提交成功，我们会尽快与您联系。"; msg.className = "msg ok";
+          form.reset();
+        } else {
+          msg.textContent = (j.message || "提交失败，请稍后重试。") + (j.code ? `（${j.code}）` : "");
+          msg.className = "msg err";
+        }
+      } catch (err) {
+        msg.textContent = "网络异常，请稍后重试。"; msg.className = "msg err";
+      } finally {
+        btn.disabled = false; btn.textContent = "提交需求";
+      }
+    });
+  </script>
+</body>
+</html>
