@@ -19,11 +19,11 @@ export type CustomerGrade = 'A' | 'B' | 'C';
 /** 4 选择题（提示分级）入参 */
 export interface GradeSignals {
   /** ① 需求紧迫度：HIGH 近期明确采购 / MEDIUM 中期评估 / LOW 暂无计划 */
-  urgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  urgency?: 'HIGH' | 'MEDIUM' | 'LOW';
   /** ② 预算就绪度：READY 已批 / PENDING 审批中 / NONE 无 */
-  budget: 'READY' | 'PENDING' | 'NONE';
+  budget?: 'READY' | 'PENDING' | 'NONE';
   /** ③ 决策进度：CONTACTED 关键决策人对接 / UNKNOWN 待对接 / BLOCKED 停滞 */
-  decision: 'CONTACTED' | 'UNKNOWN' | 'BLOCKED';
+  decision?: 'CONTACTED' | 'UNKNOWN' | 'BLOCKED';
   /** ④ 互动热度：ACTIVE 主动多次咨询 / ONCE 单次咨询 / PASSIVE 被动录入 */
-  engagement: 'ACTIVE' | 'ONCE' | 'PASSIVE';
+  engagement?: 'ACTIVE' | 'ONCE' | 'PASSIVE';
 }

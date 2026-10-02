@@ -9,7 +9,7 @@ import { AppError } from '../middleware/errorHandler'
 const prisma = new PrismaClient()
 
 export interface CurrencyInput {
-  id: string
+  id?: string
   name?: string
   nameEn?: string
   symbol?: string

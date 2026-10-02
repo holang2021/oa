@@ -117,7 +117,7 @@ export const createProduct = async (req: AuthRequest, res: Response, next: NextF
     const validated = createProductSchema.parse(req.body);
 
     const product = await prisma.product.create({
-      data: validated,
+      data: validated as any,
     });
 
     res.status(201).json({

@@ -14,7 +14,7 @@ import { QuoteStatus } from '../constants/enums';
 
 export interface CreateContractInput {
   contractNumber?: string;
-  customerId: string;
+  customerId?: string;
   quoteRef?: string | null;
   opportunityRef?: string | null;
   piRef?: string | null;

@@ -74,7 +74,7 @@ export const createTarget = async (req: AuthRequest, res: Response, next: NextFu
     const validated = createTargetSchema.parse(req.body);
 
     const target = await prisma.salesTarget.create({
-      data: validated,
+      data: validated as any,
       include: { user: { select: { id: true, name: true } } },
     });
 

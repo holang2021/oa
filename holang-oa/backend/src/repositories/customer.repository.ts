@@ -6,7 +6,7 @@ import { prisma } from '../config/database';
 import type { CustomerGrade } from '../services/types';
 
 export interface CustomerContactInput {
-  name: string;
+  name?: string;
   position?: string | null;
   title?: string | null;
   type?: string;

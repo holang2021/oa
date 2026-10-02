@@ -23,10 +23,10 @@ export function stageToWinProbability(stage: string): number {
 }
 
 export interface CreateOpportunityInput {
-  name: string;
-  customerId: string;
+  name?: string;
+  customerId?: string;
   productId?: string | null;
-  expectedAmount: number;
+  expectedAmount?: number;
   expectedCloseDate?: string | null;
   stage?: string;
   description?: string | null;

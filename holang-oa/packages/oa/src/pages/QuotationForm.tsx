@@ -137,7 +137,7 @@ const PRODUCT_SPEC_TEMPLATE: Record<string, string> = {
   ].join('\n'),
 }
 
-function specTemplateFor(p?: { name?: string; model?: string; spec?: string }): string {
+function specTemplateFor(p?: { name?: string; model?: string | null; spec?: string | null }): string {
   if (!p) return ''
   // 优先级：产品库 spec（已有则尊重） → 型号模板 → 名称模板 → 空
   if (p.spec && p.spec.trim()) return p.spec

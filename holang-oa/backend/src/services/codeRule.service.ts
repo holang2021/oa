@@ -9,7 +9,7 @@ import { AppError } from '../middleware/errorHandler'
 const prisma = new PrismaClient()
 
 export interface CodeRuleInput {
-  id: string
+  id?: string
   name?: string
   nameEn?: string
   prefix?: string

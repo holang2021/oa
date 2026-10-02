@@ -14,7 +14,7 @@ import { QuoteStatus } from '../constants/enums';
 
 export interface CreatePiInput {
   piNo?: string;
-  customerId: string;
+  customerId?: string;
   quoteRef?: string | null;
   amount?: number;
   currency?: string | null;

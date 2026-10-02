@@ -11,14 +11,14 @@ import { OpportunityStage } from '../constants/enums';
 import type { ServiceContext } from './types';
 
 export interface QuoteItemInput {
-  productId: string;
-  quantity: number;
+  productId?: string;
+  quantity?: number;
   discount?: number;
 }
 
 export interface CreateQuoteInput {
-  customerId: string;
-  items: QuoteItemInput[];
+  customerId?: string;
+  items?: QuoteItemInput[];
   discount?: number;
   validUntil?: string | null;
   notes?: string | null;

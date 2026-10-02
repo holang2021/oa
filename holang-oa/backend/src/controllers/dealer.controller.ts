@@ -107,7 +107,7 @@ export const submitDealerReport = async (req: AuthRequest, res: Response, next: 
         ...validated,
         status: DealerReportStatus.PENDING,
         duplicateOf: duplicate?.id,
-      },
+      } as any,
     });
 
     res.status(201).json({

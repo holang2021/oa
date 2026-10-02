@@ -1,6 +1,6 @@
 import React from 'react'
 import AuthProvider from './contexts/AuthContext'
-import I18nProvider from './i18n/I18nContext'
+import { I18nProvider } from './i18n/I18nContext'
 import App from './App'
 
 // Dev-only ErrorBoundary so a render-time exception is surfaced instead of an
