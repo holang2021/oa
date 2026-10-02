@@ -609,14 +609,16 @@ function StatsWidget({ t }: { t: (k: string) => string }) {
 }
 
 function PipelineWidget({ t }: { t: (k: string) => string }) {
+  // 漏斗形态保留。颜色只用品牌主色 --color-primary（= 网站 CSS），以透明度分级表达阶段递进，
+  // 不新增任何颜色 token（见 docs/oa-design-tokens.css）。
   const stages = [
-    { label: '线索', count: 45, color: '#9CA3AF' },
-    { label: '接触', count: 28, color: '#60A5FA' },
-    { label: '报价', count: 15, color: '#FBBF24' },
-    { label: '谈判', count: 8, color: '#FB923C' },
-    { label: '成交', count: 12, color: '#4ADE80' },
+    { label: '线索', count: 45, opacity: 1.0 },
+    { label: '接触', count: 28, opacity: 0.82 },
+    { label: '报价', count: 15, opacity: 0.64 },
+    { label: '谈判', count: 8, opacity: 0.5 },
+    { label: '成交', count: 5, opacity: 0.4 },
   ]
-
+  const fill = 'var(--color-primary)'
   const W = 500
   const H = 36
   const G = 2
@@ -633,10 +635,12 @@ function PipelineWidget({ t }: { t: (k: string) => string }) {
         const rx = lx + w
         const nlx = (W - nextW) / 2
         const nrx = nlx + nextW
+        // 填充越深（opacity 高）用白字，越浅用主色字，保证可读
+        const textColor = s.opacity >= 0.64 ? '#FFFFFF' : 'var(--color-primary)'
         return (
           <g key={i}>
-            <path d={`M ${lx} ${y} L ${rx} ${y} L ${nrx} ${y + H} L ${nlx} ${y + H} Z`} fill={s.color} />
-            <text x={W / 2} y={y + H / 2 + 5} textAnchor="middle" fill="white" fontSize="14" fontWeight="500">
+            <path d={`M ${lx} ${y} L ${rx} ${y} L ${nrx} ${y + H} L ${nlx} ${y + H} Z`} fill={fill} fillOpacity={s.opacity} />
+            <text x={W / 2} y={y + H / 2 + 5} textAnchor="middle" fill={textColor} fontSize="14" fontWeight="500">
               {s.label} {s.count}
             </text>
           </g>
@@ -665,7 +669,7 @@ function ActivityWidget({ t }: { t: (k: string) => string }) {
           }}
           className="flex gap-2.5 cursor-pointer hover:bg-gray-50 rounded-md px-1 py-0.5 transition-colors"
         >
-          <div className="w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center shrink-0"><AlertCircle size={12} className="text-blue-500" /></div>
+          <div className="w-7 h-7 bg-brand-50 rounded-full flex items-center justify-center shrink-0"><AlertCircle size={12} className="text-brand-500" /></div>
           <div><p className="text-xs text-gray-600">{item.label}</p><p className="text-[10px] text-gray-400 mt-0.5">{i + 1} {t('dash.hoursAgo')}</p></div>
         </div>
       ))}

@@ -1,0 +1,44 @@
+/* HOLANG OA — 颜色与基础变量（单一事实源）
+ * ⚠️ 强制约定：本文件直接镜像「做网站时定的全局 CSS」
+ *    （holang-admin/css/style.css 的 :root 变量体系），命名与取值保持一致。
+ *   OA 前端一律引用这里的 --color-* / --radius-* / --shadow-*，
+ *   禁止另起 --oa-* 命名，禁止为漏斗/图表/渠道等新增颜色 token。
+ *   确实需要新色时，先回到网站 CSS 体系扩展，不要平行造一套。
+ * 状态：随网站 CSS 同步，Freeze 后不再随意增删。
+ */
+:root {
+  /* ── 品牌主色（= 网站 CSS --color-primary）── */
+  --color-primary: #1a56db;
+  --color-primary-hover: #1e40af;
+  --color-primary-light: #e8f0fe;
+
+  /* ── 状态色（业务语义，禁止一个状态一个色；= 网站 CSS）── */
+  --color-success: #059669;
+  --color-success-light: #d1fae5;
+  --color-warning: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-danger: #dc2626;
+  --color-danger-light: #fee2e2;
+  --color-info: #2563eb;
+  --color-info-light: #dbeafe;
+
+  /* ── 中性色（= 网站 CSS）── */
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+  --color-border-dark: #d1d5db;
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* ── 圆角（= 网站 CSS）── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* ── 阴影（= 网站 CSS）── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+}

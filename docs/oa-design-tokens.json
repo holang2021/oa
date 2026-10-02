@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "name": "HOLANG OA Design Tokens",
+    "version": "0.2",
+    "status": "Candidate",
+    "source": "docs/OA_UI_Foundation_V0.1.md",
+    "rule": "所有 OA 页面/原型一律引用本文件与 oa-design-tokens.css（二者均镜像网站 holang-admin/css/style.css 的 --color-* 体系），禁止硬编码色值与间距；新增颜色须先回网站 CSS 扩展，禁止为漏斗/图表/渠道新增颜色 token"
+  },
+  "color": {
+    "primary": "#1a56db",
+    "primaryHover": "#1e40af",
+    "primaryLight": "#e8f0fe",
+    "bg": "#f3f4f6",
+    "surface": "#ffffff",
+    "text": "#111827",
+    "textSecondary": "#6b7280",
+    "textMuted": "#9ca3af",
+    "border": "#e5e7eb",
+    "borderDark": "#d1d5db",
+    "success": "#059669",
+    "successLight": "#d1fae5",
+    "warning": "#d97706",
+    "warningLight": "#fef3c7",
+    "danger": "#dc2626",
+    "dangerLight": "#fee2e2",
+    "info": "#2563eb",
+    "infoLight": "#dbeafe",
+    "brandScale": {
+      "50": "#eef3fe", "100": "#dbe4fd", "200": "#bccfff", "300": "#93b2fb",
+      "400": "#5e88f4", "500": "#3a72e8", "600": "#1a56db", "700": "#1e40af",
+      "800": "#1a3a93", "900": "#172e6e"
+    }
+  },
+  "radius": { "sm": 6, "md": 8, "lg": 12 },
+  "space": { "1": 4, "2": 8, "3": 12, "4": 16, "5": 24, "6": 32 },
+  "fontSize": {
+    "pageTitle": 24, "moduleTitle": 18, "subTitle": 16,
+    "body": 14, "label": 14, "aux": 13
+  },
+  "layout": {
+    "navWidth": 224, "navWidthCollapsed": 64, "headerHeight": 56,
+    "pagePadding": 24, "pagePaddingSmall": 16
+  },
+  "component": {
+    "btnHeight": 36, "btnHeightCompact": 32,
+    "inputHeight": 36, "inputHeightComplex": 40,
+    "tableHeaderH": 40, "tableRowH": 44, "tableRowHTall": 48,
+    "statusTagH": 24
+  }
+}

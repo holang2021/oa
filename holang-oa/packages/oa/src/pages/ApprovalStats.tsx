@@ -6,24 +6,24 @@ import {
 } from 'lucide-react'
 import { computeApprovalStats, computeBizTypeStats, computeApproverStats, computeStepDurationStats, computeTrendData, generateMockHistoricalInstances, type ApprovalStats, type BizTypeStats, type ApproverStats, type StepDurationStats, type TrendDataPoint, type ApprovalInstance } from '../services/approvalStatsService'
 
-// ───────────────────── 颜色常量 ─────────────────────
+// ───────────────────── 颜色常量（引用「做网站时定的全局 CSS」--color-* 体系，见 docs/oa-design-tokens.css） ─────────────────────
 const COLORS = {
-  primary: '#3B82F6',
-  success: '#10B981',
-  danger: '#EF4444',
-  warning: '#F59E0B',
-  purple: '#8B5CF6',
-  gray: '#6B7280',
+  primary: 'var(--color-primary)',
+  success: 'var(--color-success)',
+  danger: 'var(--color-danger)',
+  warning: 'var(--color-warning)',
+  info: 'var(--color-info)',
+  gray: 'var(--color-text-muted)',
 }
 
 // ───────────────────── 审批明细表格 ─────────────────────
 const BIZ_LABELS: Record<string, string> = { order: '订单', invoice: '开票', delivery: '发货', collection: '回款' }
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
-  pending:   { text: '审批中',   color: 'text-yellow-600 bg-yellow-50' },
-  approved:  { text: '已通过',   color: 'text-green-600 bg-green-50' },
-  rejected:  { text: '已驳回',   color: 'text-red-600 bg-red-50' },
-  draft:     { text: '草稿',     color: 'text-gray-600 bg-gray-50' },
-  withdrawn: { text: '已撤回',   color: 'text-gray-600 bg-gray-50' },
+  pending:   { text: '审批中',   color: 'text-[var(--color-warning)] bg-[var(--color-warning-light)]' },
+  approved:  { text: '已通过',   color: 'text-[var(--color-success)] bg-[var(--color-success-light)]' },
+  rejected:  { text: '已驳回',   color: 'text-[var(--color-danger)] bg-[var(--color-danger-light)]' },
+  draft:     { text: '草稿',     color: 'text-[var(--color-text-secondary)] bg-[var(--color-bg)]' },
+  withdrawn: { text: '已撤回',   color: 'text-[var(--color-text-secondary)] bg-[var(--color-bg)]' },
 }
 
 function ApprovalTable({ instances }: { instances: ApprovalInstance[] }) {
@@ -110,14 +110,14 @@ function StatCard({
           <p className="text-2xl font-bold" style={{ color }}>{value}</p>
           {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
         </div>
-        <div className="p-2.5 rounded-lg" style={{ backgroundColor: `${color}10` }}>
+        <div className="p-2.5 rounded-lg" style={{ backgroundColor: 'var(--color-bg)' }}>
           <Icon size={20} style={{ color }} />
         </div>
       </div>
       {trend && (
         <div className="flex items-center gap-1 mt-3 text-xs">
-          <ArrowUpRight size={12} className={trend.value >= 0 ? 'text-green-500' : 'text-red-500'} />
-          <span className={trend.value >= 0 ? 'text-green-600' : 'text-red-600'}>
+          <ArrowUpRight size={12} className={trend.value >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'} />
+          <span className={trend.value >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
             {trend.value >= 0 ? '+' : ''}{trend.value}%
           </span>
           <span className="text-gray-400">{trend.label}</span>
@@ -141,7 +141,7 @@ function TrendChart({ data, height = 180 }: { data: TrendDataPoint[]; height?: n
     const points = vals.map((v, i) => `${getX(i).toFixed(1)},${getY(v).toFixed(1)}`).join(' ')
     if (fill) {
       const area = `${getX(0).toFixed(1)},${H - padding.bottom} ${points} ${getX(vals.length - 1).toFixed(1)},${H - padding.bottom}`
-      return <polygon key={color} points={area} fill={`${color}15`} stroke="none" />
+      return <polygon key={color} points={area} fill={color} fillOpacity={0.08} stroke="none" />
     }
     return <polyline key={color} points={points} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
   }
@@ -154,8 +154,8 @@ function TrendChart({ data, height = 180 }: { data: TrendDataPoint[]; height?: n
           const y = getY(maxVal * r)
           return (
             <g key={r}>
-              <line x1={padding.left} y1={y} x2={W - padding.right} y2={y} stroke="#f3f4f6" strokeWidth={1} />
-              <text x={padding.left - 6} y={y + 4} textAnchor="end" fill="#9ca3af" fontSize={10}>
+              <line x1={padding.left} y1={y} x2={W - padding.right} y2={y} stroke="var(--color-border)" strokeWidth={1} />
+              <text x={padding.left - 6} y={y + 4} textAnchor="end" fill="var(--color-text-muted)" fontSize={10}>
                 {Math.round(maxVal * (1 - r))}
               </text>
             </g>
@@ -165,7 +165,7 @@ function TrendChart({ data, height = 180 }: { data: TrendDataPoint[]; height?: n
         {data.filter((_, i) => i % 5 === 0 || i === data.length - 1).map((d, idx) => {
           const i = data.indexOf(d)
           return (
-            <text key={idx} x={getX(i)} y={H - padding.bottom + 16} textAnchor="middle" fill="#9ca3af" fontSize={10}>
+            <text key={idx} x={getX(i)} y={H - padding.bottom + 16} textAnchor="middle" fill="var(--color-text-muted)" fontSize={10}>
               {d.label}
             </text>
           )
@@ -178,11 +178,11 @@ function TrendChart({ data, height = 180 }: { data: TrendDataPoint[]; height?: n
         {line(data.map(d => d.rejected), COLORS.danger)}
         {/* 图例 */}
         <rect x={padding.left} y={6} width={10} height={10} fill={COLORS.primary} rx={2} />
-        <text x={padding.left + 16} y={15} fill="#6b7280" fontSize={11}>提交</text>
+        <text x={padding.left + 16} y={15} fill="var(--color-text-secondary)" fontSize={11}>提交</text>
         <rect x={padding.left + 70} y={6} width={10} height={10} fill={COLORS.success} rx={2} />
-        <text x={padding.left + 86} y={15} fill="#6b7280" fontSize={11}>通过</text>
+        <text x={padding.left + 86} y={15} fill="var(--color-text-secondary)" fontSize={11}>通过</text>
         <rect x={padding.left + 140} y={6} width={10} height={10} fill={COLORS.danger} rx={2} />
-        <text x={padding.left + 156} y={15} fill="#6b7280" fontSize={11}>驳回</text>
+        <text x={padding.left + 156} y={15} fill="var(--color-text-secondary)" fontSize={11}>驳回</text>
       </svg>
     </div>
   )
@@ -355,10 +355,10 @@ export default function ApprovalStats() {
               {approverStats.slice(0, 8).map((a, idx) => (
                 <div key={idx} className="flex items-center gap-3">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    idx === 0 ? 'bg-yellow-100 text-yellow-700'
-                    : idx === 1 ? 'bg-gray-100 text-gray-600'
-                    : idx === 2 ? 'bg-amber-100 text-amber-700'
-                    : 'bg-gray-50 text-gray-400'
+                    idx === 0 ? 'bg-brand-600 text-white'
+                    : idx === 1 ? 'bg-brand-400 text-white'
+                    : idx === 2 ? 'bg-brand-200 text-brand-800'
+                    : 'bg-brand-50 text-brand-300'
                   }`}>
                     {idx + 1}
                   </span>
@@ -368,8 +368,8 @@ export default function ApprovalStats() {
                       <span className="text-xs text-gray-400 ml-2">处理 {a.totalHandled} 条</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-green-600">通过 {a.approveCount}</span>
-                      <span className="text-xs text-red-500">驳回 {a.rejectCount}</span>
+                      <span className="text-xs text-[var(--color-success)]">通过 {a.approveCount}</span>
+                      <span className="text-xs text-[var(--color-danger)]">驳回 {a.rejectCount}</span>
                       <span className="text-xs text-gray-400 ml-auto">均 {a.avgHours < 1 ? `${Math.round(a.avgHours * 60)}分钟` : `${a.avgHours}小时`}</span>
                     </div>
                   </div>

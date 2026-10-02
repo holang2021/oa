@@ -92,7 +92,7 @@ export default function PaymentDetail() {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-2xl font-bold" style={{ color: payment.status === 'RECEIVED' ? '#16a34a' : '#d97706' }}>
+            <div className="text-2xl font-bold" style={{ color: payment.status === 'RECEIVED' ? 'var(--color-success)' : 'var(--color-warning)' }}>
               {fmtMoney(payment.amount)}
             </div>
             <div className="text-xs text-gray-400 mt-1">回款金额</div>

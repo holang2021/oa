@@ -1,3 +1,7 @@
+/* OA 颜色变量单一事实源：直接镜像「做网站时定的全局 CSS」(holang-admin/css/style.css) 的 --color-* 体系。
+   禁止在此另起 --oa-* 或新增颜色 token；需要新色先回网站 CSS 扩展。 */
+@import '../../../../docs/oa-design-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
