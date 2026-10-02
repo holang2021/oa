@@ -64,6 +64,7 @@ export type ModuleName =
   | 'delivery'
   | 'aftersales'
   | 'device'
+  | 'contact'
 
 export const MODULE_LABELS: Record<ModuleName, string> = {
   customer: '客户',
@@ -77,6 +78,7 @@ export const MODULE_LABELS: Record<ModuleName, string> = {
   delivery: '发货',
   aftersales: '售后',
   device: '设备档案',
+  contact: '联系人',
 }
 
 export const FIELD_GROUP_LABELS: Record<string, string> = {

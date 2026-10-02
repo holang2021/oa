@@ -176,6 +176,18 @@ const DEFAULT_PAYMENT_FIELDS: FieldMeta[] = [
   { id: 'payment.customerAccount', module: 'payment', fieldName: 'customerAccount', label: '客户付款账户', labelEn: 'Customer Account', fieldType: 'text', required: false, visible: true, order: 33, group: 'finance' },
   { id: 'payment.remark', module: 'payment', fieldName: 'remark', label: '备注', labelEn: 'Remark', fieldType: 'textarea', required: false, visible: true, order: 50, group: 'extra' },
 ]
+// 联系人软信息（治理铁律：走 JSONB/extension 机制，不写死加列）
+// 8 项均为"销售跟进决策价值"——helpText 写清为什么填，方便销售看懂
+const DEFAULT_CONTACT_FIELDS: FieldMeta[] = [
+  { id: 'contact.birthday', module: 'contact', fieldName: 'birthday', label: '生日', labelEn: 'Birthday', fieldType: 'date', required: false, visible: true, order: 1, group: 'extra', helpText: '提前7天提醒，便于生日/节日关怀跟进，提升关系黏性' },
+  { id: 'contact.hometown', module: 'contact', fieldName: 'hometown', label: '故乡/籍贯', labelEn: 'Hometown', fieldType: 'text', required: false, visible: true, order: 2, group: 'extra', helpText: '了解背景与共同话题，拉近距离' },
+  { id: 'contact.interests', module: 'contact', fieldName: 'interests', label: '兴趣爱好', labelEn: 'Interests', fieldType: 'text', required: false, visible: true, order: 3, group: 'extra', helpText: '多个用逗号分隔，如 高尔夫/喝茶；用于破冰与客情维护' },
+  { id: 'contact.family', module: 'contact', fieldName: 'family', label: '家庭情况', labelEn: 'Family', fieldType: 'textarea', required: false, visible: true, order: 4, group: 'extra', helpText: '婚姻/子女等（自愿填写），判断决策关注点' },
+  { id: 'contact.education', module: 'contact', fieldName: 'education', label: '教育背景', labelEn: 'Education', fieldType: 'text', required: false, visible: true, order: 5, group: 'extra', helpText: '院校/专业，判断沟通方式与专业深度' },
+  { id: 'contact.personality', module: 'contact', fieldName: 'personality', label: '性格标签', labelEn: 'Personality', fieldType: 'text', required: false, visible: true, order: 6, group: 'extra', helpText: '多个用逗号分隔，如 谨慎/爽快；匹配跟进节奏' },
+  { id: 'contact.diet', module: 'contact', fieldName: 'diet', label: '饮食禁忌', labelEn: 'Diet Restriction', fieldType: 'text', required: false, visible: true, order: 7, group: 'extra', helpText: '宴请/见面时避免踩雷' },
+  { id: 'contact.culture', module: 'contact', fieldName: 'culture', label: '宗教/文化禁忌', labelEn: 'Religion/Culture Taboo', fieldType: 'textarea', required: false, visible: true, order: 8, group: 'extra', helpText: '避免冒犯，尤其海外客户' },
+]
 
 export const DEFAULT_FIELD_CONFIGS: Record<string, FieldMeta[]> = {
   customer: DEFAULT_CUSTOMER_FIELDS,
@@ -189,6 +201,7 @@ export const DEFAULT_FIELD_CONFIGS: Record<string, FieldMeta[]> = {
   delivery: DEFAULT_DELIVERY_FIELDS,
   aftersales: DEFAULT_AFTERSALES_FIELDS,
   device: DEFAULT_DEVICE_FIELDS,
+  contact: DEFAULT_CONTACT_FIELDS,
 }
 
 // 内存缓存（initFieldConfigs 预热；未预热回退 DEFAULT）

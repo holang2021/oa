@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, MapPin, User, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, User, UserX, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save } from 'lucide-react'
 import { useI18n } from '../i18n/I18nContext'
-import { getCustomerById, updateCustomer, type Customer } from '../services/customerService'
-import { getContacts, createContact, updateContact, type Contact } from '../services/contactService'
+import { getCustomerById, updateCustomer, getCustomers, type Customer } from '../services/customerService'
+import { getContacts, createContact, updateContact, leaveContact, migrateContact, type Contact } from '../services/contactService'
+import { getFieldConfig } from '../services/fieldConfigStore'
 import { getOrders, type Order } from '../services/orderService'
 import { getPayments, type Payment } from '../services/paymentService'
 import { getOpportunities, type Opportunity } from '../services/opportunityService'
@@ -68,6 +69,24 @@ const channelColors: Record<string, string> = {
   '线下': 'bg-green-50 text-green-700', '系统': 'bg-gray-50 text-gray-600',
 }
 
+// 联系人软信息(extension) 解析/序列化辅助
+function parseExtension(ext?: string | null): Record<string, any> {
+  if (!ext) return {}
+  try {
+    const obj = JSON.parse(ext)
+    return obj && typeof obj === 'object' ? obj : {}
+  } catch {
+    return {}
+  }
+}
+function stringifyExtension(obj: Record<string, any>): string | null {
+  if (!obj || Object.keys(obj).length === 0) return null
+  return JSON.stringify(obj)
+}
+function isLeft(ct: Contact): boolean {
+  return ct.status === 'LEFT'
+}
+
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -104,6 +123,18 @@ export default function CustomerDetail() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [editContactDraft, setEditContactDraft] = useState<Partial<Contact>>({})
   const [savingContactEdit, setSavingContactEdit] = useState(false)
+  // 编辑联系人时软信息(extension)工作对象
+  const [editContactExtension, setEditContactExtension] = useState<Record<string, any>>({})
+  // 标记离职弹窗
+  const [leavingContact, setLeavingContact] = useState<Contact | null>(null)
+  const [leaveNote, setLeaveNote] = useState('')
+  const [leaving, setLeaving] = useState(false)
+  // 迁移弹窗
+  const [migratingContact, setMigratingContact] = useState<Contact | null>(null)
+  const [migrateTargetId, setMigrateTargetId] = useState('')
+  const [migrateNote, setMigrateNote] = useState('')
+  const [migrating, setMigrating] = useState(false)
+  const [migrateOptions, setMigrateOptions] = useState<Customer[]>([])
 
   // Follow-up add form state
   const [showAddFollowUp, setShowAddFollowUp] = useState(false)
@@ -171,6 +202,7 @@ export default function CustomerDetail() {
   const startEditContact = (ct: Contact) => {
     setEditingContact(ct)
     setEditContactDraft({ ...ct })
+    setEditContactExtension(parseExtension(ct.extension))
   }
 
   const handleUpdateContact = async () => {
@@ -189,6 +221,7 @@ export default function CustomerDetail() {
         position: editContactDraft.position?.trim() || undefined,
         title: editContactDraft.title?.trim() || undefined,
         remark: editContactDraft.remark?.trim() || undefined,
+        extension: stringifyExtension(editContactExtension),
       })
       if (updated) {
         setCustContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
@@ -198,6 +231,60 @@ export default function CustomerDetail() {
       alert(e?.message || '保存失败，仅创建者可修改')
     } finally {
       setSavingContactEdit(false)
+    }
+  }
+
+  // 标记离职（治理铁律：原记录保留 + status=LEFT + 审计留痕，禁止删除）
+  const startLeaveContact = (ct: Contact) => {
+    setLeavingContact(ct)
+    setLeaveNote('')
+  }
+  const handleLeave = async () => {
+    if (!leavingContact) return
+    setLeaving(true)
+    try {
+      const updated = await leaveContact(leavingContact.id, leaveNote.trim() || undefined)
+      if (updated) {
+        setCustContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
+        setLeavingContact(null)
+      } else {
+        alert('操作失败')
+      }
+    } catch (e: any) {
+      alert(e?.message || '标记离职失败')
+    } finally {
+      setLeaving(false)
+    }
+  }
+  // 迁移联系人到目标客户（原记录标 LEFT 保留，新建记录挂目标客户 + 血缘）
+  const startMigrateContact = async (ct: Contact) => {
+    setMigratingContact(ct)
+    setMigrateTargetId('')
+    setMigrateNote('')
+    try {
+      const res = await getCustomers({ salesType: (customer as any)?.salesType, pageSize: 300 })
+      setMigrateOptions(res.list.filter(c => c.id !== customer?.id))
+    } catch {
+      setMigrateOptions([])
+    }
+  }
+  const handleMigrate = async () => {
+    if (!migratingContact || !migrateTargetId) return
+    setMigrating(true)
+    try {
+      const created = await migrateContact(migratingContact.id, migrateTargetId, migrateNote.trim() || undefined)
+      if (created) {
+        // 原记录已标 LEFT；刷新本客户联系人列表以反映状态
+        const res = await getContacts({ customerId: customer?.id, pageSize: 100 })
+        setCustContacts(res.list)
+        setMigratingContact(null)
+      } else {
+        alert('迁移失败')
+      }
+    } catch (e: any) {
+      alert(e?.message || '迁移失败')
+    } finally {
+      setMigrating(false)
     }
   }
 
@@ -790,6 +877,7 @@ export default function CustomerDetail() {
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray-900">{ct.name}</span>
                             {ct.isKeyPerson && <span className="px-1.5 py-0.5 bg-brand-50 text-brand-600 text-[10px] rounded font-medium">关键决策人</span>}
+                            {isLeft(ct) && <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded font-medium">已离职</span>}
                             {!isCreator && ct.createdBy && (
                               <span className="text-[10px] text-gray-400">创建者：{ct.createdBy.name}</span>
                             )}
@@ -814,9 +902,30 @@ export default function CustomerDetail() {
                               </span>
                             )}
                           </div>
+                          {isLeft(ct) && ct.leftNote && (
+                            <div className="text-xs text-gray-400 mt-1">离职备注：{ct.leftNote}</div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        {isCreator && !isLeft(ct) && (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startMigrateContact(ct) }}
+                              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                              title="迁移到其它客户"
+                            >
+                              <CornerDownRight size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startLeaveContact(ct) }}
+                              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg"
+                              title="标记离职"
+                            >
+                              <UserX size={14} />
+                            </button>
+                          </>
+                        )}
                         {isCreator && (
                           <button
                             onClick={(e) => { e.stopPropagation(); startEditContact(ct) }}
@@ -970,6 +1079,51 @@ export default function CustomerDetail() {
                     />
                     关键决策人
                   </label>
+                  {/* 软信息（治理铁律：JSONB/extension 机制动态渲染，不写死加列） */}
+                  <div className="pt-2 mt-2 border-t border-gray-100">
+                    <div className="text-xs font-medium text-gray-500 mb-3">软信息（销售跟进决策参考）</div>
+                    <div className="space-y-4">
+                      {getFieldConfig('contact').map((f) => (
+                        <div key={f.id}>
+                          <label className="block text-xs text-gray-500 mb-1">
+                            {f.label}
+                            {f.helpText && <span className="text-gray-400 ml-1">· {f.helpText}</span>}
+                          </label>
+                          {f.fieldType === 'textarea' ? (
+                            <textarea
+                              rows={2}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+                              value={editContactExtension[f.fieldName] ?? ''}
+                              onChange={e => setEditContactExtension(prev => ({ ...prev, [f.fieldName]: e.target.value }))}
+                            />
+                          ) : f.fieldType === 'date' ? (
+                            <input
+                              type="date"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                              value={editContactExtension[f.fieldName] ?? ''}
+                              onChange={e => setEditContactExtension(prev => ({ ...prev, [f.fieldName]: e.target.value }))}
+                            />
+                          ) : f.fieldType === 'select' ? (
+                            <select
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                              value={editContactExtension[f.fieldName] ?? ''}
+                              onChange={e => setEditContactExtension(prev => ({ ...prev, [f.fieldName]: e.target.value }))}
+                            >
+                              <option value="">未填写</option>
+                              {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                              value={editContactExtension[f.fieldName] ?? ''}
+                              onChange={e => setEditContactExtension(prev => ({ ...prev, [f.fieldName]: e.target.value }))}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
                   <button
@@ -985,6 +1139,91 @@ export default function CustomerDetail() {
                   >
                     {savingContactEdit ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     保存
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 标记离职弹窗 */}
+          {leavingContact && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-800">标记离职</h3>
+                  <button onClick={() => setLeavingContact(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                </div>
+                <div className="p-5 space-y-3">
+                  <p className="text-sm text-gray-600">联系人 <span className="font-medium text-gray-900">{leavingContact.name}</span> 将保留在档案中并标记为「已离职」，不可删除。可后续迁移到其它客户。</p>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">离职备注（选填）</label>
+                    <textarea
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+                      value={leaveNote}
+                      onChange={e => setLeaveNote(e.target.value)}
+                      placeholder="如离职原因、接替人等"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                  <button onClick={() => setLeavingContact(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                  <button
+                    onClick={handleLeave}
+                    disabled={leaving}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {leaving ? <Loader2 size={14} className="animate-spin" /> : <UserX size={14} />}
+                    确认离职
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 迁移弹窗 */}
+          {migratingContact && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-800">迁移联系人</h3>
+                  <button onClick={() => setMigratingContact(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                </div>
+                <div className="p-5 space-y-3">
+                  <p className="text-sm text-gray-600">将 <span className="font-medium text-gray-900">{migratingContact.name}</span> 迁移到目标客户：原记录保留并标记「已离职」，新记录在目标客户下创建（带血缘）。</p>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">目标客户 <span className="text-red-500">*</span></label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                      value={migrateTargetId}
+                      onChange={e => setMigrateTargetId(e.target.value)}
+                    >
+                      <option value="">请选择目标客户</option>
+                      {migrateOptions.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}{c.salesType ? `（${c.salesType === 'domestic' ? '内销' : '外销'}）` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">迁移备注（选填）</label>
+                    <textarea
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+                      value={migrateNote}
+                      onChange={e => setMigrateNote(e.target.value)}
+                      placeholder="如从 A 公司离职加入 B 公司"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                  <button onClick={() => setMigratingContact(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                  <button
+                    onClick={handleMigrate}
+                    disabled={migrating || !migrateTargetId}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {migrating ? <Loader2 size={14} className="animate-spin" /> : <CornerDownRight size={14} />}
+                    确认迁移
                   </button>
                 </div>
               </div>

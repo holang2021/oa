@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { createAuditLog } from '../repositories/audit-log.repository';
 
 const prisma = new PrismaClient();
 
@@ -108,6 +109,7 @@ export const createContact = async (req: AuthRequest, res: Response, next: NextF
       isKeyPerson,
       gender,
       remark,
+      extension,
     } = req.body as any;
 
     if (!customerId || !name) {
@@ -137,6 +139,7 @@ export const createContact = async (req: AuthRequest, res: Response, next: NextF
         isKeyPerson: Boolean(isKeyPerson),
         gender: gender ?? null,
         remark: remark ?? null,
+        extension: extension ?? null,
         createdById: req.user?.id ?? null,
       },
     });
@@ -166,12 +169,105 @@ export const updateContact = async (req: AuthRequest, res: Response, next: NextF
     }
 
     const data: any = {};
-    for (const key of ['name', 'position', 'title', 'phone', 'email', 'wechat', 'whatsapp', 'dept', 'type', 'isKeyPerson', 'gender', 'remark']) {
+    for (const key of ['name', 'position', 'title', 'phone', 'email', 'wechat', 'whatsapp', 'dept', 'type', 'isKeyPerson', 'gender', 'remark', 'extension']) {
       if (body[key] !== undefined) data[key] = body[key];
     }
 
     const contact = await prisma.contact.update({ where: { id }, data });
     res.json({ code: 0, message: '更新成功', data: contact });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 标记联系人离职（治理铁律：原记录保留 + status=LEFT + 审计留痕，禁止删除）
+ */
+export const leaveContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { leftNote } = req.body as any;
+    const contact = await prisma.contact.findUnique({ where: { id } });
+    if (!contact) return res.status(404).json({ code: 404, message: '联系人不存在', data: null });
+    if (contact.status === 'LEFT') return res.status(400).json({ code: 400, message: '该联系人已标记为离职', data: null });
+
+    const updated = await prisma.contact.update({
+      where: { id },
+      data: { status: 'LEFT', leftAt: new Date(), leftNote: leftNote ?? null },
+    });
+    await createAuditLog({
+      userId: req.user?.id ?? null,
+      action: 'WRITE',
+      entity: 'contacts',
+      entityId: id,
+      salesType: (req.user as any)?.salesType ?? null,
+      detail: { op: 'leave_contact', note: leftNote ?? null, customerId: contact.customerId },
+    });
+    res.json({ code: 0, message: '已标记为离职', data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 迁移联系人到目标客户（治理铁律：原记录标 LEFT 保留，新建记录挂目标客户 + migratedFromId 血缘，写审计留痕）
+ */
+export const migrateContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { targetCustomerId, note } = req.body as any;
+    if (!targetCustomerId) return res.status(400).json({ code: 400, message: 'targetCustomerId 必填', data: null });
+    const source = await prisma.contact.findUnique({ where: { id } });
+    if (!source) return res.status(404).json({ code: 404, message: '联系人不存在', data: null });
+    if (source.customerId === targetCustomerId) return res.status(400).json({ code: 400, message: '目标客户不能是原客户', data: null });
+    const target = await prisma.customer.findUnique({ where: { id: targetCustomerId } });
+    if (!target) return res.status(404).json({ code: 404, message: '目标客户不存在', data: null });
+
+    await prisma.contact.update({
+      where: { id },
+      data: {
+        status: 'LEFT',
+        leftAt: new Date(),
+        leftNote: note ? `迁移至客户 ${target.companyName}：${note}` : `迁移至客户 ${target.companyName}`,
+      },
+    });
+    const created = await prisma.contact.create({
+      data: {
+        customerId: targetCustomerId,
+        name: source.name,
+        position: source.position,
+        title: source.title,
+        phone: source.phone,
+        email: source.email,
+        wechat: source.wechat,
+        whatsapp: source.whatsapp,
+        dept: source.dept,
+        type: 'SECONDARY',
+        isKeyPerson: false,
+        gender: source.gender,
+        remark: source.remark,
+        extension: source.extension,
+        migratedFromId: source.id,
+        createdById: req.user?.id ?? null,
+      },
+    });
+    await createAuditLog({
+      userId: req.user?.id ?? null,
+      action: 'WRITE',
+      entity: 'contacts',
+      entityId: id,
+      salesType: (req.user as any)?.salesType ?? null,
+      detail: { op: 'leave_contact', reason: 'migrate', targetCustomerId, targetCustomerName: target.companyName, note: note ?? null },
+    });
+    await createAuditLog({
+      userId: req.user?.id ?? null,
+      action: 'WRITE',
+      entity: 'contacts',
+      entityId: created.id,
+      salesType: (req.user as any)?.salesType ?? null,
+      detail: { op: 'migrate_create_contact', fromContactId: source.id, fromCustomerId: source.customerId, targetCustomerId },
+    });
+    res.json({ code: 0, message: '已迁移至目标客户', data: created });
   } catch (error) {
     next(error);
   }
