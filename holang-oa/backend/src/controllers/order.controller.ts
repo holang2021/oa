@@ -142,6 +142,13 @@ function buildOrderData(body: any, isUpdate: boolean) {
   return data;
 }
 
+/** 取下一个订单号（OR + 年 + 6位序号，基于当前计数，与 quote/contract/customer 同构） */
+async function nextOrderNumber(): Promise<string> {
+  const year = new Date().getFullYear();
+  const count = await prisma.order.count();
+  return `OR${year}${String(count + 1).padStart(6, '0')}`;
+}
+
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const body = req.body || {};
@@ -165,6 +172,11 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       }
       const pi = await prisma.pi.findUnique({ where: { id: body.piId } });
       assertPiConfirmed(pi);
+    }
+
+    // 订单编号后端统一生成：前端未传(留空)则自动编码 OR+year+6位；用户显式手填则保留
+    if (!data.orderCode) {
+      data.orderCode = await nextOrderNumber();
     }
 
     const order = await prisma.order.create({

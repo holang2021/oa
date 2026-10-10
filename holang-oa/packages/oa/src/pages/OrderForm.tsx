@@ -81,8 +81,8 @@ export default function OrderForm() {
         setLoading(false)
       }).catch(() => setLoading(false))
     } else {
-      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
-      setForm(prev => ({ ...prev, code: `ORD${dateStr}001` }))
+      // 新建订单不预填单号：留空由后端统一编码(OR+year+6位)，避免前端假号同日重号
+      setForm(prev => ({ ...prev, code: '' }))
     }
   }, [id, isEdit])
 
@@ -145,7 +145,7 @@ export default function OrderForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">订单编号</label>
-            <input type="text" value={form.code} disabled className="input bg-gray-50 text-sm" />
+            <input type="text" value={form.code || '（保存后自动生成）'} disabled className="input bg-gray-50 text-sm" placeholder="保存后自动生成" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">客户 *</label>
