@@ -44,6 +44,8 @@ import MyFlows from './pages/MyFlows'
 import TodoTasks from './pages/TodoTasks'
 import DoneTasks from './pages/DoneTasks'
 import SystemSettings from './pages/SystemSettings'
+import DealerReports from './pages/DealerReports'
+import Partners from './pages/Partners'
 import RbacSettings from './pages/RbacSettings'
 import Offboarding from './pages/Offboarding'
 import OffboardingTodos from './pages/OffboardingTodos'
@@ -218,6 +220,10 @@ function App() {
         <Route path="/org/roles" element={<Guard><RbacSettings /></Guard>} />
         <Route path="/org/offboarding" element={<Guard><Offboarding /></Guard>} />
         <Route path="/org/offboarding-todos" element={<Guard><OffboardingTodos /></Guard>} />
+
+        {/* 经销商报备 */}
+        <Route path="/dealer-reports" element={<Guard><DealerReports /></Guard>} />
+        <Route path="/partners" element={<Guard><Partners /></Guard>} />
 
         {/* 系统工具 */}
         <Route path="/tools/approval" element={<Guard><ApprovalEngine /></Guard>} />

@@ -62,6 +62,8 @@ export const ALL_MENU_PERMISSIONS = [
   { route: '/tools/config', label: '系统配置', labelEn: 'System Config' },
   { route: '/tools/feishu-wiki', label: '飞书知识库', labelEn: 'Feishu Wiki' },
   { route: '/tools/doc-templates', label: '单证模板', labelEn: 'Doc Templates' },
+  { route: '/dealer-reports', label: '经销商报备', labelEn: 'Dealer Reports' },
+  { route: '/partners', label: '代理商档案', labelEn: 'Partners' },
 ] as const
 
 export type MenuRoute = typeof ALL_MENU_PERMISSIONS[number]['route']
@@ -138,6 +140,8 @@ export const DEFAULT_ROLES: Role[] = [
       '/domestic/collections',
       '/analytics/customers',
       '/analytics/opportunities',
+      '/dealer-reports',
+      '/partners',
     ],
     actionPermissions: ['view', 'create', 'edit', 'export', 'approve'],
     dataScope: 'department',
@@ -159,6 +163,8 @@ export const DEFAULT_ROLES: Role[] = [
       '/domestic/quotations',
       '/domestic/orders',
       '/domestic/collections',
+      '/dealer-reports',
+      '/partners',
     ],
     actionPermissions: ['view', 'create', 'edit', 'export'],
     dataScope: 'self',

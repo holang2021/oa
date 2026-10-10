@@ -38,6 +38,7 @@ model User {
   reports           Report[]
   followUps         FollowUp[]
   reviewedDealers   DealerReport[]
+  submittedDealerReports DealerReport[] @relation("DealerReportSubmitter")
   contracts         Contract[]
   pis               Pi[]          @relation("UserPis")
 
@@ -66,6 +67,14 @@ model Customer {
   // ═══ 内销/外销分类 ═══
   businessLine  String        @default("INDUSTRIAL") // INDUSTRIAL内销 / RETAIL外销
   salesType     String        @default("INTERNAL")   // INTERNAL国内 / EXTERNAL海外
+
+  // ═══ 渠道/代理商（刘总 2026-10-08 拍板 A'：代理商=Customer 的一种，视图分流，不另立表）═══
+  // 奥卡姆剃刀：报备审核本就落 Customer，独立 Partner 表=重复+跨表撞单，已删并回此处
+  customerType      String    @default("END") // END 终端客户 / AGENT 渠道代理商
+  agentStatus       String?   // 代理商审批态（仅 AGENT 用）：PENDING 待审批 / APPROVED 正式 / REJECTED 已驳回
+  agentReviewedBy   String?   // 审批人（角色池：ADMIN/内销主管/外销主管；提交人不能自审）
+  agentReviewedAt   DateTime?
+  agentRejectReason String?   // 驳回原因（驳回必填）
 
   // ═══ 国家标签（世界地图统计用）═══
   // 外销客户由联系人国际电话区号自动识别，内销统一为「中国」，可手动覆盖
@@ -140,6 +149,7 @@ model Customer {
   @@index([status])
   @@index([businessLine])
   @@index([salesType])
+  @@index([customerType])
   @@index([salesOwnerId])
   @@index([country])
   @@index([companyName])
@@ -757,7 +767,9 @@ model DealerReport {
   dealerPhone   String
   dealerEmail   String?
   status        String          @default("PENDING")
+  salesType     String?         // INTERNAL 内销经销商 / EXTERNAL 外销代理商；审核通过按此分流到客户库
   duplicateOf   String?
+  submittedBy   String?         // 提交人（HOLANG 销售/业务员本人），用于销售只看自己报备
   reviewedBy    String?
   reviewedAt    DateTime?
   notes         String?
@@ -766,12 +778,21 @@ model DealerReport {
   updatedAt     DateTime        @updatedAt
 
   reviewer      User?           @relation(fields: [reviewedBy], references: [id])
+  submitter     User?           @relation("DealerReportSubmitter", fields: [submittedBy], references: [id])
   duplicateCustomer Customer?   @relation(fields: [duplicateOf], references: [id])
 
   @@index([status])
+  @@index([salesType])
   @@index([contactPhone])
+  @@index([submittedBy])
   @@map("dealer_reports")
 }
+
+// ============================================================
+// 代理商主数据已并入 Customer（customerType='AGENT'）——刘总 2026-10-09 拍板 A'
+// 奥卡姆剃刀：报备(DealerReport)审核本就落 Customer，独立 Partner 表=重复+跨表撞单。
+// 代理商视图 /partners 改查 customers WHERE customerType='AGENT'。
+// ============================================================
 
 model WecomDepartment {
   id        String  @id

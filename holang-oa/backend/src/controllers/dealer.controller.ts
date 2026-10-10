@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
+import { resolveRole, isSalesOnlyRole } from '../constants/roles';
 
 const prisma = new PrismaClient();
 
@@ -13,11 +14,13 @@ const DealerReportStatus = {
 
 const submitDealerReportSchema = z.object({
   companyName: z.string().min(1, '公司名称不能为空'),
-  contactName: z.string().min(1, '联系人姓名不能为空'),
-  contactPhone: z.string().min(1, '联系电话不能为空'),
+  // 联系人/联系电话为选填（国内客户常不提供，刘总 2026-10-08 裁定）
+  contactName: z.string().optional().default(''),
+  contactPhone: z.string().optional().default(''),
   contactEmail: z.string().email().optional().or(z.literal('')),
   dealerName: z.string().min(1, '代理商名称不能为空'),
   dealerPhone: z.string().min(1, '代理商电话不能为空'),
+  salesType: z.enum(['INTERNAL', 'EXTERNAL']).optional().default('INTERNAL'),
 });
 
 /**
@@ -36,9 +39,12 @@ export const getDealerReports = async (req: AuthRequest, res: Response, next: Ne
       where.status = status;
     }
 
-    // Sales can only see their own reports
-    if (req.user?.role === 'SALES') {
-      where.dealerPhone = req.user.name; // Assuming dealer phone matches user name
+    // Sales-only roles (INTERNAL_SALES / EXTERNAL_SALES) see only their own submissions.
+    // Use resolveRole to also catch legacy 'SALES' values; fix of the old buggy
+    // `where.dealerPhone = req.user.name` which never matched and leaked all reports.
+    const role = resolveRole(req.user?.role);
+    if (isSalesOnlyRole(role)) {
+      where.submittedBy = req.user!.id;
     }
 
     const total = await prisma.dealerReport.count({ where });
@@ -48,6 +54,7 @@ export const getDealerReports = async (req: AuthRequest, res: Response, next: Ne
       orderBy: { createdAt: 'desc' },
       skip,
       take: pageSizeNum,
+      include: { submitter: { select: { name: true } } },
     });
 
     res.json({
@@ -92,20 +99,17 @@ export const submitDealerReport = async (req: AuthRequest, res: Response, next: 
     const validated = submitDealerReportSchema.parse(req.body);
 
     // Duplicate check: by company name, contact name, or phone
-    const duplicate = await prisma.customer.findFirst({
-      where: {
-        OR: [
-          { companyName: validated.companyName },
-          { contacts: { some: { name: validated.contactName } } },
-          { contacts: { some: { phone: validated.contactPhone } } },
-        ],
-      },
-    });
+    // (skip contact/phone dimensions when empty — they are optional now)
+    const orConds: any[] = [{ companyName: validated.companyName }];
+    if (validated.contactName) orConds.push({ contacts: { some: { name: validated.contactName } } });
+    if (validated.contactPhone) orConds.push({ contacts: { some: { phone: validated.contactPhone } } });
+    const duplicate = await prisma.customer.findFirst({ where: { OR: orConds } });
 
     const report = await prisma.dealerReport.create({
       data: {
         ...validated,
         status: DealerReportStatus.PENDING,
+        submittedBy: req.user?.id,
         duplicateOf: duplicate?.id,
       } as any,
     });
@@ -139,20 +143,27 @@ export const reviewDealerReport = async (req: AuthRequest, res: Response, next: 
     if (action === 'approve') {
       // Convert to customer
       if (!report.duplicateOf) {
+        const isExternal = report.salesType === 'EXTERNAL'
         const customer = await prisma.customer.create({
           data: {
             companyName: report.companyName,
             status: 'POTENTIAL',
+            customerType: 'AGENT', // 经销商/代理商=渠道客户（刘总 2026-10-09 A'：代理商并入 Customer，视图分流）
+            salesType: report.salesType || 'INTERNAL',
+            businessLine: isExternal ? 'RETAIL' : 'INDUSTRIAL',
             salesOwnerId: req.user!.id,
             createdBy: req.user!.id,
-            contacts: {
-              create: {
-                name: report.contactName,
-                phone: report.contactPhone,
-                email: report.contactEmail,
-                type: 'PRIMARY',
+            // 联系人为选填：仅当报备填了联系人姓名才创建联系人档案
+            ...(report.contactName ? {
+              contacts: {
+                create: {
+                  name: report.contactName,
+                  phone: report.contactPhone || undefined,
+                  email: report.contactEmail,
+                  type: 'PRIMARY',
+                },
               },
-            },
+            } : {}),
           },
         });
 

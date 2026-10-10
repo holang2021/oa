@@ -124,7 +124,11 @@ export async function createCustomerWithGrade(
   // ── 落库 ──
   const customer = await customerRepo.createCustomer({
     companyName: input.companyName,
-    customerCode: input.customerCode ?? null,
+    // 客户编号：前端未传（或仅空白）时由后端统一原子编码，保证单一真相源、不重号
+    customerCode:
+      input.customerCode && input.customerCode.trim()
+        ? input.customerCode
+        : await customerRepo.nextCustomerCode(),
     industry: input.industry ?? null,
     address: input.address ?? null,
     country: input.country ?? null,

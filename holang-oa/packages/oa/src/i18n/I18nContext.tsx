@@ -131,6 +131,8 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.config': '系统配置',
     'nav.feishuWiki': '飞书知识库',
     'nav.backgroundCheck': '背景调查',
+    'nav.dealerReports': '报备管理',
+    'nav.partners': '代理商档案',
 
     // Placeholder
     'placeholder.crm': 'CRM',
@@ -346,6 +348,8 @@ const translations: Record<Lang, Record<string, string>> = {
     'nav.config': 'System Config',
     'nav.feishuWiki': 'Feishu Wiki',
     'nav.backgroundCheck': 'Background Check',
+    'nav.dealerReports': 'Reports',
+    'nav.partners': 'Partners',
 
     'placeholder.crm': 'CRM',
     'placeholder.srm': 'SRM',

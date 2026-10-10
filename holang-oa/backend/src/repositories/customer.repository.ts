@@ -189,3 +189,13 @@ export async function findDueFollowups(now: Date) {
     },
   });
 }
+
+/**
+ * 取下一个客户编号（KH + 年 + 6位序号，基于当前客户计数）。
+ * 与报价 nextQuoteNumber / 合同 nextContractNumber 同款后端原子取号机制，统一编号体系。
+ * 前端不传 customerCode 时由服务端兜底生成，彻底消除“客户编号靠手工/空着”的缺口。
+ */
+export async function nextCustomerCode(): Promise<string> {
+  const count = await prisma.customer.count();
+  return `KH${new Date().getFullYear()}${String(count + 1).padStart(6, '0')}`;
+}

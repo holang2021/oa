@@ -50,6 +50,8 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null, view
       items: filterItems([
         { to: '/domestic/customers', labelKey: 'nav.customers', icon: Users },
         { to: '/domestic/leads', labelKey: 'nav.leads', icon: TrendingUp },
+        { to: '/dealer-reports', labelKey: 'nav.dealerReports', icon: ClipboardCheck },
+        { to: '/partners', labelKey: 'nav.partners', icon: Building2 },
         { to: '/domestic/opportunities', labelKey: 'nav.opportunities', icon: Target },
         { to: '/domestic/quotations', labelKey: 'nav.quotations', icon: FileText },
         { to: '/domestic/orders', labelKey: 'nav.orders', icon: ShoppingBag },
@@ -62,6 +64,7 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null, view
       items: filterItems([
         { to: '/export/customers', labelKey: 'nav.customers', icon: Users },
         { to: '/export/leads', labelKey: 'nav.leads', icon: TrendingUp },
+        { to: '/partners', labelKey: 'nav.partners', icon: Building2 },
         { to: '/export/opportunities', labelKey: 'nav.opportunities', icon: Target },
         { to: '/export/quotations', labelKey: 'nav.quotations', icon: FileText },
         { to: '/export/orders', labelKey: 'nav.orders', icon: ShoppingBag },
