@@ -13,6 +13,7 @@ const createOpportunitySchema = z.object({
   name: z.string().min(1, '机会名称不能为空'),
   customerId: z.string().min(1, '客户ID不能为空'),
   productId: z.string().optional(),
+  productIntentIds: z.array(z.string()).optional(),
   expectedAmount: z.number().min(0, '预计金额不能为负数'),
   winProbability: z.number().min(0).max(100).optional(),
   expectedCloseDate: z.string().datetime().optional(),

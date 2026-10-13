@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
-import { products } from '../data/mockData'
 import { getCustomerById, getCustomers } from '../services/customerService'
+import { getProducts, type Product } from '../services/productService'
+import { getOpportunityById } from '../services/opportunityService'
 import api from '../services/api'
 
 export default function OpportunityForm() {
@@ -17,6 +18,7 @@ export default function OpportunityForm() {
   const returnTo = searchParams.get('returnTo') || ''
   const safeReturnTo = returnTo.startsWith(`${basePath}/`) ? returnTo : `${basePath}/opportunities`
   const [customerList, setCustomerList] = useState<{ id: string; name: string; code: string }[]>([])
+  const [productList, setProductList] = useState<Product[]>([])
 
   const [form, setForm] = useState({
     id: '',
@@ -59,9 +61,37 @@ export default function OpportunityForm() {
   }, [prefilledCustomerId])
 
   useEffect(() => {
+    getProducts({ pageSize: 500 }).then(res => setProductList(res.list)).catch(() => setProductList([]))
+  }, [])
+
+  useEffect(() => {
     if (id) {
-      // Load from API if editing
-      // For now, generate code for new opportunities
+      getOpportunityById(id).then(opp => {
+        if (!opp) return
+        const stageLabel = ({
+          INITIAL_CONTACT: '初步接洽',
+          REQUIREMENT_CONFIRMED: '需求确认',
+          QUOTING: '方案报价',
+          CONTRACT_NEGOTIATION: '商务谈判',
+          WON: '赢单',
+          LOST: '输单',
+        } as Record<string, string>)[opp.stage || ''] || opp.stage || '初步接洽'
+        setForm(f => ({
+          ...f,
+          id: opp.id,
+          code: opp.code || f.code,
+          customerId: opp.customerId || f.customerId,
+          name: opp.name || '',
+          stage: stageLabel,
+          amount: opp.expectedAmount ? opp.expectedAmount / 10000 : 0,
+          expectedCloseDate: opp.expectedCloseDate ? opp.expectedCloseDate.slice(0, 10) : '',
+          probability: opp.winProbability ?? f.probability,
+          products: opp.productIntents?.map(item => item.productId).filter(Boolean) || [],
+          remark: opp.description || '',
+          competitorInfo: opp.competitorInfo || '',
+          customerContactId: '',
+        }))
+      }).catch(() => {})
     } else {
       const now = new Date()
       const code = `SJ${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}001`
@@ -85,6 +115,7 @@ export default function OpportunityForm() {
         name: form.name,
         expectedAmount: Math.round(form.amount * 10000),
         winProbability: form.probability,
+        productIntentIds: form.products,
         expectedCloseDate: form.expectedCloseDate ? new Date(form.expectedCloseDate).toISOString() : undefined,
         stage: ({
           '初步接洽': 'INITIAL_CONTACT',
@@ -245,7 +276,7 @@ export default function OpportunityForm() {
           <p className="text-xs text-gray-400 mt-1">仅用于销售预测和需求判断；转订单时产品、数量、价格和税费可重新确认。</p>
         </div>
         <div className="space-y-2">
-          {products.filter(p => p.status === 'active').map(p => (
+          {productList.map(p => (
             <label key={p.id} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -255,9 +286,10 @@ export default function OpportunityForm() {
                   else update('products', form.products.filter(pid => pid !== p.id))
                 }}
               />
-              {p.name} ({p.model}) - ¥{p.salePrice.toLocaleString()}
+              {p.name}{p.model ? ` (${p.model})` : ''} - ¥{(p.unitPrice || 0).toLocaleString()}
             </label>
           ))}
+          {productList.length === 0 && <div className="text-sm text-gray-400">暂无可选产品</div>}
         </div>
       </div>
 

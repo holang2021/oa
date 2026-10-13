@@ -284,7 +284,7 @@ export default function OppPool() {
                     {expandedOppId === o.id && (
                       <tr className="border-b bg-gray-50/70">
                         <td colSpan={9} className="px-4 py-3">
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
                             <div>
                               <div className="text-xs font-medium text-gray-500 mb-1">商机概况</div>
                               <div className="text-gray-700 whitespace-pre-wrap leading-6">{o.description || '暂未记录'}</div>
@@ -292,6 +292,14 @@ export default function OppPool() {
                             <div>
                               <div className="text-xs font-medium text-gray-500 mb-1">竞品信息</div>
                               <div className="text-gray-700 whitespace-pre-wrap leading-6">{o.competitorInfo || '暂未记录'}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 mb-1">意向产品</div>
+                              <div className="text-gray-700 leading-6">
+                                {o.productIntents?.length
+                                  ? o.productIntents.map(item => item.product ? `${item.product.name}${item.product.model ? ` (${item.product.model})` : ''}` : item.productId).join('、')
+                                  : '暂未记录'}
+                              </div>
                             </div>
                           </div>
                         </td>

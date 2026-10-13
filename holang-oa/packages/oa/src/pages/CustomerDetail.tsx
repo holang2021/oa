@@ -1343,6 +1343,14 @@ export default function CustomerDetail() {
                         <div className="text-gray-700 whitespace-pre-wrap leading-6">{opp.competitorInfo || '暂未记录'}</div>
                       </div>
                     </div>
+                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                      <div className="text-xs font-medium text-gray-500 mb-1">意向产品</div>
+                      <div className="text-gray-700 leading-6">
+                        {opp.productIntents?.length
+                          ? opp.productIntents.map(item => item.product ? `${item.product.name}${item.product.model ? ` (${item.product.model})` : ''}` : item.productId).join('、')
+                          : '暂未记录'}
+                      </div>
+                    </div>
                     <div className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
                       <span>成交概率：<span className="font-medium text-gray-700">{opp.winProbability || 0}%</span></span>
                       <button

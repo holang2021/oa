@@ -8,6 +8,7 @@ export interface CreateOpportunityInput {
   name: string;
   customerId: string;
   productId?: string | null;
+  productIntentIds?: string[];
   expectedAmount: number;
   expectedCloseDate?: Date | null;
   stage?: string;
@@ -50,13 +51,29 @@ export async function createOpportunity(data: CreateOpportunityInput) {
       customerContactId: data.customerContactId ?? null,
       inPublicPool: false,
       ownerId: data.salesOwnerId,
+      productIntents: data.productIntentIds?.length
+        ? {
+            create: uniqueIds(data.productIntentIds).map((productId, index) => ({
+              productId,
+              sortOrder: index,
+            })),
+          }
+        : undefined,
     },
     include: {
       customer: { select: { id: true, companyName: true } },
       product: { select: { id: true, name: true, model: true } },
+      productIntents: {
+        orderBy: { sortOrder: 'asc' },
+        include: { product: { select: { id: true, name: true, model: true, spec: true, unitPrice: true } } },
+      },
       salesOwner: { select: { id: true, name: true } },
     },
   });
+}
+
+function uniqueIds(ids: string[]): string[] {
+  return Array.from(new Set(ids.filter(Boolean)));
 }
 
 export async function findOpportunityById(id: string) {
@@ -65,6 +82,10 @@ export async function findOpportunityById(id: string) {
     include: {
       customer: true,
       product: true,
+      productIntents: {
+        orderBy: { sortOrder: 'asc' },
+        include: { product: { select: { id: true, name: true, model: true, spec: true, unitPrice: true } } },
+      },
       salesOwner: { select: { id: true, name: true } },
     },
   });
@@ -91,6 +112,10 @@ export async function findOpportunities(filter: OpportunityFilter) {
       include: {
         customer: { select: { id: true, companyName: true, status: true } },
         product: { select: { id: true, name: true, model: true } },
+        productIntents: {
+          orderBy: { sortOrder: 'asc' },
+          include: { product: { select: { id: true, name: true, model: true, spec: true, unitPrice: true } } },
+        },
         salesOwner: { select: { id: true, name: true } },
       },
       orderBy: { [filter.sortBy ?? 'createdAt']: filter.sortOrder ?? 'desc' },
@@ -108,6 +133,7 @@ export async function updateOpportunity(
     name?: string;
     customerId?: string;
     productId?: string | null;
+    productIntentIds?: string[];
     expectedAmount?: number;
     expectedCloseDate?: Date | null;
     stage?: string;
@@ -117,14 +143,35 @@ export async function updateOpportunity(
     customerContactId?: string | null;
   }
 ) {
-  return prisma.opportunity.update({
-    where: { id },
-    data,
-    include: {
-      customer: { select: { id: true, companyName: true } },
-      product: { select: { id: true, name: true } },
-      salesOwner: { select: { id: true, name: true } },
-    },
+  const { productIntentIds, ...opportunityData } = data;
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.opportunity.update({
+      where: { id },
+      data: opportunityData,
+    });
+
+    if (productIntentIds !== undefined) {
+      await tx.opportunityProductIntent.deleteMany({ where: { opportunityId: id } });
+      const ids = uniqueIds(productIntentIds);
+      if (ids.length) {
+        await tx.opportunityProductIntent.createMany({
+          data: ids.map((productId, index) => ({ opportunityId: id, productId, sortOrder: index })),
+        });
+      }
+    }
+
+    return tx.opportunity.findUniqueOrThrow({
+      where: { id: updated.id },
+      include: {
+        customer: { select: { id: true, companyName: true } },
+        product: { select: { id: true, name: true } },
+        productIntents: {
+          orderBy: { sortOrder: 'asc' },
+          include: { product: { select: { id: true, name: true, model: true, spec: true, unitPrice: true } } },
+        },
+        salesOwner: { select: { id: true, name: true } },
+      },
+    });
   });
 }
 

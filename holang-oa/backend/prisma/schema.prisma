@@ -572,6 +572,7 @@ model Opportunity {
 
   customer        Customer         @relation(fields: [customerId], references: [id])
   product         Product?         @relation(fields: [productId], references: [id])
+  productIntents  OpportunityProductIntent[]
   salesOwner      User?            @relation(fields: [salesOwnerId], references: [id])
 
   @@index([stage])
@@ -581,6 +582,21 @@ model Opportunity {
   @@index([customerContactId])
   @@index([inPublicPool])
   @@map("opportunities")
+}
+
+model OpportunityProductIntent {
+  id            String      @id @default(cuid())
+  opportunityId String      @map("opportunity_id")
+  productId     String      @map("product_id")
+  sortOrder     Int         @default(0) @map("sort_order")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+
+  @@unique([opportunityId, productId])
+  @@index([productId])
+  @@map("opportunity_product_intents")
 }
 
 // ============================================================
@@ -600,6 +616,7 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   opportunities Opportunity[]
+  opportunityProductIntents OpportunityProductIntent[]
   quoteItems    QuoteItem[]
 
   @@index([category])

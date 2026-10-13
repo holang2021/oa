@@ -13,6 +13,10 @@ export interface Opportunity {
   winProbability?: number
   description?: string
   competitorInfo?: string
+  productIntents?: Array<{
+    productId: string
+    product?: { id: string; name: string; model?: string | null; spec?: string | null; unitPrice?: number }
+  }>
   huobanId?: string
   createdAt?: string
   updatedAt?: string

@@ -26,6 +26,7 @@ export interface CreateOpportunityInput {
   name?: string;
   customerId?: string;
   productId?: string | null;
+  productIntentIds?: string[];
   expectedAmount?: number;
   winProbability?: number;
   expectedCloseDate?: string | null;
@@ -52,7 +53,8 @@ export async function createOpportunity(input: CreateOpportunityInput, ctx: Serv
   const opportunity = await oppRepo.createOpportunity({
     name: input.name,
     customerId: input.customerId,
-    productId: input.productId ?? null,
+    productId: input.productId ?? input.productIntentIds?.[0] ?? null,
+    productIntentIds: input.productIntentIds,
     expectedAmount: input.expectedAmount,
     expectedCloseDate: input.expectedCloseDate ? new Date(input.expectedCloseDate) : null,
     stage,
@@ -106,6 +108,7 @@ export async function updateOpportunity(
     name?: string;
     customerId?: string;
     productId?: string | null;
+    productIntentIds?: string[];
     expectedAmount?: number;
     winProbability?: number;
     expectedCloseDate?: string | null;
@@ -126,6 +129,8 @@ export async function updateOpportunity(
     ...(data.name !== undefined && { name: data.name }),
     ...(data.customerId !== undefined && { customerId: data.customerId }),
     ...(data.productId !== undefined && { productId: data.productId }),
+    ...(data.productIntentIds !== undefined && { productId: data.productIntentIds[0] ?? null }),
+    ...(data.productIntentIds !== undefined && { productIntentIds: data.productIntentIds }),
     ...(data.expectedAmount !== undefined && { expectedAmount: data.expectedAmount }),
     ...(data.expectedCloseDate !== undefined && {
       expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate) : null,

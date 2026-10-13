@@ -12,6 +12,8 @@ function ctx(scope: 'INTERNAL' | 'EXTERNAL' | 'ALL', userId = 'ut-user-opp'): Se
 
 let internalCustId = '';
 let externalCustId = '';
+let productAId = '';
+let productBId = '';
 
 beforeAll(async () => {
   await prisma.user.upsert({
@@ -21,12 +23,18 @@ beforeAll(async () => {
   });
   const a = await prisma.customer.create({ data: { companyName: `${MARK}_内销客户`, salesType: 'INTERNAL', status: 'POTENTIAL' } });
   const b = await prisma.customer.create({ data: { companyName: `${MARK}_外销客户`, salesType: 'EXTERNAL', status: 'POTENTIAL' } });
+  const productA = await prisma.product.create({ data: { name: `${MARK}_产品A`, model: 'A-100', unitPrice: 10000 } });
+  const productB = await prisma.product.create({ data: { name: `${MARK}_产品B`, model: 'B-200', unitPrice: 20000 } });
   internalCustId = a.id;
   externalCustId = b.id;
+  productAId = productA.id;
+  productBId = productB.id;
 });
 
 afterAll(async () => {
+  await prisma.opportunityProductIntent.deleteMany({ where: { productId: { in: [productAId, productBId].filter(Boolean) } } });
   await prisma.opportunity.deleteMany({ where: { name: { contains: MARK } } });
+  await prisma.product.deleteMany({ where: { name: { contains: MARK } } });
   await prisma.customer.deleteMany({ where: { companyName: { contains: MARK } } });
   await prisma.$disconnect();
 });
@@ -47,6 +55,19 @@ describe('D3 单元：商机新建 + 服务端域强制', () => {
     expect(opp.winProbability).toBe(10); // INITIAL_CONTACT
     expect(opp.description).toBe('客户需要稳定的现场供气方案');
     expect(opp.competitorInfo).toBe('竞品A，客户仍在比价');
+  });
+
+  it('新建商机可保存多个意向产品', async () => {
+    const opp = await oppService.createOpportunity(
+      {
+        name: `${MARK}_意向产品商机`,
+        customerId: internalCustId,
+        expectedAmount: 200,
+        productIntentIds: [productAId, productBId],
+      },
+      ctx('INTERNAL')
+    );
+    expect(opp.productIntents.map((item: any) => item.productId)).toEqual([productAId, productBId]);
   });
 
   it('内销销售在外销客户下建商机 => 403 越权', async () => {
