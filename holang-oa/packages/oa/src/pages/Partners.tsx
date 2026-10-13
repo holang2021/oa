@@ -64,6 +64,7 @@ export default function Partners() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [statusTab, setStatusTab] = useState('')
   const [editing, setEditing] = useState<PartnerRow | null>(null)
   const [showNew, setShowNew] = useState(false)
@@ -77,7 +78,7 @@ export default function Partners() {
   const load = useCallback(async () => {
     setLoading(true)
     const params: string[] = []
-    if (q.trim()) params.push(`q=${encodeURIComponent(q.trim())}`)
+    if (searchQuery.trim()) params.push(`q=${encodeURIComponent(searchQuery.trim())}`)
     if (statusTab) params.push(`status=${statusTab}`)
     const res = await api.get(`/partners${params.length ? '?' + params.join('&') : ''}`)
     if (res.code === 0) {
@@ -85,9 +86,13 @@ export default function Partners() {
       setTotal(res.data?.pagination?.total || 0)
     }
     setLoading(false)
-  }, [q, statusTab])
+  }, [searchQuery, statusTab])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearchQuery(q), 300)
+    return () => window.clearTimeout(timer)
+  }, [q])
 
   return (
     <div className="p-6">
@@ -101,17 +106,26 @@ export default function Partners() {
         </button>
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-md">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="relative w-full sm:max-w-xl">
+          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="模糊搜索:公司名 / 邮箱 / 联系人 / 归属人 / 责任人 / 状况 / 跟进"
-            className="input text-sm w-full pl-9"
+            placeholder="搜索公司、联系人、邮箱或负责人"
+            aria-label="搜索代理商档案"
+            className="h-[44px] w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 text-sm text-gray-700 outline-none transition-shadow placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
+          {q && (
+            <button type="button" onClick={() => setQ('')} aria-label="清空搜索" title="清空搜索" className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
+              <X size={15} />
+            </button>
+          )}
         </div>
-        <div className="flex gap-1 text-sm">
+        <span className="text-xs text-gray-400 shrink-0">共 {total} 条</span>
+        </div>
+        <div className="flex gap-1 text-sm overflow-x-auto pb-1">
           {[
             { k: '', label: '全部' },
             { k: 'PENDING', label: '待审批' },
@@ -121,11 +135,10 @@ export default function Partners() {
             <button
               key={tb.k}
               onClick={() => setStatusTab(tb.k)}
-              className={`px-3 py-1.5 rounded-md ${statusTab === tb.k ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`h-9 px-3 rounded-md whitespace-nowrap transition-colors ${statusTab === tb.k ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >{tb.label}</button>
           ))}
         </div>
-        <span className="text-xs text-gray-400 ml-auto">共 {total} 条</span>
       </div>
 
       <div className="bg-white rounded-xl border overflow-x-auto">

@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
-import { customers, products } from '../data/mockData'
-import { getCustomers } from '../services/customerService'
+import { products } from '../data/mockData'
+import { getCustomerById, getCustomers } from '../services/customerService'
 import api from '../services/api'
 
 export default function OpportunityForm() {
   const { id } = useParams()
   const nav = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const isEdit = !!id
+  const isExportRoute = location.pathname.startsWith('/export')
+  const basePath = isExportRoute ? '/export' : '/domestic'
+  const prefilledCustomerId = searchParams.get('customerId') || ''
+  const returnTo = searchParams.get('returnTo') || ''
+  const safeReturnTo = returnTo.startsWith(`${basePath}/`) ? returnTo : `${basePath}/opportunities`
+  const [customerList, setCustomerList] = useState<{ id: string; name: string; code: string }[]>([])
 
   const [form, setForm] = useState({
     id: '',
@@ -39,15 +47,30 @@ export default function OpportunityForm() {
   })
 
   useEffect(() => {
+    getCustomers({ pageSize: 500 }).then(async res => {
+      const customers = res.list.map(c => ({ id: c.id, name: c.name, code: c.code }))
+      if (prefilledCustomerId && !customers.some(c => c.id === prefilledCustomerId)) {
+        try {
+          const customer = await getCustomerById(prefilledCustomerId)
+          if (customer) customers.unshift({ id: customer.id, name: customer.name, code: customer.code })
+        } catch {
+          // 上下文客户已不可访问时，保留正常客户列表供用户重新选择。
+        }
+      }
+      setCustomerList(customers)
+    }).catch(() => {})
+  }, [prefilledCustomerId])
+
+  useEffect(() => {
     if (id) {
       // Load from API if editing
       // For now, generate code for new opportunities
     } else {
       const now = new Date()
       const code = `SJ${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}001`
-      setForm(f => ({ ...f, code }))
+      setForm(f => ({ ...f, code, customerId: prefilledCustomerId || f.customerId }))
     }
-  }, [id])
+  }, [id, prefilledCustomerId])
 
   const update = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }))
 
@@ -62,19 +85,26 @@ export default function OpportunityForm() {
       const payload: any = {
         customerId: form.customerId,
         name: form.name,
-        stage: form.stage,
-        amount: form.amount,
-        expectedCloseDate: form.expectedCloseDate ? new Date(form.expectedCloseDate) : null,
-        salesPerson: form.salesPerson,
-        probability: form.probability,
-        remark: form.remark,
+        expectedAmount: form.amount,
+        expectedCloseDate: form.expectedCloseDate ? new Date(form.expectedCloseDate).toISOString() : undefined,
+        stage: ({
+          '初步接洽': 'INITIAL_CONTACT',
+          '需求确认': 'REQUIREMENT_CONFIRMED',
+          '方案报价': 'QUOTING',
+          '商务谈判': 'CONTRACT_NEGOTIATION',
+          '合同签订': 'CONTRACT_NEGOTIATION',
+          '赢单': 'WON',
+          '输单': 'LOST',
+        } as Record<string, string>)[form.stage] || form.stage,
+        description: form.remark || undefined,
+        customerContactId: form.customerContactId || undefined,
       }
       if (isEdit && id) {
         await api.put('/opportunities/' + id, payload)
       } else {
         await api.post('/opportunities', payload)
       }
-      nav('/domestic/opportunities')
+      nav(safeReturnTo)
     } catch (err: any) {
       alert('保存失败: ' + (err?.message || '未知错误'))
     }
@@ -109,7 +139,7 @@ export default function OpportunityForm() {
             <label className="block text-xs font-medium text-gray-500 mb-1">所属客户 <span className="text-red-500">*</span></label>
             <select value={form.customerId} onChange={e => update('customerId', e.target.value)} className="input text-sm">
               <option value="">请选择客户</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {customerList.map(c => <option key={c.id} value={c.id}>{c.name}{c.code ? `（${c.code}）` : ''}</option>)}
             </select>
           </div>
           <div>

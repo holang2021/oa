@@ -528,6 +528,22 @@ export default function CustomerDetail() {
 
   const fmtMoney = (v: number) => '¥' + v.toLocaleString()
 
+  const buildCreateLink = (resource: 'opportunities' | 'orders' | 'collections') => {
+    const params = new URLSearchParams({
+      customerId: customer.id,
+      returnTo: `${basePath}/customers/${customer.id}`,
+    })
+    return `${basePath}/${resource}/new?${params.toString()}`
+  }
+
+  const openFollowUp = () => {
+    setActiveTab('timeline')
+    setShowAddFollowUp(true)
+    window.setTimeout(() => {
+      document.getElementById('customer-followup-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -594,6 +610,28 @@ export default function CustomerDetail() {
           </div>
           <div className="flex gap-2 shrink-0">
             <button onClick={() => navigate(`${basePath}/customers/${customer.id}/edit`)} className="btn-secondary text-xs">编辑</button>
+          </div>
+        </div>
+
+        {/* 业务内链：保留当前客户上下文，直接进入下一步工作 */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
+          <div>
+            <div className="text-sm font-medium text-gray-700">快捷操作</div>
+            <div className="text-xs text-gray-400 mt-0.5">已自动关联当前客户，完成后返回本页</div>
+          </div>
+          <div className="grid grid-cols-2 sm:flex gap-2">
+            <button onClick={openFollowUp} className="btn-primary text-xs inline-flex items-center justify-center gap-1.5">
+              <MessageCircle size={14} /> 新增跟进
+            </button>
+            <button onClick={() => navigate(buildCreateLink('opportunities'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5">
+              <TrendingUp size={14} /> 新建商机
+            </button>
+            <button onClick={() => navigate(buildCreateLink('orders'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5">
+              <ShoppingBag size={14} /> 新建订单
+            </button>
+            <button onClick={() => navigate(buildCreateLink('collections'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5">
+              <DollarSign size={14} /> 新建回款
+            </button>
           </div>
         </div>
 
@@ -1409,7 +1447,7 @@ export default function CustomerDetail() {
                 </button>
               </div>
               {showAddFollowUp && (
-                <div className="card border-brand-200 bg-brand-50/30 p-4 space-y-3 mb-4">
+                <div id="customer-followup-form" className="card border-brand-200 bg-brand-50/30 p-4 space-y-3 mb-4 scroll-mt-24">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">添加跟进记录</span>
                     <button onClick={() => { setShowAddFollowUp(false); setNewFollowUp({ method: 'note', content: '', contactId: '' }) }} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>

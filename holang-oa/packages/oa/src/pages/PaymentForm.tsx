@@ -1,12 +1,31 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save } from 'lucide-react'
-import { customers, orders } from '../data/mockData'
-import { Payment } from '../data/mockData'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Save, AlertTriangle } from 'lucide-react'
 import { createPayment, updatePayment, getPaymentById } from '../services/paymentService'
-import { useI18n } from '../i18n/I18nContext'
+import { getCustomerById, getCustomers } from '../services/customerService'
+import { getOrders, type Order } from '../services/orderService'
 
-const emptyForm = (): Payment => ({
+interface PaymentDraft {
+  id: string
+  customerId: string
+  orderId: string
+  code: string
+  amount: number
+  type: string
+  status: string
+  plannedDate: string
+  receivedDate: string
+  paymentMethod: string
+  confirmedFinance: string
+  confirmedFinanceDate: string
+  paymentVoucher: string
+  paymentRatio: number
+  customerAccount: string
+  applyDate: string
+  remark: string
+}
+
+const emptyForm = (): PaymentDraft => ({
   id: '',
   customerId: '',
   orderId: '',
@@ -33,34 +52,82 @@ const paymentMethodOptions = ['银行转账', '承兑', '现金']
 export default function PaymentForm() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const isEdit = !!id
+  const isExportRoute = location.pathname.startsWith('/export')
+  const basePath = isExportRoute ? '/export' : '/domestic'
+  const prefilledCustomerId = searchParams.get('customerId') || ''
+  const returnTo = searchParams.get('returnTo') || ''
+  const safeReturnTo = returnTo.startsWith(`${basePath}/`) ? returnTo : `${basePath}/collections`
 
-  const [form, setForm] = useState<Payment>(emptyForm)
+  const [form, setForm] = useState<PaymentDraft>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [loadingOptions, setLoadingOptions] = useState(true)
+  const [customerList, setCustomerList] = useState<{ id: string; name: string }[]>([])
+  const [orderList, setOrderList] = useState<Order[]>([])
+
+  useEffect(() => {
+    setLoadingOptions(true)
+    Promise.all([
+      getCustomers({ pageSize: 500 }),
+      getOrders({ pageSize: 500 }),
+    ]).then(async ([customerRes, orderRes]) => {
+      const customers = customerRes.list.map(c => ({ id: c.id, name: c.name }))
+      if (prefilledCustomerId && !customers.some(c => c.id === prefilledCustomerId)) {
+        try {
+          const customer = await getCustomerById(prefilledCustomerId)
+          if (customer) customers.unshift({ id: customer.id, name: customer.name })
+        } catch {
+          // 上下文客户已不可访问时，保留正常客户列表供用户重新选择。
+        }
+      }
+      setCustomerList(customers)
+      setOrderList(orderRes.list)
+    }).catch(() => {}).finally(() => setLoadingOptions(false))
+  }, [prefilledCustomerId])
 
   useEffect(() => {
     if (isEdit && id) {
       getPaymentById(id).then(p => {
-        if (p) setForm(p as any)
+        if (p) {
+          setForm(prev => ({
+            ...prev,
+            ...p,
+            orderId: p.orderId || '',
+            code: p.paymentCode || '',
+            type: (p.type || 'DEPOSIT').toLowerCase(),
+            status: (p.status || 'PENDING').toLowerCase(),
+            paymentVoucher: p.voucher || '',
+            confirmedFinance: p.confirmedFinance || 'pending',
+            confirmedFinanceDate: p.confirmedFinanceDate || '',
+            plannedDate: p.plannedDate || '',
+            receivedDate: p.receivedDate || '',
+            paymentMethod: p.paymentMethod || '银行转账',
+            paymentRatio: p.paymentRatio || 0,
+            customerAccount: p.customerAccount || '',
+            applyDate: p.applyDate || '',
+            remark: p.remark || '',
+          }))
+        }
       }).catch(() => {})
     } else {
       const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
-      setForm(prev => ({ ...prev, code: `PAY${dateStr}001` }))
+      setForm(prev => ({ ...prev, customerId: prefilledCustomerId || prev.customerId, code: `PAY${dateStr}001` }))
     }
-  }, [id, isEdit])
+  }, [id, isEdit, prefilledCustomerId])
 
   // 当选择订单时，自动带出客户
   useEffect(() => {
     if (form.orderId) {
-      const order = orders.find(o => o.id === form.orderId)
+      const order = orderList.find(o => o.id === form.orderId)
       if (order) {
         setForm(prev => ({ ...prev, customerId: order.customerId }))
       }
     }
-  }, [form.orderId])
+  }, [form.orderId, orderList])
 
-  const update = (field: keyof Payment, value: any) => {
+  const update = (field: keyof PaymentDraft, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -80,6 +147,11 @@ export default function PaymentForm() {
         receivedDate: form.receivedDate || null,
         paymentMethod: form.paymentMethod,
         paymentRatio: form.paymentRatio,
+        voucher: form.paymentVoucher,
+        confirmedFinance: form.confirmedFinance,
+        confirmedFinanceDate: form.confirmedFinanceDate || null,
+        applyDate: form.applyDate || null,
+        customerAccount: form.customerAccount,
         remark: form.remark,
       }
       if (isEdit && id) {
@@ -87,7 +159,7 @@ export default function PaymentForm() {
       } else {
         await createPayment(payload)
       }
-      navigate('/domestic/collections')
+      navigate(safeReturnTo)
     } catch (err: any) {
       alert('保存失败: ' + (err?.message || '未知错误'))
     } finally {
@@ -95,13 +167,17 @@ export default function PaymentForm() {
     }
   }
 
-  const getCustomerName = (cid: string) => customers.find(c => c.id === cid)?.name || ''
-  const getOrderCode = (oid: string) => orders.find(o => o.id === oid)?.code || ''
+  const getCustomerName = (cid: string) => customerList.find(c => c.id === cid)?.name || ''
 
-  // 可用订单（已确认的订单）
+  // 回款只能关联已确认订单，与后端状态机保持一致。
   const availableOrders = form.customerId
-    ? orders.filter(o => o.customerId === form.customerId && o.status !== 'cancelled')
-    : orders.filter(o => o.status !== 'cancelled')
+    ? orderList.filter(o => o.customerId === form.customerId && o.status.toUpperCase() === 'CONFIRMED')
+    : orderList.filter(o => o.status.toUpperCase() === 'CONFIRMED')
+
+  const orderCreateParams = new URLSearchParams({
+    customerId: form.customerId,
+    returnTo: safeReturnTo,
+  })
 
   return (
     <div className="space-y-5">
@@ -133,6 +209,12 @@ export default function PaymentForm() {
                 </option>
               ))}
             </select>
+            {form.customerId && !loadingOptions && availableOrders.length === 0 && (
+              <div className="mt-2 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <span className="inline-flex items-start gap-1.5"><AlertTriangle size={14} className="mt-0.5 shrink-0" />该客户暂无已确认订单，确认订单后才能登记回款。</span>
+                <button type="button" onClick={() => navigate(`${basePath}/orders/new?${orderCreateParams.toString()}`)} className="shrink-0 font-medium text-brand-600 hover:text-brand-700">新建订单</button>
+              </div>
+            )}
           </div>
           {form.customerId && (
             <div>

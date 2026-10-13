@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { createOrder, updateOrder, getOrderById, type Order } from '../services/orderService'
-import { getCustomers } from '../services/customerService'
+import { getCustomerById, getCustomers } from '../services/customerService'
 import { getQuotes } from '../services/quoteService'
 import { useI18n } from '../i18n/I18nContext'
 
@@ -53,10 +53,14 @@ export default function OrderForm() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const { t } = useI18n()
   const isEdit = !!id
   const isExportRoute = location.pathname.startsWith('/export')
   const basePath = isExportRoute ? '/export' : '/domestic'
+  const prefilledCustomerId = searchParams.get('customerId') || ''
+  const returnTo = searchParams.get('returnTo') || ''
+  const safeReturnTo = returnTo.startsWith(`${basePath}/`) ? returnTo : `${basePath}/orders`
 
   const [form, setForm] = useState<Order>(emptyForm)
   const [saving, setSaving] = useState(false)
@@ -65,13 +69,22 @@ export default function OrderForm() {
   const [quoteList, setQuoteList] = useState<{id:string;code:string;customerId:string;amount:number}[]>([])
 
   useEffect(() => {
-    getCustomers({ pageSize: 500 }).then(res => {
-      setCustomerList(res.list.map(c => ({ id: c.id, name: c.name, code: c.code })))
+    getCustomers({ pageSize: 500 }).then(async res => {
+      const customers = res.list.map(c => ({ id: c.id, name: c.name, code: c.code }))
+      if (prefilledCustomerId && !customers.some(c => c.id === prefilledCustomerId)) {
+        try {
+          const customer = await getCustomerById(prefilledCustomerId)
+          if (customer) customers.unshift({ id: customer.id, name: customer.name, code: customer.code })
+        } catch {
+          // 上下文客户已不可访问时，保留正常客户列表供用户重新选择。
+        }
+      }
+      setCustomerList(customers)
     }).catch(() => {})
     getQuotes({ pageSize: 500 }).then(res => {
       setQuoteList(res.list.map(q => ({ id: q.id, code: q.code, customerId: q.customerId, amount: q.amount })))
     }).catch(() => {})
-  }, [])
+  }, [prefilledCustomerId])
 
   useEffect(() => {
     if (isEdit && id) {
@@ -82,9 +95,9 @@ export default function OrderForm() {
       }).catch(() => setLoading(false))
     } else {
       // 新建订单不预填单号：留空由后端统一编码(OR+year+6位)，避免前端假号同日重号
-      setForm(prev => ({ ...prev, code: '' }))
+      setForm(prev => ({ ...prev, code: '', customerId: prefilledCustomerId || prev.customerId }))
     }
-  }, [id, isEdit])
+  }, [id, isEdit, prefilledCustomerId])
 
   const update = (field: keyof Order, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -123,7 +136,7 @@ export default function OrderForm() {
       } else {
         await createOrder(payload)
       }
-      navigate(`${basePath}/orders`)
+      navigate(safeReturnTo)
     } catch (err: any) {
       alert('保存失败: ' + (err?.message || '未知错误'))
     } finally {

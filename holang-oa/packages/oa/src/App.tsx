@@ -142,12 +142,18 @@ function App() {
         <Route path="/export/contacts/:contactId" element={<Guard><ContactDetail /></Guard>} />
         <Route path="/export/leads" element={<Guard><LeadPool /></Guard>} />
         <Route path="/export/opportunities" element={<Guard><OppPool /></Guard>} />
+        <Route path="/export/opportunities/new" element={<Guard><OpportunityForm /></Guard>} />
+        <Route path="/export/opportunities/:id/edit" element={<Guard><OpportunityForm /></Guard>} />
         <Route path="/export/quotations" element={<Guard><Quotations /></Guard>} />
         <Route path="/export/quotations/new" element={<Guard><QuotationForm /></Guard>} />
         <Route path="/export/quotations/:id/edit" element={<Guard><QuotationForm /></Guard>} />
         <Route path="/export/orders" element={<Guard><Orders /></Guard>} />
+        <Route path="/export/orders/new" element={<Guard><OrderForm /></Guard>} />
+        <Route path="/export/orders/:id/edit" element={<Guard><OrderForm /></Guard>} />
         <Route path="/export/orders/:id" element={<Guard><OrderDetail /></Guard>} />
         <Route path="/export/collections" element={<Guard><Payments /></Guard>} />
+        <Route path="/export/collections/new" element={<Guard><PaymentForm /></Guard>} />
+        <Route path="/export/collections/:id/edit" element={<Guard><PaymentForm /></Guard>} />
         <Route path="/export/collections/:id" element={<Guard><PaymentDetail /></Guard>} />
         <Route path="/export/deliveries" element={<Guard><Deliveries /></Guard>} />
         <Route path="/export/deliveries/:id" element={<Guard><DeliveryDetail /></Guard>} />
