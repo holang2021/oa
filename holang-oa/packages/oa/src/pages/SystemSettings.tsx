@@ -12,18 +12,20 @@ import {
   ListChecks,
   Shield,
   FileText,
+  Users,
 } from 'lucide-react'
 import ApiConfigPanel from '../components/settings/ApiConfigPanel'
 import FieldConfigPanel from '../components/settings/FieldConfigPanel'
 import CodeRulePanel from '../components/settings/CodeRulePanel'
 import CurrencyPanel from '../components/settings/CurrencyPanel'
 import RbacSettings from './RbacSettings'
+import UserManagement from './Users'
 import DocTemplateSettings from './settings/DocTemplateSettings'
 import { initCurrencies } from '../services/currencyStore'
 import { initCodeRules } from '../services/codeRuleStore'
 import { initFieldConfigs } from '../services/fieldConfigStore'
 
-type TabKey = 'codeRule' | 'currency' | 'whatsapp' | 'api' | 'field' | 'rbac' | 'docTemplate'
+type TabKey = 'codeRule' | 'currency' | 'whatsapp' | 'api' | 'field' | 'rbac' | 'docTemplate' | 'users'
 
 interface Tab {
   key: TabKey
@@ -38,6 +40,7 @@ const TABS: Tab[] = [
   { key: 'api', label: 'API 配置', icon: <Globe size={16} /> },
   { key: 'field', label: '字段配置', icon: <ListChecks size={16} /> },
   { key: 'rbac', label: '角色权限', icon: <Shield size={16} /> },
+  { key: 'users', label: '用户管理', icon: <Users size={16} /> },
   { key: 'docTemplate', label: '单证模板', icon: <FileText size={16} /> },
 ]
 
@@ -96,6 +99,7 @@ export default function SystemSettings() {
       {activeTab === 'api' && <ApiConfigPanel />}
       {activeTab === 'field' && <FieldConfigPanel />}
       {activeTab === 'rbac' && <RbacSettings />}
+      {activeTab === 'users' && <UserManagement />}
       {activeTab === 'docTemplate' && <DocTemplateSettings />}
     </div>
   )
