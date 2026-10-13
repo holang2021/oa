@@ -37,7 +37,7 @@ function InsightBlock({ text }: { text: string }) {
         if (m) {
           return (
             <div key={i}>
-              <div className="text-xs font-semibold text-purple-600 mb-0.5">
+              <div className="text-xs font-semibold text-brand-600 mb-0.5">
                 {SECTION_LABELS[m[1]] || m[1]} · {m[2]}
               </div>
               <div className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700">{m[3]}</div>
@@ -284,7 +284,7 @@ export default function CustomerAiChat({ customerId }: Props) {
   }
 
   const inputBase =
-    'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500'
+    'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500'
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
@@ -293,7 +293,7 @@ export default function CustomerAiChat({ customerId }: Props) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold flex items-center gap-1.5">
             <span>🧠</span> 客户洞察
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">AI 自动汇总</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded bg-brand-100 text-brand-600">AI 自动汇总</span>
           </h3>
         </div>
         {summary ? (
@@ -331,7 +331,7 @@ export default function CustomerAiChat({ customerId }: Props) {
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 ${
-                  m.role === 'user' ? 'bg-blue-500' : 'bg-purple-500'
+                  m.role === 'user' ? 'bg-blue-500' : 'bg-brand-500'
                 }`}
               >
                 {m.role === 'user' ? '我' : 'AI'}
@@ -340,7 +340,7 @@ export default function CustomerAiChat({ customerId }: Props) {
                 className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === 'user'
                     ? 'bg-blue-50 text-gray-800 rounded-tr-sm'
-                    : 'bg-purple-50 text-gray-800 rounded-tl-sm'
+                    : 'bg-brand-50 text-gray-800 rounded-tl-sm'
                 }`}
               >
                 {m.content}
@@ -349,10 +349,10 @@ export default function CustomerAiChat({ customerId }: Props) {
           ))}
           {loading && (
             <div className="flex gap-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs bg-purple-500">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs bg-brand-500">
                 AI
               </div>
-              <div className="rounded-2xl rounded-tl-sm bg-purple-50 px-3.5 py-2.5 text-sm text-purple-500">
+              <div className="rounded-2xl rounded-tl-sm bg-brand-50 px-3.5 py-2.5 text-sm text-brand-500">
                 AI 正在输入…
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function CustomerAiChat({ customerId }: Props) {
           <button
             onClick={() => handleExtract('contact')}
             disabled={extracting}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-white border border-brand-200 text-brand-600 hover:bg-brand-50 disabled:opacity-50"
           >
             {extracting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
             新建联系人
@@ -383,7 +383,7 @@ export default function CustomerAiChat({ customerId }: Props) {
           <button
             onClick={() => handleExtract('followup')}
             disabled={extracting}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-white border border-brand-200 text-brand-600 hover:bg-brand-50 disabled:opacity-50"
           >
             {extracting ? <Loader2 size={13} className="animate-spin" /> : <FileEdit size={13} />}
             写跟进
@@ -417,7 +417,7 @@ export default function CustomerAiChat({ customerId }: Props) {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <UserPlus size={16} className="text-purple-600" /> 新建联系人（AI 草稿预览）
+                <UserPlus size={16} className="text-brand-600" /> 新建联系人（AI 草稿预览）
               </h3>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
@@ -514,7 +514,7 @@ export default function CustomerAiChat({ customerId }: Props) {
                   type="checkbox"
                   checked={contactDraft.isKeyPerson}
                   onChange={(e) => setContactDraft((p) => ({ ...p, isKeyPerson: e.target.checked }))}
-                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                 />
                 关键决策人
               </label>
@@ -526,7 +526,7 @@ export default function CustomerAiChat({ customerId }: Props) {
               <button
                 onClick={handleConfirmContact}
                 disabled={saving || !contactDraft.name.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 确认写入
@@ -542,7 +542,7 @@ export default function CustomerAiChat({ customerId }: Props) {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <FileEdit size={16} className="text-purple-600" /> 写跟进（AI 草稿预览）
+                <FileEdit size={16} className="text-brand-600" /> 写跟进（AI 草稿预览）
               </h3>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
@@ -615,7 +615,7 @@ export default function CustomerAiChat({ customerId }: Props) {
               <button
                 onClick={handleConfirmFollowup}
                 disabled={saving || !followupDraft.content.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 确认写入

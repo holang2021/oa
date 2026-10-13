@@ -223,7 +223,7 @@ export default function BlueprintBrowser() {
                           ) : f.type === 'relation' && f.related ? (
                             <span className="text-blue-600">{f.related}</span>
                           ) : f.type === 'user' ? (
-                            <span className="text-pink-600">企微用户</span>
+                            <span className="text-brand-600">企微用户</span>
                           ) : (
                             <span className="text-gray-300">—</span>
                           )}

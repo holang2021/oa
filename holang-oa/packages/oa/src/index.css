@@ -7,7 +7,9 @@
 @tailwind utilities;
 
 @layer base {
-  body { @apply text-gray-800 antialiased; }
+  /* 根字号与字体栈镜像网站 holang-admin/css/style.css（2026-10-06 补，原 OA 漏镜像） */
+  html { font-size: 15px; }
+  body { @apply text-gray-800 antialiased; font-family: var(--font-sans); }
 }
 
 @layer components {

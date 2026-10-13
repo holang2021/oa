@@ -34,7 +34,7 @@ export default function SystemTools() {
       to: '/tools/config',
       title: 'DeepSeek API 配置',
       desc: '管理 DeepSeek 等大模型 API 连接、密钥与 base URL',
-      icon: <Globe className="w-6 h-6 text-purple-600" />,
+      icon: <Globe className="w-6 h-6 text-brand-600" />,
       adminOnly: true,
     },
     {
@@ -48,7 +48,7 @@ export default function SystemTools() {
       to: '/tools/templates',
       title: '审批模板',
       desc: '管理审批表单模板',
-      icon: <LayoutTemplate className="w-6 h-6 text-teal-600" />,
+      icon: <LayoutTemplate className="w-6 h-6 text-emerald-600" />,
       adminOnly: true,
     },
     {
@@ -69,7 +69,7 @@ export default function SystemTools() {
       to: '/tools/doc-templates',
       title: '单证模板',
       desc: '外贸单证模板设置（CI、PL 等）',
-      icon: <FileText className="w-6 h-6 text-cyan-600" />,
+      icon: <FileText className="w-6 h-6 text-blue-600" />,
       adminOnly: true,
     },
     {
@@ -83,7 +83,7 @@ export default function SystemTools() {
       to: '/tools/blueprint',
       title: '系统蓝图',
       desc: '浏览系统数据模型与蓝图结构',
-      icon: <Blocks className="w-6 h-6 text-pink-600" />,
+      icon: <Blocks className="w-6 h-6 text-brand-600" />,
       adminOnly: true,
     },
     {

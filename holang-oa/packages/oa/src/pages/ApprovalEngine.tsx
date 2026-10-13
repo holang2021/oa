@@ -439,7 +439,7 @@ export default function ApprovalEngine() {
                           {/* 步骤头部 */}
                           <div className="flex items-center gap-3 p-3">
                             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              stepMode === 'parallel' ? 'bg-purple-100 text-purple-700' : 'bg-brand-100 text-brand-700'
+                              stepMode === 'parallel' ? 'bg-brand-100 text-brand-700' : 'bg-brand-100 text-brand-700'
                             }`}>
                               {idx + 1}
                             </div>
@@ -667,17 +667,17 @@ export default function ApprovalEngine() {
                           <ArrowRight size={16} className="text-gray-300" />
                           <div className={`px-3 py-2 border rounded-lg text-sm ${
                             stepMode === 'parallel'
-                              ? 'bg-purple-50 border-purple-200'
+                              ? 'bg-brand-50 border-brand-200'
                               : 'bg-blue-50 border-blue-200'
                           }`}>
                             <div className={`font-medium flex items-center gap-1 ${
-                              stepMode === 'parallel' ? 'text-purple-800' : 'text-blue-800'
+                              stepMode === 'parallel' ? 'text-brand-800' : 'text-blue-800'
                             }`}>
                               {stepMode === 'parallel' && <Users size={12} />}
                               {step.name}
                             </div>
                             <div className={`text-xs ${
-                              stepMode === 'parallel' ? 'text-purple-500' : 'text-blue-500'
+                              stepMode === 'parallel' ? 'text-brand-500' : 'text-blue-500'
                             }`}>
                               {step.approverName}
                               {stepMode === 'parallel' && `（${SIGN_MODE_LABELS[step.signMode || 'all'] || '会签'}）`}
@@ -745,7 +745,7 @@ export default function ApprovalEngine() {
                           }
                         </span>
                         {simData.levels.find((l: any) => l.status === 'acting')?.mode === 'parallel' && (
-                          <span className="ml-1 text-purple-500">
+                          <span className="ml-1 text-brand-500">
                             [{SIGN_MODE_LABELS[(simData.levels.find((l: any) => l.status === 'acting')?.signMode || 'all') as SignMode] || '会签'}]
                           </span>
                         )}
@@ -783,7 +783,7 @@ export default function ApprovalEngine() {
                           <button
                             onClick={doCounterSign}
                             disabled={!simCounterSignName}
-                            className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                            className="px-3 py-1.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50"
                           >
                             <UserPlus size={14} className="inline mr-1" /> 加签
                           </button>
@@ -838,7 +838,7 @@ export default function ApprovalEngine() {
                                 }
                               </div>
                               {level.mode === 'parallel' && (
-                                <div className="text-[10px] mt-0.5 text-purple-500">
+                                <div className="text-[10px] mt-0.5 text-brand-500">
                                   {SIGN_MODE_LABELS[(level.signMode || 'all') as SignMode] || '会签'}
                                 </div>
                               )}
@@ -847,8 +847,8 @@ export default function ApprovalEngine() {
                                 <div className="mt-1 pt-1 border-t border-dashed border-gray-300">
                                   {level.counterSigns.map((cs: any) => (
                                     <div key={cs.id} className="text-[10px] flex items-center gap-1">
-                                      <UserPlus size={10} className="text-purple-400" />
-                                      <span className="text-purple-600">{cs.approver.name}</span>
+                                      <UserPlus size={10} className="text-brand-400" />
+                                      <span className="text-brand-600">{cs.approver.name}</span>
                                       <span className={cs.status === 'approved' ? 'text-green-500' : cs.status === 'rejected' ? 'text-red-500' : 'text-gray-400'}>
                                         {cs.status === 'approved' ? '✓' : cs.status === 'rejected' ? '✕' : '待'}
                                       </span>
@@ -878,7 +878,7 @@ export default function ApprovalEngine() {
                               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5 ${
                                 h.action === 'approve' ? 'bg-green-100 text-green-600' :
                                 h.action === 'reject' ? 'bg-red-100 text-red-600' :
-                                h.action === 'counter_sign' ? 'bg-purple-100 text-purple-600' :
+                                h.action === 'counter_sign' ? 'bg-brand-100 text-brand-600' :
                                 h.action === 'urge' ? 'bg-amber-100 text-amber-600' :
                                 'bg-blue-100 text-blue-600'
                               }`}>

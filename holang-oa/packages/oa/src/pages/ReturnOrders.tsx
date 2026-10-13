@@ -53,7 +53,7 @@ const MOCK_TRACKING: Record<string, { carrier: string; events: TrackingEvent[] }
 const TRACKING_STATUS_MAP: Record<string, { label: string; color: string }> = {
   picked: { label: '已揽收', color: 'bg-blue-50 text-blue-700' },
   transit: { label: '运输中', color: 'bg-amber-50 text-amber-700' },
-  out_for_delivery: { label: '派送中', color: 'bg-purple-50 text-purple-700' },
+  out_for_delivery: { label: '派送中', color: 'bg-brand-50 text-brand-700' },
   delivered: { label: '已签收', color: 'bg-green-50 text-green-700' },
   exception: { label: '异常', color: 'bg-red-50 text-red-700' },
 }
@@ -178,8 +178,8 @@ const STATUS_CONFIG: Record<ReturnStatus, { label: string; color: string }> = {
   pending: { label: '待审批', color: 'bg-amber-50 text-amber-700 border-amber-200' },
   approved: { label: '已审批', color: 'bg-blue-50 text-blue-700 border-blue-200' },
   rejected: { label: '已驳回', color: 'bg-red-50 text-red-700 border-red-200' },
-  in_transit: { label: '物流中', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  received: { label: '已收货', color: 'bg-teal-50 text-teal-700 border-teal-200' },
+  in_transit: { label: '物流中', color: 'bg-brand-50 text-brand-700 border-brand-200' },
+  received: { label: '已收货', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   refunded: { label: '已退款', color: 'bg-green-50 text-green-700 border-green-200' },
   replaced: { label: '已换发', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   completed: { label: '已完成', color: 'bg-green-50 text-green-700 border-green-200' },
@@ -371,7 +371,7 @@ export default function ReturnOrders() {
 
                 {/* Reason */}
                 <div className="p-3 bg-gray-50 rounded-lg">
-                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium mb-1 ${selectedOrder.reasonCategory === '质量问题' ? 'bg-red-100 text-red-700' : selectedOrder.reasonCategory === '发货错误' ? 'bg-amber-100 text-amber-700' : selectedOrder.reasonCategory === '运输损坏' ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-600'}`}>{selectedOrder.reasonCategory}</span>
+                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium mb-1 ${selectedOrder.reasonCategory === '质量问题' ? 'bg-red-100 text-red-700' : selectedOrder.reasonCategory === '发货错误' ? 'bg-amber-100 text-amber-700' : selectedOrder.reasonCategory === '运输损坏' ? 'bg-brand-100 text-brand-700' : 'bg-gray-200 text-gray-600'}`}>{selectedOrder.reasonCategory}</span>
                   <div className="text-xs text-gray-700">{selectedOrder.reason}</div>
                   {selectedOrder.description && <div className="text-[11px] text-gray-400 mt-1">{selectedOrder.description}</div>}
                 </div>
@@ -379,16 +379,16 @@ export default function ReturnOrders() {
                 {/* Tracking + Remark */}
                 {selectedOrder.trackingNo && (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg text-xs cursor-pointer" onClick={() => setShowLogistics(!showLogistics)}>
-                      <Truck size={12} className="text-purple-500" />
-                      <span className="text-purple-700 font-medium">{MOCK_TRACKING[selectedOrder.trackingNo]?.carrier || '物流'} {selectedOrder.trackingNo}</span>
-                      <ChevronDown size={12} className={`ml-auto text-purple-400 transition-transform ${showLogistics ? 'rotate-180' : ''}`} />
+                    <div className="flex items-center gap-2 p-2 bg-brand-50 rounded-lg text-xs cursor-pointer" onClick={() => setShowLogistics(!showLogistics)}>
+                      <Truck size={12} className="text-brand-500" />
+                      <span className="text-brand-700 font-medium">{MOCK_TRACKING[selectedOrder.trackingNo]?.carrier || '物流'} {selectedOrder.trackingNo}</span>
+                      <ChevronDown size={12} className={`ml-auto text-brand-400 transition-transform ${showLogistics ? 'rotate-180' : ''}`} />
                     </div>
                     {showLogistics && MOCK_TRACKING[selectedOrder.trackingNo] && (
-                      <div className="border border-purple-100 rounded-lg overflow-hidden">
-                        <div className="px-3 py-2 bg-purple-50/50 border-b border-purple-50 flex justify-between items-center text-xs">
+                      <div className="border border-brand-100 rounded-lg overflow-hidden">
+                        <div className="px-3 py-2 bg-brand-50/50 border-b border-brand-50 flex justify-between items-center text-xs">
                           <span className="font-medium text-gray-700">物流轨迹</span>
-                          <a href="#" className="text-purple-500 hover:underline text-[10px]">官网查询 <ExternalLink size={8} className="inline" /></a>
+                          <a href="#" className="text-brand-500 hover:underline text-[10px]">官网查询 <ExternalLink size={8} className="inline" /></a>
                         </div>
                         <div className="px-3 py-2 space-y-0">
                           {MOCK_TRACKING[selectedOrder.trackingNo].events.map((evt, idx) => {
@@ -396,7 +396,7 @@ export default function ReturnOrders() {
                             return (
                               <div key={idx} className="flex gap-3">
                                 <div className="flex flex-col items-center">
-                                  <div className={`w-2 h-2 rounded-full mt-1.5 ${isLast ? 'bg-purple-500 ring-2 ring-purple-200' : 'bg-green-400'}`} />
+                                  <div className={`w-2 h-2 rounded-full mt-1.5 ${isLast ? 'bg-brand-500 ring-2 ring-brand-200' : 'bg-green-400'}`} />
                                   {!isLast && <div className="w-0.5 flex-1 bg-gray-200 my-0.5" />}
                                 </div>
                                 <div className="pb-2">
@@ -417,19 +417,19 @@ export default function ReturnOrders() {
 
                 {/* Logistics Input — approved but no tracking yet */}
                 {(selectedOrder.status === 'approved' || selectedOrder.status === 'in_transit') && !selectedOrder.trackingNo && (
-                  <div className="p-3 bg-purple-50 rounded-lg space-y-2">
-                    <div className="text-xs font-medium text-purple-700 flex items-center gap-1.5"><Truck size={12} /> 录入物流信息</div>
+                  <div className="p-3 bg-brand-50 rounded-lg space-y-2">
+                    <div className="text-xs font-medium text-brand-700 flex items-center gap-1.5"><Truck size={12} /> 录入物流信息</div>
                     <div className="grid grid-cols-2 gap-2">
                       <select value={logisticsInput.carrier} onChange={e => setLogisticsInput(prev => ({ ...prev, carrier: e.target.value }))}
-                        className="w-full px-2 py-1.5 border border-purple-200 rounded text-xs bg-white">
+                        className="w-full px-2 py-1.5 border border-brand-200 rounded text-xs bg-white">
                         <option value="">选择物流公司</option>
                         <optgroup label="国内">{[{id:'ky',name:'跨越速运(推荐)'},{id:'sf',name:'顺丰速运'},{id:'db',name:'德邦快递'},{id:'ane',name:'安能物流'},{id:'zt',name:'中通快递'},{id:'jd',name:'京东物流'}].map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>
                         <optgroup label="国际">{[{id:'dhl',name:'DHL Express'},{id:'fedex',name:'FedEx'},{id:'ups',name:'UPS'},{id:'tnt',name:'TNT Express'}].map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>
                       </select>
-                      <input className="w-full px-2 py-1.5 border border-purple-200 rounded text-xs bg-white" placeholder="物流单号" value={logisticsInput.trackingNo} onChange={e => setLogisticsInput(prev => ({ ...prev, trackingNo: e.target.value }))} />
+                      <input className="w-full px-2 py-1.5 border border-brand-200 rounded text-xs bg-white" placeholder="物流单号" value={logisticsInput.trackingNo} onChange={e => setLogisticsInput(prev => ({ ...prev, trackingNo: e.target.value }))} />
                     </div>
                     <button disabled={!logisticsInput.carrier || !logisticsInput.trackingNo}
-                      className="w-full py-1.5 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400">
+                      className="w-full py-1.5 bg-brand-600 text-white rounded text-xs font-medium hover:bg-brand-700 disabled:bg-gray-200 disabled:text-gray-400">
                       确认发货 & 开始跟踪物流
                     </button>
                   </div>
@@ -457,7 +457,7 @@ export default function ReturnOrders() {
                     <button className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium">确认退款 ¥{selectedOrder.amount.toLocaleString()}</button>
                   )}
                   {selectedOrder.status === 'in_transit' && (
-                    <button className="flex items-center gap-1 px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-medium">确认收货</button>
+                    <button className="flex items-center gap-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium">确认收货</button>
                   )}
                 </div>
               </div>

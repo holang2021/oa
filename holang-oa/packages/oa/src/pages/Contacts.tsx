@@ -207,7 +207,7 @@ export default function Contacts() {
                   {selectedEmployee.email && (
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
-                        <Mail size={16} className="text-purple-500" />
+                        <Mail size={16} className="text-brand-500" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs text-gray-400">邮箱</div>
@@ -265,7 +265,7 @@ export default function Contacts() {
                     </a>
                   )}
                   {selectedEmployee.email && (
-                    <a href={`mailto:${selectedEmployee.email}`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors no-underline">
+                    <a href={`mailto:${selectedEmployee.email}`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-50 text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors no-underline">
                       <Mail size={14} /> 发送邮件
                     </a>
                   )}

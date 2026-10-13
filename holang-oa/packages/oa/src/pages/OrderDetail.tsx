@@ -12,7 +12,7 @@ const orderStatusColors: Record<string, string> = {
   pending: 'bg-gray-50 text-gray-600',
   confirmed: 'bg-blue-50 text-blue-700',
   in_production: 'bg-yellow-50 text-yellow-700',
-  shipped: 'bg-purple-50 text-purple-700',
+  shipped: 'bg-brand-50 text-brand-700',
   delivered: 'bg-green-50 text-green-700',
   cancelled: 'bg-red-50 text-red-700',
 }

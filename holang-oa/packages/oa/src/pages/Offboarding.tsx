@@ -143,7 +143,7 @@ export default function Offboarding() {
 
   function EmpRow({ e }: { e: Emp }) {
     const sc = scopeOf(e.role)
-    const scopeCls = sc === 'EXTERNAL' ? 'bg-purple-100 text-purple-700'
+    const scopeCls = sc === 'EXTERNAL' ? 'bg-brand-100 text-brand-700'
       : sc === 'INTERNAL' ? 'bg-blue-100 text-blue-700'
       : sc === 'ALL' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
     return (
@@ -240,7 +240,7 @@ export default function Offboarding() {
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {[
                       { k: '名下客户', v: preview.stats.customers, ic: <Building2 size={18} className="text-blue-500" /> },
-                      { k: '名下商机', v: preview.stats.opportunities, ic: <Inbox size={18} className="text-purple-500" /> },
+                      { k: '名下商机', v: preview.stats.opportunities, ic: <Inbox size={18} className="text-brand-500" /> },
                       { k: '历史跟进', v: preview.stats.followUps, ic: <Users size={18} className="text-gray-500" /> },
                     ].map((s) => (
                       <div key={s.k} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
@@ -276,7 +276,7 @@ export default function Offboarding() {
                             <label key={c.id} className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer">
                               <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} className="accent-blue-500" />
                               <span className="flex-1 text-sm text-gray-700">{c.companyName}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${dom ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${dom ? 'bg-brand-100 text-brand-600' : 'bg-blue-100 text-blue-600'}`}>
                                 {dom ? '外销' : '内销'}
                               </span>
                             </label>

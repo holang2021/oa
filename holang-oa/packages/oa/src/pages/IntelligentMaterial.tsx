@@ -135,7 +135,7 @@ export default function IntelligentMaterial() {
     <div className="max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-purple-500 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-500 rounded-xl flex items-center justify-center">
           <Cpu size={20} className="text-white" />
         </div>
         <div>
@@ -163,9 +163,9 @@ export default function IntelligentMaterial() {
       {viewMode === 'ai' && (
         <div className="space-y-5">
           {/* Ask Box */}
-          <div className="card !p-5 bg-gradient-to-r from-brand-50 to-purple-50 border-brand-100">
+          <div className="card !p-5 bg-gradient-to-r from-brand-50 to-brand-50 border-brand-100">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-500 rounded-lg flex items-center justify-center">
                 <Sparkles size={16} className="text-white" />
               </div>
               <div>
@@ -211,13 +211,13 @@ export default function IntelligentMaterial() {
               <div key={item.id} className="card !p-4">
                 <div className="flex items-start justify-between cursor-pointer" onClick={() => setExpandedAi(expandedAi === item.id ? null : item.id)}>
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="w-8 h-8 bg-gradient-to-br from-brand-100 to-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 bg-gradient-to-br from-brand-100 to-brand-100 rounded-lg flex items-center justify-center shrink-0">
                       <Sparkles size={14} className="text-brand-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-800">{item.question}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${item.category === '替代推荐' ? 'bg-purple-50 text-purple-600' : item.category === '成本分析' ? 'bg-blue-50 text-blue-600' : item.category === '库存预警' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-500'}`}>{item.category}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${item.category === '替代推荐' ? 'bg-brand-50 text-brand-600' : item.category === '成本分析' ? 'bg-blue-50 text-blue-600' : item.category === '库存预警' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-500'}`}>{item.category}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-gray-400">来源: {item.source}</span>
@@ -359,9 +359,9 @@ export default function IntelligentMaterial() {
       {/* ── 替代推荐 ── */}
       {viewMode === 'alt' && (
         <div className="space-y-4">
-          <div className="card !p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-100">
+          <div className="card !p-4 bg-gradient-to-r from-brand-50 to-blue-50 border-brand-100">
             <div className="flex items-center gap-2 mb-3">
-              <RotateCcw size={16} className="text-purple-600" />
+              <RotateCcw size={16} className="text-brand-600" />
               <h3 className="text-sm font-semibold text-gray-800">替代料智能推荐</h3>
               <span className="text-[10px] text-gray-400">基于 DeepSeek 分析物料兼容性和成本效益</span>
             </div>
@@ -409,9 +409,9 @@ export default function IntelligentMaterial() {
                 </div>
 
                 {/* AI Insight */}
-                <div className="mt-3 p-2.5 bg-purple-50 rounded-lg flex items-start gap-2">
-                  <Sparkles size={12} className="text-purple-500 mt-0.5 shrink-0" />
-                  <div className="text-[11px] text-purple-700">
+                <div className="mt-3 p-2.5 bg-brand-50 rounded-lg flex items-start gap-2">
+                  <Sparkles size={12} className="text-brand-500 mt-0.5 shrink-0" />
+                  <div className="text-[11px] text-brand-700">
                     <span className="font-medium">DeepSeek AI: </span>
                     建议优先使用国产替代，可节省成本 30%-67% 且交期大幅缩短。
                     {m.certRequired && ' 注意：原物料需CE/PED认证，替代后需客户确认。'}

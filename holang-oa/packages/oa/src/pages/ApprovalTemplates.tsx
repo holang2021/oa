@@ -214,7 +214,7 @@ export default function ApprovalTemplates() {
                   </span>
                 </div>
                 {tpl.allowCounterSign && (
-                  <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-medium">
+                  <span className="px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 text-[10px] font-medium">
                     可加签
                   </span>
                 )}

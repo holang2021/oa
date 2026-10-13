@@ -15,7 +15,7 @@ const actionConfig: Record<ApprovalAction['action'], { label: string; icon: type
   approve: { label: '同意', icon: Check, style: 'bg-green-600 hover:bg-green-700 text-white' },
   reject: { label: '驳回', icon: X, style: 'bg-red-600 hover:bg-red-700 text-white' },
   withdraw: { label: '撤回', icon: Undo2, style: 'bg-gray-600 hover:bg-gray-700 text-white' },
-  counter_sign: { label: '加签', icon: UserPlus, style: 'bg-purple-600 hover:bg-purple-700 text-white' },
+  counter_sign: { label: '加签', icon: UserPlus, style: 'bg-brand-600 hover:bg-brand-700 text-white' },
   urge: { label: '催办', icon: Clock, style: 'bg-amber-600 hover:bg-amber-700 text-white' },
   transfer: { label: '转审', icon: ArrowLeftRight, style: 'bg-indigo-600 hover:bg-indigo-700 text-white' },
 }

@@ -197,14 +197,14 @@ export default function ContactDetail() {
         {/* Edit modal */}
         {showEdit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0 bg-white">
                 <h3 className="font-semibold text-gray-800">编辑联系人</h3>
                 <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-gray-600">
                   <X size={18} />
                 </button>
               </div>
-              <div className="p-5 space-y-4">
+              <div className="p-5 space-y-4 overflow-y-auto min-h-0">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">姓名 <span className="text-red-500">*</span></label>
                   <input
@@ -329,7 +329,7 @@ export default function ContactDetail() {
                   关键决策人
                 </label>
               </div>
-              <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+              <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50 shrink-0">
                 <button
                   onClick={() => setShowEdit(false)}
                   className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"

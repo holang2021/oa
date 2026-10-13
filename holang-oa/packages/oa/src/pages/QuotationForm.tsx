@@ -713,7 +713,7 @@ function QuotePreview(props: {
         {/* 报价单主体——严格参考真实 HOLANG 报价单格式 */}
         <div className="px-9 py-6 text-gray-900" style={{ fontFamily: 'Arial, "Microsoft YaHei", sans-serif' }}>
           {/* Logo + 标题 + 右上角编号 */}
-          <div className="flex items-start justify-between border-b-2 border-purple-300 pb-2 mb-3">
+          <div className="flex items-start justify-between border-b-2 border-brand-300 pb-2 mb-3">
             <div className="flex items-center gap-4">
               <img
                 src="/HOLANG_Logo_Official.png"

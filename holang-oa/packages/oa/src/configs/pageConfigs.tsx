@@ -41,7 +41,7 @@ export const exportOppConfig: PageConfig = {
     { label: '金额(USD)', key: 'amount', render: (v) => `$${Number(v || 0).toLocaleString()}` },
     { label: '阶段', key: 'status', render: (v) => {
       const s = String(v || '')
-      const c: Record<string, string> = { '正常': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '待审核': 'bg-purple-50 text-purple-700', '暂停': 'bg-orange-50 text-orange-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
+      const c: Record<string, string> = { '正常': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '待审核': 'bg-brand-50 text-brand-700', '暂停': 'bg-orange-50 text-orange-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
       return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c[s] || 'bg-gray-50 text-gray-500'}`}>{s}</span>
     }},
     { label: '预计成交', key: 'date' },
@@ -62,7 +62,7 @@ export const exportQuotationConfig: PageConfig = {
     { label: '金额(USD)', key: 'amount', render: (v) => `$${Number(v || 0).toLocaleString()}` },
     { label: '状态', key: 'status', render: (v) => {
       const s = String(v || '')
-      const c: Record<string, string> = { '正常': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '待审核': 'bg-purple-50 text-purple-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
+      const c: Record<string, string> = { '正常': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '待审核': 'bg-brand-50 text-brand-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
       return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c[s] || 'bg-gray-50 text-gray-500'}`}>{s}</span>
     }},
     { label: '报价日期', key: 'date' },
@@ -127,7 +127,7 @@ export const exportDeliveryConfig: PageConfig = {
     { label: '数量', key: 'qty' },
     { label: '状态', key: 'status', render: (v) => {
       const s = String(v || '')
-      const c: Record<string, string> = { '待审核': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '暂停': 'bg-purple-50 text-purple-700', '已完成': 'bg-green-50 text-green-700' }
+      const c: Record<string, string> = { '待审核': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '暂停': 'bg-brand-50 text-brand-700', '已完成': 'bg-green-50 text-green-700' }
       return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c[s] || 'bg-gray-50 text-gray-500'}`}>{s}</span>
     }},
     { label: '发货日期', key: 'date' },
@@ -302,7 +302,7 @@ export const srmInquiryConfig: PageConfig = {
     { label: '截止日期', key: 'date' },
     { label: '状态', key: 'status', render: (v) => {
       const s = String(v || '')
-      const c: Record<string, string> = { '正常': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '待审核': 'bg-purple-50 text-purple-700', '已完成': 'bg-green-50 text-green-700' }
+      const c: Record<string, string> = { '正常': 'bg-blue-50 text-blue-700', '进行中': 'bg-yellow-50 text-yellow-700', '待审核': 'bg-brand-50 text-brand-700', '已完成': 'bg-green-50 text-green-700' }
       return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c[s] || ''}`}>{s}</span>
     }},
   ],
@@ -323,7 +323,7 @@ export const srmPurchaseOrderConfig: PageConfig = {
     { label: '金额', key: 'amount', render: (v) => `¥${Number(v || 0).toLocaleString()}` },
     { label: '状态', key: 'status', render: (v) => {
       const s = String(v || '')
-      const c: Record<string, string> = { '待审核': 'bg-blue-50 text-blue-700', '正常': 'bg-yellow-50 text-yellow-700', '进行中': 'bg-purple-50 text-purple-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
+      const c: Record<string, string> = { '待审核': 'bg-blue-50 text-blue-700', '正常': 'bg-yellow-50 text-yellow-700', '进行中': 'bg-brand-50 text-brand-700', '已完成': 'bg-green-50 text-green-700', '已关闭': 'bg-gray-50 text-gray-500' }
       return <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c[s] || ''}`}>{s}</span>
     }},
     { label: '下单日期', key: 'date' },

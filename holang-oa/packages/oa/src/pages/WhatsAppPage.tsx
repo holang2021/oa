@@ -141,10 +141,10 @@ const CUSTOMER_DATA: Record<string, CustomerInfo> = {
 const TAG_COLORS: Record<string, string> = {
   '报价中': 'bg-yellow-50 text-yellow-700', '方案确认': 'bg-blue-50 text-blue-700',
   '交期确认': 'bg-orange-50 text-orange-700', '已成交': 'bg-green-50 text-green-700',
-  '技术沟通': 'bg-purple-50 text-purple-700', '报价已发': 'bg-cyan-50 text-cyan-700',
+  '技术沟通': 'bg-brand-50 text-brand-700', '报价已发': 'bg-blue-50 text-blue-700',
   '资质确认': 'bg-indigo-50 text-indigo-700', '价格谈判': 'bg-red-50 text-red-700',
-  '氮气': 'bg-gray-50 text-gray-600', '氧气': 'bg-sky-50 text-sky-600',
-  '氢气': 'bg-emerald-50 text-emerald-600', '制氧机': 'bg-teal-50 text-teal-600',
+  '氮气': 'bg-gray-50 text-gray-600', '氧气': 'bg-blue-50 text-blue-600',
+  '氢气': 'bg-emerald-50 text-emerald-600', '制氧机': 'bg-emerald-50 text-emerald-600',
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -542,7 +542,7 @@ export default function WhatsAppPage() {
                 <button className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors">
                   <Target size={12} /> 创建商机
                 </button>
-                <button className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 transition-colors">
+                <button className="flex items-center gap-1.5 px-3 py-2 bg-brand-50 text-brand-700 rounded-lg text-xs font-medium hover:bg-brand-100 transition-colors">
                   <MessageSquare size={12} /> 添加备注
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors">

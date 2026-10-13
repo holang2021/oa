@@ -225,8 +225,8 @@ export default function BackgroundCheck() {
             {results.map(r => (
               <div key={r.id} onClick={() => setSelectedResult(r)} className={'card !p-3 cursor-pointer transition-all ' + (selectedResult?.id === r.id ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200' : 'hover:border-gray-300')}>
                 <div className="flex items-start gap-3">
-                  <div className={'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ' + (r.type === 'company' ? 'bg-blue-100' : 'bg-purple-100')}>
-                    {r.type === 'company' ? <Building2 size={14} className="text-blue-600" /> : <User size={14} className="text-purple-600" />}
+                  <div className={'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ' + (r.type === 'company' ? 'bg-blue-100' : 'bg-brand-100')}>
+                    {r.type === 'company' ? <Building2 size={14} className="text-blue-600" /> : <User size={14} className="text-brand-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
