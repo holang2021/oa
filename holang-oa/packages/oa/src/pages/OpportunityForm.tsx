@@ -40,6 +40,7 @@ export default function OpportunityForm() {
     // 伙伴云补充字段
     customerContactId: '',
     remark: '',
+    competitorInfo: '',
     followUpTimeout: '未超时',
     department: '销售一部',
     relatedSalesTarget: '',
@@ -77,6 +78,7 @@ export default function OpportunityForm() {
   const handleSubmit = async () => {
     if (!form.customerId) { alert('请选择所属客户'); return }
     if (!form.name) { alert('请填写商机名称'); return }
+    if (!form.remark.trim()) { alert('请填写商机概况'); return }
     if (!form.expectedCloseDate) { alert('请填写预计成交日期'); return }
     if (!form.amount || form.amount <= 0) { alert('请填写预计成交金额'); return }
 
@@ -96,7 +98,8 @@ export default function OpportunityForm() {
           '赢单': 'WON',
           '输单': 'LOST',
         } as Record<string, string>)[form.stage] || form.stage,
-        description: form.remark || undefined,
+        description: form.remark.trim(),
+        competitorInfo: form.competitorInfo.trim() || undefined,
         customerContactId: form.customerContactId || undefined,
       }
       if (isEdit && id) {
@@ -259,16 +262,32 @@ export default function OpportunityForm() {
         </div>
       </div>
 
-      {/* 备注 */}
+      {/* 商机背景 */}
       <div className="card space-y-4">
-        <h3 className="text-sm font-semibold text-gray-700">备注</h3>
-        <textarea
-          value={form.remark}
-          onChange={e => update('remark', e.target.value)}
-          className="input text-sm w-full"
-          rows={3}
-          placeholder="请输入备注信息"
-        />
+        <h3 className="text-sm font-semibold text-gray-700">商机背景</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">商机概况 <span className="text-red-500">*</span></label>
+            <textarea
+              value={form.remark}
+              onChange={e => update('remark', e.target.value)}
+              className="input text-sm w-full"
+              rows={5}
+              placeholder="简述客户需求、应用场景、当前痛点、采购动机和关键决策信息"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">竞品信息 <span className="font-normal text-gray-400">（选填）</span></label>
+            <textarea
+              value={form.competitorInfo}
+              onChange={e => update('competitorInfo', e.target.value)}
+              className="input text-sm w-full"
+              rows={5}
+              maxLength={4000}
+              placeholder="可记录竞品品牌、型号、报价、优势短板及客户倾向；未知可留空"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Actions */}

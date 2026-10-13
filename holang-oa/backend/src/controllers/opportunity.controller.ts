@@ -17,6 +17,7 @@ const createOpportunitySchema = z.object({
   expectedCloseDate: z.string().datetime().optional(),
   stage: z.string().default('INITIAL_CONTACT'),
   description: z.string().optional(),
+  competitorInfo: z.string().max(4000, '竞品信息不能超过4000字').optional(),
   customerContactId: z.string().optional(),
 });
 

@@ -553,6 +553,7 @@ model Opportunity {
   stage           String           @default("INITIAL_CONTACT")
   winProbability  Float            @default(0)
   description     String?
+  competitorInfo  String?          @map("competitor_info")
   salesOwnerId    String?
   customerContactId String?        @map("customer_contact_id")
   code            String?

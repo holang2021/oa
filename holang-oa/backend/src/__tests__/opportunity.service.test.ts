@@ -34,11 +34,19 @@ afterAll(async () => {
 describe('D3 单元：商机新建 + 服务端域强制', () => {
   it('内销销售在 INTERNAL 客户下建商机 => 成功，salesType=INTERNAL', async () => {
     const opp = await oppService.createOpportunity(
-      { name: `${MARK}_内销商机`, customerId: internalCustId, expectedAmount: 100 },
+      {
+        name: `${MARK}_内销商机`,
+        customerId: internalCustId,
+        expectedAmount: 100,
+        description: '客户需要稳定的现场供气方案',
+        competitorInfo: '竞品A，客户仍在比价',
+      },
       ctx('INTERNAL')
     );
     expect(opp.salesType).toBe('INTERNAL');
     expect(opp.winProbability).toBe(10); // INITIAL_CONTACT
+    expect(opp.description).toBe('客户需要稳定的现场供气方案');
+    expect(opp.competitorInfo).toBe('竞品A，客户仍在比价');
   });
 
   it('内销销售在外销客户下建商机 => 403 越权', async () => {

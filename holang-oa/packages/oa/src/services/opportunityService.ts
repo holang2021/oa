@@ -12,6 +12,7 @@ export interface Opportunity {
   salesOwnerId?: string
   winProbability?: number
   description?: string
+  competitorInfo?: string
   huobanId?: string
   createdAt?: string
   updatedAt?: string

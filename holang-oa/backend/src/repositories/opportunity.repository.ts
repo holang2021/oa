@@ -12,6 +12,7 @@ export interface CreateOpportunityInput {
   expectedCloseDate?: Date | null;
   stage?: string;
   description?: string | null;
+  competitorInfo?: string | null;
   winProbability: number;
   salesType: string;
   salesOwnerId: string;
@@ -42,6 +43,7 @@ export async function createOpportunity(data: CreateOpportunityInput) {
       expectedCloseDate: data.expectedCloseDate ?? null,
       stage: data.stage ?? 'INITIAL_CONTACT',
       description: data.description ?? null,
+      competitorInfo: data.competitorInfo ?? null,
       winProbability: data.winProbability,
       salesType: data.salesType,
       salesOwnerId: data.salesOwnerId,
@@ -110,6 +112,7 @@ export async function updateOpportunity(
     expectedCloseDate?: Date | null;
     stage?: string;
     description?: string | null;
+    competitorInfo?: string | null;
     winProbability?: number;
     customerContactId?: string | null;
   }
