@@ -1333,8 +1333,24 @@ export default function CustomerDetail() {
                         <span className="text-lg font-bold text-brand-600">{fmtMoney(opp.expectedAmount || 0)}</span>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-gray-50 flex items-center gap-4 text-xs text-gray-400">
+                    <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="text-xs font-medium text-gray-500 mb-1">商机概况</div>
+                        <div className="text-gray-700 whitespace-pre-wrap leading-6">{opp.description || '暂未记录'}</div>
+                      </div>
+                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="text-xs font-medium text-gray-500 mb-1">竞品信息</div>
+                        <div className="text-gray-700 whitespace-pre-wrap leading-6">{opp.competitorInfo || '暂未记录'}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
                       <span>成交概率：<span className="font-medium text-gray-700">{opp.winProbability || 0}%</span></span>
+                      <button
+                        onClick={() => navigate(`${basePath}/opportunities/${opp.id}/edit?returnTo=${encodeURIComponent(`${basePath}/customers/${customer.id}`)}`)}
+                        className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800"
+                      >
+                        <Pencil size={13} /> 编辑商机
+                      </button>
                     </div>
                   </div>
                 ))

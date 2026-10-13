@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, Search, Filter, Target, ChevronDown, Edit2, Trash2, Undo2, Loader2 } from 'lucide-react'
 import { getOpportunities, getPoolOpportunities, claimOpportunity, returnOpportunity, type Opportunity } from '../services/opportunityService'
@@ -43,6 +43,7 @@ export default function OppPool() {
   const [poolMsg, setPoolMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [mineMsg, setMineMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({})
+  const [expandedOppId, setExpandedOppId] = useState('')
 
   useEffect(() => {
     setPoolMsg(null)
@@ -230,46 +231,73 @@ export default function OppPool() {
               {activeList.map(o => {
                 const canReturn = o.salesOwner?.id === currentUserId || isCurrentUserAdmin()
                 return (
-                  <tr key={o.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 font-mono text-xs">{o.code || '-'}</td>
-                    <td className="py-2 font-medium">{o.name}</td>
-                    <td className="py-2">{o.customer?.companyName || '-'}</td>
-                    <td className="py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${getStageColor(o.stage)}`}>{getStageLabel(o.stage)}</span>
-                    </td>
-                    <td className="py-2">¥{(o.expectedAmount || 0).toLocaleString()}</td>
-                    <td className="py-2">{o.winProbability || 0}%</td>
-                    <td className="py-2">¥{Math.round((o.expectedAmount || 0) * (o.winProbability || 0) / 100).toLocaleString()}</td>
-                    <td className="py-2">{o.salesOwner?.name || '-'}</td>
-                    <td className="py-2">
-                      <div className="flex gap-2">
-                        {tab === 'mine' ? (
-                          <>
-                            <button onClick={() => nav(`${basePath}/opportunities/${o.id}/edit`)} className="text-brand-600 hover:text-brand-800"><Edit2 size={14} /></button>
-                            <button className="text-red-600 hover:text-red-800"><Trash2 size={14} /></button>
-                            {canReturn && (
-                              <button
-                                onClick={() => handleReturn(o.id)}
-                                disabled={actionLoading[o.id]}
-                                className="text-yellow-600 hover:text-yellow-800 disabled:opacity-40"
-                                title={t('pool.return')}
-                              >
-                                <Undo2 size={14} />
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => handleClaim(o.id)}
-                            disabled={actionLoading[o.id]}
-                            className="btn-secondary text-xs inline-flex items-center gap-1 disabled:opacity-40"
-                          >
-                            {actionLoading[o.id] ? <Loader2 size={13} className="animate-spin" /> : null}{t('pool.claim')}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                  <Fragment key={o.id}>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="py-2 font-mono text-xs">{o.code || '-'}</td>
+                      <td className="py-2 font-medium">
+                        <button
+                          onClick={() => setExpandedOppId(prev => prev === o.id ? '' : o.id)}
+                          className="inline-flex items-center gap-1.5 text-left text-gray-900 hover:text-brand-600"
+                          title="查看商机背景"
+                        >
+                          <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedOppId === o.id ? 'rotate-180' : ''}`} />
+                          {o.name}
+                        </button>
+                      </td>
+                      <td className="py-2">{o.customer?.companyName || '-'}</td>
+                      <td className="py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${getStageColor(o.stage)}`}>{getStageLabel(o.stage)}</span>
+                      </td>
+                      <td className="py-2">¥{(o.expectedAmount || 0).toLocaleString()}</td>
+                      <td className="py-2">{o.winProbability || 0}%</td>
+                      <td className="py-2">¥{Math.round((o.expectedAmount || 0) * (o.winProbability || 0) / 100).toLocaleString()}</td>
+                      <td className="py-2">{o.salesOwner?.name || '-'}</td>
+                      <td className="py-2">
+                        <div className="flex gap-2">
+                          {tab === 'mine' ? (
+                            <>
+                              <button onClick={() => nav(`${basePath}/opportunities/${o.id}/edit`)} className="text-brand-600 hover:text-brand-800" title="编辑商机"><Edit2 size={14} /></button>
+                              <button className="text-red-600 hover:text-red-800"><Trash2 size={14} /></button>
+                              {canReturn && (
+                                <button
+                                  onClick={() => handleReturn(o.id)}
+                                  disabled={actionLoading[o.id]}
+                                  className="text-yellow-600 hover:text-yellow-800 disabled:opacity-40"
+                                  title={t('pool.return')}
+                                >
+                                  <Undo2 size={14} />
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleClaim(o.id)}
+                              disabled={actionLoading[o.id]}
+                              className="btn-secondary text-xs inline-flex items-center gap-1 disabled:opacity-40"
+                            >
+                              {actionLoading[o.id] ? <Loader2 size={13} className="animate-spin" /> : null}{t('pool.claim')}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedOppId === o.id && (
+                      <tr className="border-b bg-gray-50/70">
+                        <td colSpan={9} className="px-4 py-3">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 mb-1">商机概况</div>
+                              <div className="text-gray-700 whitespace-pre-wrap leading-6">{o.description || '暂未记录'}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 mb-1">竞品信息</div>
+                              <div className="text-gray-700 whitespace-pre-wrap leading-6">{o.competitorInfo || '暂未记录'}</div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 )
               })}
             </tbody>
