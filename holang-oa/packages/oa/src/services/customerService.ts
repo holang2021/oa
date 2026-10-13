@@ -180,6 +180,42 @@ export interface CustomerQuery {
   sortOrder?: string
 }
 
+export interface CustomerDuplicateMatch {
+  id: string
+  companyName: string
+  customerCode: string | null
+  salesType: string
+  country: string | null
+  creditCode: string | null
+  taxNumber: string | null
+  dunsNumber: string | null
+  website: string | null
+  salesOwner?: { id: string; name: string } | null
+  contactName?: string | null
+  reasons: string[]
+  score: number
+}
+
+export interface CustomerAiLookupResult {
+  companyName: string
+  industry: string
+  scale: string
+  address: string
+  website: string
+  creditCode: string
+  dunsNumber: string
+  taxTitle: string
+  taxNumber: string
+  bankName: string
+  companyPhone: string
+  country: string
+  sourceNote: string
+}
+
+export interface CustomerAiSearchResult {
+  candidates: CustomerAiLookupResult[]
+}
+
 // 获取客户列表
 export async function getCustomers(params: CustomerQuery = {}) {
   const res = await api.get<PaginatedData<CustomerRaw>>('/customers', {
@@ -219,6 +255,25 @@ export async function createCustomer(data: Partial<CustomerRaw>) {
 // 更新客户
 export async function updateCustomer(id: string, data: Partial<CustomerRaw>) {
   return api.put<CustomerRaw>(`/customers/${id}`, data)
+}
+
+export async function checkCustomerDuplicate(params: {
+  companyName?: string
+  creditCode?: string
+  taxNumber?: string
+  dunsNumber?: string
+  website?: string
+  salesType?: string
+  excludeId?: string
+}) {
+  const res = await api.get<{ list: CustomerDuplicateMatch[] }>('/customers/check-duplicate', params)
+  return res.code === 0 && res.data ? res.data.list : []
+}
+
+export async function lookupCustomerByDeepSeek(companyName: string, mode: 'domestic' | 'export') {
+  const res = await api.post<CustomerAiSearchResult>('/customers/ai-lookup', { companyName, mode })
+  if (res.code !== 0 || !res.data) throw new Error(res.message || 'DeepSeek 查询失败')
+  return res.data
 }
 
 // 获取公海客户列表（服务端按 salesType 域强制隔离）

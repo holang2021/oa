@@ -4,11 +4,12 @@ import { CustomerStatus, FollowMethod, ContactType } from '../constants/enums';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
 import { isSalesOnlyRole, Role } from '../constants/roles';
-import { detectCountryFromPhones, DOMESTIC_COUNTRY } from '../utils/phoneCountry';
+import { detectCountryFromPhones } from '../utils/phoneCountry';
 import { success, paginated } from '../utils/response';
 import { toServiceContext } from '../utils/ctx';
 import * as customerGradeService from '../services/customer-grade.service';
 import * as publicPoolService from '../services/public-pool.service';
+import * as apiConfigService from '../services/api-config.service';
 
 const prisma = new PrismaClient();
 
@@ -17,12 +18,23 @@ const createCustomerSchema = z.object({
   companyName: z.string().min(1, '公司名称不能为空'),
   customerCode: z.string().optional(),
   industry: z.string().optional(),
+  scale: z.string().optional(),
   address: z.string().optional(),
+  companyPhone: z.string().optional(),
+  website: z.string().optional(),
+  creditCode: z.string().optional(),
+  dunsNumber: z.string().optional(),
   country: z.string().optional(),
   status: z.string().default('POTENTIAL'),
   source: z.string().optional(),
   salesOwnerId: z.string().optional(),
   notes: z.string().optional(),
+  taxTitle: z.string().optional(),
+  taxNumber: z.string().optional(),
+  invoiceType: z.string().optional(),
+  bankName: z.string().optional(),
+  bankAccount: z.string().optional(),
+  bankCode: z.string().optional(),
   // ── D1 等级：4 选择题提示分级（可选）──
   gradeSignals: customerGradeService.gradeSignalsSchema.optional(),
   customerGrade: z.enum(['A', 'B', 'C']).optional(),
@@ -60,6 +72,83 @@ const addFollowUpSchema = z.object({
   content: z.string().min(1, '跟进内容不能为空'),
   nextFollowUpAt: z.string().datetime().optional(),
 });
+
+const duplicateCheckSchema = z.object({
+  companyName: z.string().optional(),
+  creditCode: z.string().optional(),
+  taxNumber: z.string().optional(),
+  dunsNumber: z.string().optional(),
+  website: z.string().optional(),
+  salesType: z.string().optional(),
+  excludeId: z.string().optional(),
+});
+
+const aiLookupSchema = z.object({
+  companyName: z.string().min(1, '请输入公司名称'),
+  mode: z.enum(['domestic', 'export']).default('domestic'),
+});
+
+function normalizeCompanyName(v: string) {
+  return v
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[（）()·.,，。]/g, '')
+    .replace(/(有限责任公司|股份有限公司|有限公司|集团|公司|co ltd|coltd|ltd|limited|inc|llc)$/g, '');
+}
+
+function normalizeWebsiteDomain(v?: string | null) {
+  if (!v) return '';
+  return v
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0];
+}
+
+async function callDeepSeekJson(messages: any[]) {
+  const cfg = apiConfigService.getConfig('deepseek');
+  if (!cfg || !cfg.credentials?.apiKey) {
+    const err: any = new Error('未配置 DeepSeek 凭证，请在「系统配置 → 第三方 API」中填写 DeepSeek API Key');
+    err.code = 503;
+    throw err;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), cfg.timeout || 30000);
+  try {
+    const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.credentials.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages,
+        temperature: 0.2,
+        max_tokens: 1000,
+        response_format: { type: 'json_object' },
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const err: any = new Error(`DeepSeek 返回 ${res.status}: ${text.slice(0, 200)}`);
+      err.code = 503;
+      throw err;
+    }
+    const data: any = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) {
+      const err: any = new Error('DeepSeek 返回内容为空');
+      err.code = 503;
+      throw err;
+    }
+    return JSON.parse(content);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Get all customers with pagination, filtering, and search
@@ -232,6 +321,135 @@ export const getGeoStats = async (req: AuthRequest, res: Response, next: NextFun
 };
 
 /**
+ * 新建/编辑客户前查重：国内优先统一信用代码/税号，海外兼顾 DUNS/网站域名/公司名。
+ * 只返回提示，不阻断创建；最终是否新增由销售确认。
+ */
+export const checkCustomerDuplicate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const q = duplicateCheckSchema.parse(req.query);
+    const companyName = (q.companyName || '').trim();
+    const creditCode = (q.creditCode || '').trim();
+    const taxNumber = (q.taxNumber || '').trim();
+    const dunsNumber = (q.dunsNumber || '').trim();
+    const domain = normalizeWebsiteDomain(q.website);
+
+    if (!companyName && !creditCode && !taxNumber && !dunsNumber && !domain) {
+      return res.json(success({ list: [] }, '获取成功', req.traceId ?? null));
+    }
+
+    const or: any[] = [];
+    if (creditCode) or.push({ creditCode });
+    if (taxNumber) or.push({ taxNumber });
+    if (dunsNumber) or.push({ dunsNumber });
+    if (domain) {
+      or.push({ website: { contains: domain } });
+      or.push({ website: { contains: `www.${domain}` } });
+    }
+    if (companyName) or.push({ companyName: { contains: companyName } });
+
+    const where: any = { OR: or };
+    if (q.excludeId) where.id = { not: q.excludeId };
+    if (q.salesType) where.salesType = q.salesType.toUpperCase();
+
+    const candidates = await prisma.customer.findMany({
+      where,
+      take: 20,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        salesOwner: { select: { id: true, name: true } },
+        contacts: { take: 1 },
+      },
+    });
+
+    const inputName = normalizeCompanyName(companyName);
+    const matches = candidates.map((c: any) => {
+      const reasons: string[] = [];
+      let score = 0;
+      if (creditCode && c.creditCode === creditCode) { reasons.push('统一信用代码一致'); score += 100; }
+      if (taxNumber && c.taxNumber === taxNumber) { reasons.push('税号一致'); score += 90; }
+      if (dunsNumber && c.dunsNumber === dunsNumber) { reasons.push('DUNS 一致'); score += 90; }
+      if (domain && normalizeWebsiteDomain(c.website) === domain) { reasons.push('网站域名一致'); score += 70; }
+
+      const candidateName = normalizeCompanyName(c.companyName || '');
+      if (inputName && candidateName) {
+        if (inputName === candidateName) { reasons.push('公司名归一化一致'); score += 80; }
+        else if (inputName.includes(candidateName) || candidateName.includes(inputName)) { reasons.push('公司名高度相似'); score += 45; }
+      }
+
+      return {
+        id: c.id,
+        companyName: c.companyName,
+        customerCode: c.customerCode,
+        salesType: c.salesType,
+        country: c.country,
+        creditCode: c.creditCode,
+        taxNumber: c.taxNumber,
+        dunsNumber: c.dunsNumber,
+        website: c.website,
+        salesOwner: c.salesOwner,
+        contactName: c.contacts?.[0]?.name ?? null,
+        reasons,
+        score,
+      };
+    }).filter((m) => m.score > 0).sort((a, b) => b.score - a.score).slice(0, 5);
+
+    res.json(success({ list: matches }, '获取成功', req.traceId ?? null));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DeepSeek 企业名称联想：只提供未核验名称线索，不返回或预填工商字段。
+ * 统一信用代码、DUNS 等权威标识必须由真实企业数据源提供。
+ */
+export const lookupCustomerByDeepSeek = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const input = aiLookupSchema.parse(req.body);
+    const isExport = input.mode === 'export';
+    const result = await callDeepSeekJson([
+      {
+        role: 'system',
+        content:
+          '你是企业名称联想助手。只输出 JSON 对象，不要解释。返回格式必须是 {"candidates": [...]}。' +
+          'candidates 最多 5 条，按相关度排序；每条字段只允许 companyName 和 sourceNote。' +
+          '输入可能是简称、品牌名或名称片段。结果只是未核验的搜索线索，不代表企业真实存在。' +
+          '不要输出或猜测统一社会信用代码、DUNS、税号、地址、电话、银行账户等工商或敏感字段。',
+      },
+      {
+        role: 'user',
+        content: isExport
+          ? `根据海外公司关键词联想可能的英文公司全称：${input.companyName}。仅作为后续权威查询的名称线索。`
+          : `根据中国企业关键词联想可能的公司全称：${input.companyName}。仅作为后续权威工商查询的名称线索。`,
+      },
+    ]);
+
+    const rawCandidates = Array.isArray(result.candidates)
+      ? result.candidates
+      : (result.companyName ? [result] : []);
+    const candidates = rawCandidates.slice(0, 5).map((item: any) => ({
+      companyName: item.companyName || '',
+      industry: '',
+      scale: '',
+      address: '',
+      website: '',
+      creditCode: '',
+      dunsNumber: '',
+      taxTitle: '',
+      taxNumber: '',
+      bankName: '',
+      companyPhone: '',
+      country: '',
+      sourceNote: item.sourceNote || 'DeepSeek 名称联想，尚未经过企业数据源核验',
+    })).filter((item: any) => item.companyName);
+
+    res.json(success({ candidates }, candidates.length ? '查询成功' : '未找到可靠候选', req.traceId ?? null));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get customer by ID
  */
 export const getCustomerById = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -326,12 +544,23 @@ export const createCustomer = async (req: AuthRequest, res: Response, next: Next
         companyName: validated.companyName,
         customerCode: validated.customerCode ?? null,
         industry: validated.industry ?? null,
+        scale: validated.scale ?? null,
         address: validated.address ?? null,
+        companyPhone: validated.companyPhone ?? null,
+        website: validated.website ?? null,
+        creditCode: validated.creditCode ?? null,
+        dunsNumber: validated.dunsNumber ?? null,
         country: detectedCountry,
         status: validated.status,
         source: validated.source ?? null,
         salesOwnerId: validated.salesOwnerId ?? null,
         notes: validated.notes ?? null,
+        taxTitle: validated.taxTitle ?? null,
+        taxNumber: validated.taxNumber ?? null,
+        invoiceType: validated.invoiceType ?? null,
+        bankName: validated.bankName ?? null,
+        bankAccount: validated.bankAccount ?? null,
+        bankCode: validated.bankCode ?? null,
         contacts: validated.contacts ?? [],
         gradeSignals: validated.gradeSignals,
         customerGrade: validated.customerGrade ?? null,
@@ -389,12 +618,23 @@ export const updateCustomer = async (req: AuthRequest, res: Response, next: Next
         ...(validated.companyName !== undefined && { companyName: validated.companyName }),
         ...(validated.customerCode !== undefined && { customerCode: validated.customerCode }),
         ...(validated.industry !== undefined && { industry: validated.industry }),
+        ...(validated.scale !== undefined && { scale: validated.scale }),
         ...(validated.address !== undefined && { address: validated.address }),
+        ...(validated.companyPhone !== undefined && { companyPhone: validated.companyPhone }),
+        ...(validated.website !== undefined && { website: validated.website }),
+        ...(validated.creditCode !== undefined && { creditCode: validated.creditCode }),
+        ...(validated.dunsNumber !== undefined && { dunsNumber: validated.dunsNumber }),
         ...(validated.country !== undefined && { country: validated.country }),
         ...(validated.status !== undefined && { status: validated.status }),
         ...(validated.source !== undefined && { source: validated.source }),
         ...(validated.salesOwnerId !== undefined && { salesOwnerId: validated.salesOwnerId }),
         ...(validated.notes !== undefined && { notes: validated.notes }),
+        ...(validated.taxTitle !== undefined && { taxTitle: validated.taxTitle }),
+        ...(validated.taxNumber !== undefined && { taxNumber: validated.taxNumber }),
+        ...(validated.invoiceType !== undefined && { invoiceType: validated.invoiceType }),
+        ...(validated.bankName !== undefined && { bankName: validated.bankName }),
+        ...(validated.bankAccount !== undefined && { bankAccount: validated.bankAccount }),
+        ...(validated.bankCode !== undefined && { bankCode: validated.bankCode }),
       },
       include: {
         salesOwner: { select: { id: true, name: true } },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, MapPin, User, UserX, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, User, UserX, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save, CheckCircle2 } from 'lucide-react'
 import { useI18n } from '../i18n/I18nContext'
 import { getCustomerById, updateCustomer, getCustomers, type Customer } from '../services/customerService'
 import { getContacts, createContact, updateContact, leaveContact, migrateContact, type Contact } from '../services/contactService'
@@ -43,7 +43,7 @@ const quotationStatusColors: Record<string, string> = {
 const quotationStatusLabels: Record<string, string> = { draft: '草稿', sent: '已发送', approved: '已通过', rejected: '已拒绝', expired: '已过期' }
 const orderStatusColors: Record<string, string> = {
   pending: 'bg-gray-50 text-gray-600', confirmed: 'bg-blue-50 text-blue-700',
-  in_production: 'bg-yellow-50 text-yellow-700', shipped: 'bg-purple-50 text-purple-700',
+  in_production: 'bg-yellow-50 text-yellow-700', shipped: 'bg-brand-50 text-brand-700',
   delivered: 'bg-green-50 text-green-700', cancelled: 'bg-red-50 text-red-700',
 }
 const orderStatusLabels: Record<string, string> = {
@@ -55,17 +55,17 @@ const timelineTypeIcons: Record<string, any> = {
   payment: DollarSign, note: FileText, whatsapp: MessageCircle, website: Globe, social: TrendingUp,
 }
 const timelineTypeColors: Record<string, string> = {
-  call: 'bg-blue-500', visit: 'bg-green-500', email: 'bg-purple-500', meeting: 'bg-orange-500',
-  quotation: 'bg-indigo-500', order: 'bg-teal-500', payment: 'bg-emerald-500', note: 'bg-gray-400',
-  whatsapp: 'bg-emerald-600', website: 'bg-cyan-500', social: 'bg-pink-500',
+  call: 'bg-blue-500', visit: 'bg-green-500', email: 'bg-brand-500', meeting: 'bg-orange-500',
+  quotation: 'bg-indigo-500', order: 'bg-emerald-500', payment: 'bg-emerald-500', note: 'bg-gray-400',
+  whatsapp: 'bg-emerald-600', website: 'bg-blue-500', social: 'bg-brand-500',
 }
 const timelineTypeLabels: Record<string, string> = {
   call: '电话', visit: '拜访', email: '邮件', meeting: '会议', quotation: '报价', order: '订单',
   payment: '回款', note: '备注', whatsapp: 'WhatsApp', website: '网站', social: '社媒',
 }
 const channelColors: Record<string, string> = {
-  '电话': 'bg-blue-50 text-blue-700', '邮件': 'bg-purple-50 text-purple-700', 'WhatsApp': 'bg-emerald-50 text-emerald-700',
-  '官网': 'bg-cyan-50 text-cyan-700', '社媒': 'bg-pink-50 text-pink-700', '线上': 'bg-indigo-50 text-indigo-700',
+  '电话': 'bg-blue-50 text-blue-700', '邮件': 'bg-brand-50 text-brand-700', 'WhatsApp': 'bg-emerald-50 text-emerald-700',
+  '官网': 'bg-blue-50 text-blue-700', '社媒': 'bg-brand-50 text-brand-700', '线上': 'bg-indigo-50 text-indigo-700',
   '线下': 'bg-green-50 text-green-700', '系统': 'bg-gray-50 text-gray-600',
 }
 
@@ -85,6 +85,16 @@ function stringifyExtension(obj: Record<string, any>): string | null {
 }
 function isLeft(ct: Contact): boolean {
   return ct.status === 'LEFT'
+}
+function salesTypeLabel(v?: string | null): string {
+  if (v === 'EXTERNAL' || v === 'export') return '外销/海外'
+  if (v === 'INTERNAL' || v === 'domestic') return '内销/国内'
+  return '未分域'
+}
+function contactMoveHint(ct: Contact): string {
+  if (ct.migratedFromId) return '由其它客户历史联系人迁入；原任职记录已保留'
+  if (isLeft(ct) && ct.leftNote?.includes('迁移至客户')) return ct.leftNote
+  return ''
 }
 
 export default function CustomerDetail() {
@@ -135,6 +145,7 @@ export default function CustomerDetail() {
   const [migrateNote, setMigrateNote] = useState('')
   const [migrating, setMigrating] = useState(false)
   const [migrateOptions, setMigrateOptions] = useState<Customer[]>([])
+  const [contactNotice, setContactNotice] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Follow-up add form state
   const [showAddFollowUp, setShowAddFollowUp] = useState(false)
@@ -262,7 +273,8 @@ export default function CustomerDetail() {
     setMigrateTargetId('')
     setMigrateNote('')
     try {
-      const res = await getCustomers({ salesType: (customer as any)?.salesType, pageSize: 300 })
+      // 人换工作可能跨内销/外销客户，目标列表不按当前客户域二次收窄；后端仍按登录权限返回可见客户。
+      const res = await getCustomers({ pageSize: 300 })
       setMigrateOptions(res.list.filter(c => c.id !== customer?.id))
     } catch {
       setMigrateOptions([])
@@ -271,18 +283,24 @@ export default function CustomerDetail() {
   const handleMigrate = async () => {
     if (!migratingContact || !migrateTargetId) return
     setMigrating(true)
+    setContactNotice(null)
     try {
+      const target = migrateOptions.find(c => c.id === migrateTargetId)
       const created = await migrateContact(migratingContact.id, migrateTargetId, migrateNote.trim() || undefined)
       if (created) {
         // 原记录已标 LEFT；刷新本客户联系人列表以反映状态
         const res = await getContacts({ customerId: customer?.id, pageSize: 100 })
         setCustContacts(res.list)
         setMigratingContact(null)
+        setContactNotice({
+          ok: true,
+          text: `已迁移到 ${target?.name || '目标客户'}。原公司记录已保留为「已离职」，新公司已创建联系人。`,
+        })
       } else {
-        alert('迁移失败')
+        setContactNotice({ ok: false, text: '迁移失败，请稍后重试' })
       }
     } catch (e: any) {
-      alert(e?.message || '迁移失败')
+      setContactNotice({ ok: false, text: e?.message || '迁移失败，请稍后重试' })
     } finally {
       setMigrating(false)
     }
@@ -702,8 +720,8 @@ export default function CustomerDetail() {
               <h3 className="text-sm font-semibold text-gray-700 mb-3">全渠道互动概览</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(channelStats).map(([channel, count]) => (
-                  <div key={channel} className={`rounded-lg p-3 text-center ${channel === 'WhatsApp' ? 'bg-emerald-50' : channel === '电话' ? 'bg-blue-50' : channel === '邮件' ? 'bg-purple-50' : channel === '官网' ? 'bg-cyan-50' : channel === '社媒' ? 'bg-pink-50' : 'bg-gray-50'}`}>
-                    <div className={`text-xs font-medium ${channel === 'WhatsApp' ? 'text-emerald-600' : channel === '电话' ? 'text-blue-600' : channel === '邮件' ? 'text-purple-600' : channel === '官网' ? 'text-cyan-600' : channel === '社媒' ? 'text-pink-600' : 'text-gray-500'}`}>{channel}</div>
+                  <div key={channel} className={`rounded-lg p-3 text-center ${channel === 'WhatsApp' ? 'bg-emerald-50' : channel === '电话' ? 'bg-blue-50' : channel === '邮件' ? 'bg-brand-50' : channel === '官网' ? 'bg-blue-50' : channel === '社媒' ? 'bg-brand-50' : 'bg-gray-50'}`}>
+                    <div className={`text-xs font-medium ${channel === 'WhatsApp' ? 'text-emerald-600' : channel === '电话' ? 'text-blue-600' : channel === '邮件' ? 'text-brand-600' : channel === '官网' ? 'text-blue-600' : channel === '社媒' ? 'text-brand-600' : 'text-gray-500'}`}>{channel}</div>
                     <div className="text-xl font-bold text-gray-800 mt-0.5">{count}</div>
                     <div className="text-[10px] text-gray-400">次互动</div>
                   </div>
@@ -764,6 +782,21 @@ export default function CustomerDetail() {
           {/* Contacts Tab */}
           {activeTab === 'contacts' && (
             <div className="space-y-3">
+              {contactNotice && (
+                <div className={`flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+                  contactNotice.ok
+                    ? 'border-green-100 bg-green-50 text-green-700'
+                    : 'border-red-100 bg-red-50 text-red-600'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    {contactNotice.ok ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 shrink-0" />}
+                    <span>{contactNotice.text}</span>
+                  </div>
+                  <button onClick={() => setContactNotice(null)} className="text-current opacity-60 hover:opacity-100">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowAddContact(!showAddContact)}
@@ -867,10 +900,11 @@ export default function CustomerDetail() {
               ) : (
                 custContacts.map((ct) => {
                   const isCreator = !ct.createdById || ct.createdById === currentUser?.id
+                  const moveHint = contactMoveHint(ct)
                   return (
                     <div key={ct.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-md hover:border-gray-300 transition-all">
                       <div className="flex items-start gap-3 flex-1 cursor-pointer" onClick={() => navigate(`${basePath}/contacts/${ct.id}`)}>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${ct.gender === 'MALE' ? 'bg-blue-400' : ct.gender === 'FEMALE' ? 'bg-pink-400' : 'bg-gray-400'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${ct.gender === 'MALE' ? 'bg-blue-400' : ct.gender === 'FEMALE' ? 'bg-brand-400' : 'bg-gray-400'}`}>
                           {ct.name.charAt(0)}
                         </div>
                         <div>
@@ -878,6 +912,7 @@ export default function CustomerDetail() {
                             <span className="font-medium text-gray-900">{ct.name}</span>
                             {ct.isKeyPerson && <span className="px-1.5 py-0.5 bg-brand-50 text-brand-600 text-[10px] rounded font-medium">关键决策人</span>}
                             {isLeft(ct) && <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded font-medium">已离职</span>}
+                            {ct.migratedFromId && <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded font-medium">迁入</span>}
                             {!isCreator && ct.createdBy && (
                               <span className="text-[10px] text-gray-400">创建者：{ct.createdBy.name}</span>
                             )}
@@ -904,6 +939,9 @@ export default function CustomerDetail() {
                           </div>
                           {isLeft(ct) && ct.leftNote && (
                             <div className="text-xs text-gray-400 mt-1">离职备注：{ct.leftNote}</div>
+                          )}
+                          {moveHint && !isLeft(ct) && (
+                            <div className="text-xs text-blue-500 mt-1">任职历史：{moveHint}</div>
                           )}
                         </div>
                       </div>
@@ -947,14 +985,14 @@ export default function CustomerDetail() {
           {/* Edit Contact Modal */}
           {editingContact && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0 bg-white">
                   <h3 className="font-semibold text-gray-800">编辑联系人</h3>
                   <button onClick={() => setEditingContact(null)} className="text-gray-400 hover:text-gray-600">
                     <X size={18} />
                   </button>
                 </div>
-                <div className="p-5 space-y-4">
+                <div className="p-5 space-y-4 overflow-y-auto min-h-0">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">姓名 <span className="text-red-500">*</span></label>
                     <input
@@ -1125,7 +1163,7 @@ export default function CustomerDetail() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50 shrink-0">
                   <button
                     onClick={() => setEditingContact(null)}
                     className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
@@ -1191,6 +1229,9 @@ export default function CustomerDetail() {
                 </div>
                 <div className="p-5 space-y-3">
                   <p className="text-sm text-gray-600">将 <span className="font-medium text-gray-900">{migratingContact.name}</span> 迁移到目标客户：原记录保留并标记「已离职」，新记录在目标客户下创建（带血缘）。</p>
+                  <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-700">
+                    成熟 CRM 规则：人换公司不直接改挂客户；原公司历史跟进保留，新公司创建新的任职记录，避免报价、沟通和责任归属错乱。
+                  </div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">目标客户 <span className="text-red-500">*</span></label>
                     <select
@@ -1200,7 +1241,7 @@ export default function CustomerDetail() {
                     >
                       <option value="">请选择目标客户</option>
                       {migrateOptions.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}{c.salesType ? `（${c.salesType === 'domestic' ? '内销' : '外销'}）` : ''}</option>
+                        <option key={c.id} value={c.id}>{c.name}（{salesTypeLabel(c.salesType)}{c.country ? ` · ${c.country}` : ''}）</option>
                       ))}
                     </select>
                   </div>
@@ -1423,8 +1464,8 @@ export default function CustomerDetail() {
                       title="AI 辅助生成跟进内容"
                       className={`absolute right-2 bottom-2 p-1.5 rounded-md transition-colors ${
                         aiGenerating
-                          ? 'bg-purple-100 text-purple-400 animate-pulse cursor-wait'
-                          : 'bg-purple-50 text-purple-500 hover:bg-purple-100 hover:text-purple-600'
+                          ? 'bg-brand-100 text-brand-400 animate-pulse cursor-wait'
+                          : 'bg-brand-50 text-brand-500 hover:bg-brand-100 hover:text-brand-600'
                       }`}
                     >
                       <Sparkles size={16} />

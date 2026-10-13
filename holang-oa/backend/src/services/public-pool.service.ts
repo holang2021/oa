@@ -33,7 +33,7 @@ export async function claimCustomer(id: string, ctx: ServiceContext) {
   const entity = (await customerRepo.findCustomerById(id)) as PoolEntity | null;
   if (!entity) throw new AppError('客户不存在', 404);
   assertDomain(entity.salesType, ctx, '客户');
-  if (!entity.inPublicPool) throw new AppError('该客户不在公海中', 409);
+  if (!entity.inPublicPool && entity.ownerId) throw new AppError('该客户不在公海中', 409);
   if (entity.ownerId && entity.ownerId !== ctx.userId && ctx.scope !== 'ALL') {
     throw new AppError('该客户已被其他销售认领', 409);
   }
@@ -128,7 +128,7 @@ export async function returnOpportunity(id: string, ctx: ServiceContext) {
 export async function listPoolCustomers(ctx: ServiceContext, filter: { search?: string; skip?: number; take?: number }) {
   const salesType = ctx.scope === 'ALL' ? undefined : ctx.scope;
   return customerRepo.findCustomers({
-    inPublicPool: true,
+    includeUnassignedAsPool: true,
     salesType,
     search: filter.search,
     skip: filter.skip,

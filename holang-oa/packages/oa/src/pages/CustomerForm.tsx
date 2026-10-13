@@ -1,55 +1,20 @@
-import { useState, useEffect, FormEvent, useMemo } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { ArrowLeft, Save, AlertTriangle, CheckCircle2, Sparkles, Loader2, Search } from 'lucide-react'
+import { ArrowLeft, Save, AlertTriangle, Sparkles, Loader2, Search } from 'lucide-react'
 import { Customer, industries, customerLevels, sourceChannels } from '../data/mockData'
 import { getFieldConfig } from '../services/fieldConfigStore'
-import { getCustomerById, createCustomer, updateCustomer } from '../services/customerService'
+import {
+  getCustomerById,
+  createCustomer,
+  updateCustomer,
+  checkCustomerDuplicate,
+  lookupCustomerByDeepSeek,
+  type CustomerDuplicateMatch,
+  type CustomerAiLookupResult,
+} from '../services/customerService'
 import type { FieldMeta } from '../types/fieldConfig'
 import FormField from '../components/FormField'
 import ContactManager from '../components/ContactManager'
-
-// Simulated DeepSeek API — 替代真实 API 调用
-async function deepseekQuery(companyName: string, mode: 'domestic' | 'export'): Promise<Partial<Customer>> {
-  // In production: replace with real DeepSeek API call:
-  // const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
-  //   method: 'POST',
-  //   headers: { 'Authorization': 'Bearer YOUR_KEY', 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ model: 'deepseek-chat', messages: [{
-  //     role: 'system', content: mode === 'domestic'
-  //       ? '你是企业工商信息查询助手，返回JSON格式的企业信息'
-  //       : '你是邓白氏码查询助手，返回JSON格式的企业信息含DUNS编码'
-  //   }, { role: 'user', content: `查询公司: ${companyName}` }]})
-  // })
-
-  // Simulated delay
-  await new Promise(r => setTimeout(r, 1500))
-
-  if (mode === 'domestic') {
-    // 模拟工商数据查询结果
-    const mockResults: Record<string, Partial<Customer>> = {
-      '耐力': { name: '耐力股份有限公司', industry: '生产制造', scale: '100~500人', address: '河北省石家庄市栾城区装备制造产业园', website: 'www.naili.com', taxTitle: '耐力股份有限公司', taxNumber: '91130100MA08XXXXX', bankName: '中国工商银行石家庄栾城支行', contactTitle: '采购经理', contactDept: '采购部' },
-      '精电': { name: '苏州精电科技有限公司', industry: '新能源', scale: '50~100人', address: '江苏省苏州市工业园区金鸡湖大道', website: 'www.jd-tech.com', taxTitle: '苏州精电科技有限公司', taxNumber: '91320500MA1XXXXXX', bankName: '中国建设银行苏州工业园区支行', contactTitle: '技术总监', contactDept: '技术部' },
-      '华测': { name: '上海华测检测技术有限公司', industry: '生物医药', scale: '500~1000人', address: '上海市浦东新区张江高科技园区', website: 'www.huace.com', taxTitle: '上海华测检测技术有限公司', taxNumber: '91310115MA2XXXXXX', bankName: '中国银行上海张江支行', contactTitle: '实验室主任', contactDept: '实验室' },
-      '鹏程': { name: '深圳鹏程电子有限公司', industry: '电子制造', scale: '200~500人', address: '广东省深圳市宝安区福永街道', website: 'www.pc-elec.com', taxTitle: '深圳鹏程电子有限公司', taxNumber: '91440300MA3XXXXXX', bankName: '招商银行深圳福永支行', contactTitle: '采购主管', contactDept: '采购部' },
-    }
-    for (const [key, data] of Object.entries(mockResults)) {
-      if (companyName.includes(key)) return data
-    }
-    // Generic fallback
-    return { name: companyName, industry: '生产制造', scale: '100~500人', address: '请手动填写详细地址' }
-  } else {
-    // Export mode: 模拟邓白氏码查询
-    const mockExport: Record<string, Partial<Customer>> = {
-      'cairo': { name: 'Cairo Oxygen Systems S.A.E.', industry: 'Industrial Gas', address: 'Plot 42, Industrial Zone, 6th of October City, Giza, Egypt', website: 'www.cairooxygen.com', taxTitle: 'Cairo Oxygen Systems S.A.E.', taxNumber: 'DUNS: 65-023-7894' },
-      'sao paulo': { name: 'Sao Paulo Industrial Gases Ltda', industry: 'Gas Distribution', address: 'Av. Paulista 2200, Bela Vista, Sao Paulo - SP, Brazil', website: 'www.spgases.com.br', taxTitle: 'Sao Paulo Industrial Gases Ltda', taxNumber: 'DUNS: 90-451-2387' },
-      'raj': { name: 'Raj Industrial Gases Pvt Ltd', industry: 'Manufacturing', address: 'Plot 15, MIDC Industrial Area, Pune 411026, India', website: 'www.rajgases.in', taxTitle: 'Raj Industrial Gases Pvt Ltd', taxNumber: 'DUNS: 77-834-5612' },
-    }
-    for (const [key, data] of Object.entries(mockExport)) {
-      if (companyName.toLowerCase().includes(key)) return data
-    }
-    return { name: companyName, industry: 'Industrial Equipment', address: 'Please enter address manually' }
-  }
-}
 
 // 表单 salesType 字段值是 domestic/overseas（或遗留 internal），后端枚举为 INTERNAL/EXTERNAL
 // 统一映射到后端枚举，避免 Zod 校验 400（创建/编辑客户都走这里）
@@ -72,12 +37,14 @@ export default function CustomerForm() {
   const [aiQuery, setAiQuery] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | null>(null)
-  const [aiFilled, setAiFilled] = useState(false)
+  const [aiCandidates, setAiCandidates] = useState<CustomerAiLookupResult[]>([])
+  const [duplicateMatches, setDuplicateMatches] = useState<CustomerDuplicateMatch[]>([])
+  const [duplicateLoading, setDuplicateLoading] = useState(false)
 
   // Field configuration (driven by admin settings)
   // 明确区分 Company 与 Contact：contact* 字段不在客户表单渲染，改由「联系人管理」面板维护（一对多）
   const allCustomerFields = getFieldConfig('customer')
-  const formFields = allCustomerFields.filter(f => !f.fieldName.startsWith('contact'))
+  const formFields = allCustomerFields.filter(f => f.fieldName && !f.fieldName.startsWith('contact'))
   const visibleFields = formFields.filter(f => f.visible).sort((a, b) => a.order - b.order)
   const fieldGroups = visibleFields.reduce((acc, f) => {
     const g = f.group || '其他信息'
@@ -126,12 +93,6 @@ export default function CustomerForm() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-
-  // Duplicate detection (simplified for API mode)
-  type DupItem = { field: string; value: string; match: { name: string; code: string } }
-  const duplicates: DupItem[] = useMemo(() => {
-    return [] // In API mode, duplicate detection is done server-side
-  }, [])
 
   useEffect(() => {
     if (isEdit && id) {
@@ -209,38 +170,49 @@ export default function CustomerForm() {
     if (!aiQuery.trim()) return
     setAiLoading(true)
     setAiResult(null)
-    setAiFilled(false)
+    setAiCandidates([])
+    setDuplicateMatches([])
 
     const mode = isExport ? 'export' : 'domestic'
-    const data = await deepseekQuery(aiQuery.trim(), mode)
-
-    if (data) {
-      // Auto-fill form fields
-      const updates: Record<string, string> = {}
-      if (data.name) updates.name = data.name
-      if (data.industry) updates.industry = data.industry
-      if (data.scale) updates.scale = data.scale
-      if (data.address) updates.address = data.address
-      if (data.website) updates.website = data.website
-      if (data.taxTitle) updates.taxTitle = data.taxTitle
-      if (data.taxNumber) updates.taxNumber = data.taxNumber
-      if (data.bankName) updates.bankName = data.bankName
-      if (data.contactTitle) updates.contactTitle = data.contactTitle
-      if (data.contactDept) updates.contactDept = data.contactDept
-      setForm(prev => ({ ...prev, ...updates }))
-      setAiResult(isExport ? `邓白氏码已查询: ${data.taxNumber || '未匹配到DUNS编码'}` : `工商信息已填充: ${Object.keys(updates).length} 个字段`)
-      setAiFilled(true)
-    } else {
-      setAiResult('未查询到匹配的企业信息，请手动填写')
+    try {
+      const data = await lookupCustomerByDeepSeek(aiQuery.trim(), mode)
+      if (data.candidates.length > 0) {
+        setAiCandidates(data.candidates)
+        setAiResult(`AI 联想到 ${data.candidates.length} 个名称，均未经过工商数据核验`)
+      } else {
+        setAiResult('未找到名称线索，请补充地区、行业或更多公司名称后重试')
+      }
+    } catch (e: any) {
+      setAiResult(e?.message || 'DeepSeek 查询失败，请稍后重试或手动填写')
     }
 
     setAiLoading(false)
+  }
+
+  const runDuplicateCheck = async (nextForm = form) => {
+    if (!nextForm.name?.trim() && !nextForm.creditCode?.trim() && !nextForm.taxNumber?.trim() && !nextForm.dunsNumber?.trim() && !nextForm.website?.trim()) return
+    setDuplicateLoading(true)
+    try {
+      const list = await checkCustomerDuplicate({
+        companyName: nextForm.name,
+        creditCode: nextForm.creditCode,
+        taxNumber: nextForm.taxNumber,
+        dunsNumber: nextForm.dunsNumber,
+        website: nextForm.website,
+        salesType: toBackendSalesType(nextForm.salesType) ?? (isExport ? 'EXTERNAL' : 'INTERNAL'),
+        excludeId: isEdit ? id : undefined,
+      })
+      setDuplicateMatches(list)
+    } finally {
+      setDuplicateLoading(false)
+    }
   }
 
   // Validation driven by field config
   const validate = () => {
     const errs: Record<string, string> = {}
     for (const f of formFields) {
+      if (!f.fieldName) continue
       if (f.required && !form[f.fieldName as keyof typeof form]) {
         errs[f.fieldName] = `${f.label}为必填项`
       }
@@ -260,53 +232,68 @@ export default function CustomerForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* AI Query Card — DeepSeek */}
-        <div className="card !p-4 bg-gradient-to-r from-brand-50 to-purple-50 border-brand-100">
+        <div className="card !p-4 bg-gradient-to-r from-brand-50 to-brand-50 border-brand-100">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-purple-500 rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-500 rounded-lg flex items-center justify-center shrink-0">
               <Sparkles size={16} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-sm font-semibold text-gray-800">
-                {isExport ? 'AI 智能查询邓白氏码' : 'AI 智能查询工商信息'}
+                企业名称 AI 联想
               </h4>
               <p className="text-[11px] text-gray-500 mt-0.5">
                 {isExport
-                  ? '输入海外公司名称，DeepSeek 自动查询 DUNS 邓白氏编码和企业信息'
-                  : '输入企业名称关键词，DeepSeek 自动查询工商注册信息并填充表单'}
+                  ? '输入海外公司简称或关键词，仅辅助寻找名称线索，不代表企业真实存在'
+                  : '输入企业简称或关键词，仅辅助寻找名称线索，不是工商查询结果'}
               </p>
-              {!aiFilled && (
-                <div className="flex gap-2 mt-2.5">
-                  <div className="flex-1 relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
-                    <input
-                      className="w-full pl-9 pr-3 py-2 bg-white border border-brand-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent"
-                      placeholder={isExport ? '输入公司名，如 Cairo Oxygen Systems' : '输入企业名，如 耐力股份'}
-                      value={aiQuery}
-                      onChange={e => setAiQuery(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAiQuery() } }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleAiQuery}
-                    disabled={!aiQuery.trim() || aiLoading}
-                    className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:bg-gray-200 disabled:text-gray-400 shrink-0 flex items-center gap-1.5"
-                  >
-                    {aiLoading ? <><Loader2 size={14} className="animate-spin" /> 查询中</> : <><Sparkles size={14} /> 查询</>}
-                  </button>
+              <div className="flex gap-2 mt-2.5">
+                <div className="flex-1 relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                  <input
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-brand-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent"
+                    placeholder={isExport ? '输入公司名，如 Cairo Oxygen Systems' : '输入企业名，如 耐力股份'}
+                    value={aiQuery}
+                    onChange={e => setAiQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAiQuery() } }}
+                  />
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={handleAiQuery}
+                  disabled={!aiQuery.trim() || aiLoading}
+                  className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:bg-gray-200 disabled:text-gray-400 shrink-0 flex items-center gap-1.5"
+                >
+                  {aiLoading ? <><Loader2 size={14} className="animate-spin" /> 联想中</> : <><Search size={14} /> 查找名称线索</>}
+                </button>
+              </div>
               {aiLoading && (
                 <div className="flex items-center gap-2 mt-2.5 text-xs text-brand-600">
                   <Loader2 size={12} className="animate-spin" />
-                  <span>正在通过 DeepSeek {isExport ? '查询邓白氏码' : '查询工商数据'}...</span>
+                  <span>DeepSeek 正在联想可能的企业名称...</span>
                 </div>
               )}
               {aiResult && (
-                <div className={`flex items-center gap-2 mt-2.5 text-xs ${aiFilled ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50'} rounded-lg px-3 py-2`}>
-                  <CheckCircle2 size={12} className="shrink-0" />
+                <div className="flex items-center gap-2 mt-2.5 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                  <AlertTriangle size={12} className="shrink-0" />
                   <span>{aiResult}</span>
-                  {aiFilled && <span className="text-[10px] text-green-500 ml-auto">已自动填充 · 可手动修改</span>}
+                </div>
+              )}
+              {aiCandidates.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {aiCandidates.map((candidate, index) => (
+                    <div
+                      key={`${candidate.companyName}-${index}`}
+                      className="w-full rounded-lg border border-amber-100 bg-white px-3 py-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-800">{candidate.companyName}</div>
+                          <div className="mt-1 text-xs text-gray-500">可用于补充搜索关键词，不能作为法律主体信息</div>
+                        </div>
+                        <span className="shrink-0 rounded bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700">AI 联想 · 未核验</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -314,24 +301,42 @@ export default function CustomerForm() {
         </div>
 
         {/* Duplicate Warning */}
-        {duplicates.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => runDuplicateCheck()}
+            disabled={duplicateLoading || (!form.name.trim() && !form.creditCode.trim() && !form.taxNumber.trim() && !form.dunsNumber.trim() && !form.website.trim())}
+            className="btn-secondary text-sm inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {duplicateLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            检查重复客户
+          </button>
+        </div>
+
+        {(duplicateLoading || duplicateMatches.length > 0) && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-medium text-amber-800">检测到可能存在重复客户</h4>
-                <div className="mt-2 space-y-1">
-                  {duplicates.map((dup, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-amber-700">
-                      <span className="font-mono bg-amber-100 px-1.5 py-0.5 rounded">{dup.field}</span>
-                      <span>{dup.value}</span>
-                      <span className="text-amber-400">已关联至</span>
-                      <span className="font-medium">{dup.match.name}</span>
-                      <span className="text-amber-400">({dup.match.code})</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-amber-600 mt-2">如确认不是同一客户，可忽略此提示继续创建。</p>
+                <h4 className="text-sm font-medium text-amber-800">客户查重提示</h4>
+                {duplicateLoading ? (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-amber-700">
+                    <Loader2 size={12} className="animate-spin" /> 正在根据公司名、统一信用代码/税号、DUNS、网站域名查重...
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {duplicateMatches.map((m) => (
+                      <div key={m.id} className="rounded-lg bg-white/70 border border-amber-100 px-3 py-2 text-xs text-amber-800">
+                        <div className="font-medium">{m.companyName}</div>
+                        <div className="mt-1 text-amber-700">
+                          {m.customerCode || '无编号'} · {m.salesType === 'EXTERNAL' ? '外销' : '内销'} · 负责人：{m.salesOwner?.name || '-'}
+                        </div>
+                        <div className="mt-1 text-amber-600">命中：{m.reasons.join('、')}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-amber-600 mt-2">如果确认不是同一法律主体，可以继续创建；否则建议进入已有客户维护。</p>
               </div>
             </div>
           </div>
@@ -343,6 +348,7 @@ export default function CustomerForm() {
             <h3 className="text-sm font-semibold text-gray-700 pb-3 border-b">{groupName}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {fields.map(f => {
+                if (!f.fieldName) return null
                 // Build options for select-type fields
                 let options: { label: string; value: string }[] | undefined
                 if (f.fieldName === 'industry') options = industries.map(v => ({ label: v, value: v }))
@@ -375,8 +381,14 @@ export default function CustomerForm() {
           </div>
         ))}
 
-        {/* 联系人管理（一对多）：公司可挂多个联系人 */}
-        <ContactManager customerId={isEdit ? (id ?? null) : null} />
+        {/* 联系人管理（一对多）：新建时先保存客户主体，保存后进入客户页补联系人。 */}
+        {isEdit ? (
+          <ContactManager customerId={id ?? null} />
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+            联系人将在客户创建后添加。先建立公司主体，再进入客户详情补多个联系人、关键人和任职记录。
+          </div>
+        )}
 
         <div className="flex gap-3">
           <button type="submit" disabled={submitting} className="btn-primary inline-flex items-center gap-2">

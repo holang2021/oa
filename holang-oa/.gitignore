@@ -55,3 +55,4 @@ venv/
 # Local credentials / sensitive config that must stay out of git
 oa_login.json
 quotation_*.json
+backend/config/api-configs.json

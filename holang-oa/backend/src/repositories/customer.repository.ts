@@ -19,13 +19,24 @@ export interface CreateCustomerInput {
   companyName: string;
   customerCode?: string | null;
   industry?: string | null;
+  scale?: string | null;
   address?: string | null;
+  companyPhone?: string | null;
+  website?: string | null;
+  creditCode?: string | null;
+  dunsNumber?: string | null;
   country?: string | null;
   status?: string;
   source?: string | null;
   salesOwnerId?: string | null;
   createdBy?: string | null;
   notes?: string | null;
+  taxTitle?: string | null;
+  taxNumber?: string | null;
+  invoiceType?: string | null;
+  bankName?: string | null;
+  bankAccount?: string | null;
+  bankCode?: string | null;
   contacts?: CustomerContactInput[];
   // ── D1 等级 ──
   customerGrade?: CustomerGrade | null;
@@ -45,6 +56,7 @@ export interface CustomerFilter {
   salesType?: string;
   salesOwnerId?: string;
   inPublicPool?: boolean;
+  includeUnassignedAsPool?: boolean;
   ownerId?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -58,7 +70,12 @@ export async function createCustomer(data: CreateCustomerInput) {
       companyName: data.companyName,
       customerCode: data.customerCode ?? null,
       industry: data.industry ?? null,
+      scale: data.scale ?? null,
       address: data.address ?? null,
+      companyPhone: data.companyPhone ?? null,
+      website: data.website ?? null,
+      creditCode: data.creditCode ?? null,
+      dunsNumber: data.dunsNumber ?? null,
       country: data.country ?? null,
       status: data.status ?? 'POTENTIAL',
       source: data.source ?? null,
@@ -66,6 +83,12 @@ export async function createCustomer(data: CreateCustomerInput) {
       createdBy: data.createdBy ?? null,
       // Customer 模型无 notes 列，备注落入 remark 字段
       remark: data.notes ?? null,
+      taxTitle: data.taxTitle ?? null,
+      taxNumber: data.taxNumber ?? null,
+      invoiceType: data.invoiceType ?? null,
+      bankName: data.bankName ?? null,
+      bankAccount: data.bankAccount ?? null,
+      bankCode: data.bankCode ?? null,
       salesType: data.salesType,
       customerGrade: data.customerGrade ?? null,
       nextFollowupAt: data.nextFollowupAt ?? null,
@@ -99,19 +122,26 @@ export async function findCustomerById(id: string) {
 
 export async function findCustomers(filter: CustomerFilter) {
   const where: Record<string, unknown> = {};
+  const and: Record<string, unknown>[] = [];
   if (filter.search) {
-    where.OR = [
+    and.push({ OR: [
       { companyName: { contains: filter.search } },
       { contacts: { some: { name: { contains: filter.search } } } },
-    ];
+    ] });
   }
   if (filter.status) where.status = filter.status;
   if (filter.industry) where.industry = filter.industry;
   if (filter.businessLine) where.businessLine = filter.businessLine;
   if (filter.salesType) where.salesType = filter.salesType.toUpperCase();
   if (filter.salesOwnerId) where.salesOwnerId = filter.salesOwnerId;
-  if (typeof filter.inPublicPool === 'boolean') where.inPublicPool = filter.inPublicPool;
+  if (filter.includeUnassignedAsPool) {
+    // 兼容历史导入客户：未分配负责人时先按公海可见，认领后才正式绑定负责人。
+    and.push({ OR: [{ inPublicPool: true }, { salesOwnerId: null }] });
+  } else if (typeof filter.inPublicPool === 'boolean') {
+    where.inPublicPool = filter.inPublicPool;
+  }
   if (filter.ownerId) where.ownerId = filter.ownerId;
+  if (and.length > 0) where.AND = and;
 
   const [list, total] = await Promise.all([
     prisma.customer.findMany({

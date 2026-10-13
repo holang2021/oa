@@ -75,12 +75,23 @@ export interface CreateCustomerWithGradeInput {
   companyName: string;
   customerCode?: string | null;
   industry?: string | null;
+  scale?: string | null;
   address?: string | null;
+  companyPhone?: string | null;
+  website?: string | null;
+  creditCode?: string | null;
+  dunsNumber?: string | null;
   country?: string | null;
   status?: string;
   source?: string | null;
   salesOwnerId?: string | null;
   notes?: string | null;
+  taxTitle?: string | null;
+  taxNumber?: string | null;
+  invoiceType?: string | null;
+  bankName?: string | null;
+  bankAccount?: string | null;
+  bankCode?: string | null;
   contacts?: customerRepo.CustomerContactInput[];
   /** 4 选择题（可选；提供则推导 grade，否则用显式 grade 或默认 B） */
   gradeSignals?: GradeSignals;
@@ -130,13 +141,24 @@ export async function createCustomerWithGrade(
         ? input.customerCode
         : await customerRepo.nextCustomerCode(),
     industry: input.industry ?? null,
+    scale: input.scale ?? null,
     address: input.address ?? null,
+    companyPhone: input.companyPhone ?? null,
+    website: input.website ?? null,
+    creditCode: input.creditCode ?? null,
+    dunsNumber: input.dunsNumber ?? null,
     country: input.country ?? null,
     status: input.status ?? 'POTENTIAL',
     source: input.source ?? null,
     salesOwnerId: input.salesOwnerId ?? ctx.userId,
     createdBy: ctx.userId,
     notes: input.notes ?? null,
+    taxTitle: input.taxTitle ?? null,
+    taxNumber: input.taxNumber ?? null,
+    invoiceType: input.invoiceType ?? null,
+    bankName: input.bankName ?? null,
+    bankAccount: input.bankAccount ?? null,
+    bankCode: input.bankCode ?? null,
     contacts: input.contacts ?? [],
     customerGrade: grade,
     nextFollowupAt,

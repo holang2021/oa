@@ -157,7 +157,7 @@ export default function Customers() {
   const businessLineBadge = (bl: string) => {
     const isRetail = bl === 'RETAIL'
     return (
-      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${isRetail ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${isRetail ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-600'}`}>
         {isRetail ? '零售' : '工业'}
       </span>
     )
@@ -273,7 +273,14 @@ export default function Customers() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {customers.length === 0 ? (
-                  <tr><td colSpan={10} className="text-center py-12 text-gray-400">暂无客户数据</td></tr>
+                  <tr>
+                    <td colSpan={10} className="text-center py-12 text-gray-400">
+                      <div className="space-y-3">
+                        <div>暂无我的客户，历史未分配客户可先到公海认领</div>
+                        <button onClick={() => setTab('pool')} className="btn-secondary text-xs">查看公海客户</button>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   customers.map((c) => (
                     <tr key={c.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => navigate(`${basePath}/customers/${c.id}`)}>
@@ -342,7 +349,10 @@ export default function Customers() {
       {!isPool && !(loading || error) && (
         <div className="lg:hidden space-y-3">
           {customers.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 bg-white rounded-xl">暂无客户数据</div>
+            <div className="text-center py-12 text-gray-400 bg-white rounded-xl space-y-3">
+              <div>暂无我的客户，历史未分配客户可先到公海认领</div>
+              <button onClick={() => setTab('pool')} className="btn-secondary text-xs">查看公海客户</button>
+            </div>
           ) : (
             customers.map((c) => (
               <div key={c.id} className="card space-y-3 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`${basePath}/customers/${c.id}`)}>

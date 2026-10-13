@@ -25,6 +25,20 @@ router.get('/', authenticate, enforceSalesTypeScope, customerController.getCusto
  */
 router.get('/geo', authenticate, enforceSalesTypeScope, customerController.getGeoStats);
 
+/**
+ * @route   GET /api/v1/customers/check-duplicate
+ * @desc    新建/编辑客户前查重提示
+ * @access  Private（域隔离）
+ */
+router.get('/check-duplicate', authenticate, enforceSalesTypeScope, customerController.checkCustomerDuplicate);
+
+/**
+ * @route   POST /api/v1/customers/ai-lookup
+ * @desc    DeepSeek 企业名称联想，仅返回未核验名称线索
+ * @access  Private
+ */
+router.post('/ai-lookup', authenticate, customerController.lookupCustomerByDeepSeek);
+
 // ───────────────────────────────────────────────────────────
 // D2 客户公海：列表 / 认领 / 退回（服务端销售域强制，复用 salesType.ts）
 // 必须在 /:id 形路由之前定义，避免 GET /pool 被 /:id 先捕获。
