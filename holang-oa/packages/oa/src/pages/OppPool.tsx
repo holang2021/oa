@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, Search, Filter, Target, ChevronDown, Edit2, Trash2, Undo2, Loader2 } from 'lucide-react'
+import { Plus, Search, Filter, Target, ChevronDown, Edit2, Trash2, Undo2, Loader2, ShoppingBag } from 'lucide-react'
 import { getOpportunities, getPoolOpportunities, claimOpportunity, returnOpportunity, type Opportunity } from '../services/opportunityService'
 import { isCurrentUserAdmin } from '../services/rbacStore'
 import { useAuth } from '../contexts/AuthContext'
@@ -125,6 +125,15 @@ export default function OppPool() {
     if (label === '输单') return 'bg-red-100 text-red-700'
     if (label === '商务谈判' || label === '合同签订') return 'bg-orange-100 text-orange-700'
     return 'bg-blue-100 text-blue-700'
+  }
+
+  const buildOrderLink = (o: Opportunity) => {
+    const params = new URLSearchParams({
+      opportunityId: o.id,
+      returnTo: `${basePath}/opportunities`,
+    })
+    if (o.customer?.id) params.set('customerId', o.customer.id)
+    return `${basePath}/orders/new?${params.toString()}`
   }
 
   const activeList = tab === 'mine' ? filtered : poolOpps
@@ -256,6 +265,7 @@ export default function OppPool() {
                         <div className="flex gap-2">
                           {tab === 'mine' ? (
                             <>
+                              <button onClick={() => nav(buildOrderLink(o))} className="text-green-600 hover:text-green-800" title="转订单"><ShoppingBag size={14} /></button>
                               <button onClick={() => nav(`${basePath}/opportunities/${o.id}/edit`)} className="text-brand-600 hover:text-brand-800" title="编辑商机"><Edit2 size={14} /></button>
                               <button className="text-red-600 hover:text-red-800"><Trash2 size={14} /></button>
                               {canReturn && (

@@ -1353,12 +1353,20 @@ export default function CustomerDetail() {
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
                       <span>成交概率：<span className="font-medium text-gray-700">{opp.winProbability || 0}%</span></span>
-                      <button
-                        onClick={() => navigate(`${basePath}/opportunities/${opp.id}/edit?returnTo=${encodeURIComponent(`${basePath}/customers/${customer.id}`)}`)}
-                        className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800"
-                      >
-                        <Pencil size={13} /> 编辑商机
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => navigate(`${basePath}/orders/new?customerId=${customer.id}&opportunityId=${opp.id}&returnTo=${encodeURIComponent(`${basePath}/customers/${customer.id}`)}`)}
+                          className="inline-flex items-center gap-1 text-green-600 hover:text-green-800"
+                        >
+                          <ShoppingBag size={13} /> 转订单
+                        </button>
+                        <button
+                          onClick={() => navigate(`${basePath}/opportunities/${opp.id}/edit?returnTo=${encodeURIComponent(`${basePath}/customers/${customer.id}`)}`)}
+                          className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800"
+                        >
+                          <Pencil size={13} /> 编辑商机
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))

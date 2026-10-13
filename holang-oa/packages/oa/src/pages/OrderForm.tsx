@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { createOrder, updateOrder, getOrderById, type Order } from '../services/orderService'
 import { getCustomerById, getCustomers } from '../services/customerService'
 import { getQuotes } from '../services/quoteService'
+import { getOpportunityById, type Opportunity } from '../services/opportunityService'
 import { useI18n } from '../i18n/I18nContext'
 
 const emptyForm = (): Order => ({
@@ -59,6 +60,7 @@ export default function OrderForm() {
   const isExportRoute = location.pathname.startsWith('/export')
   const basePath = isExportRoute ? '/export' : '/domestic'
   const prefilledCustomerId = searchParams.get('customerId') || ''
+  const prefilledOpportunityId = searchParams.get('opportunityId') || ''
   const returnTo = searchParams.get('returnTo') || ''
   const safeReturnTo = returnTo.startsWith(`${basePath}/`) ? returnTo : `${basePath}/orders`
 
@@ -67,6 +69,7 @@ export default function OrderForm() {
   const [loading, setLoading] = useState(false)
   const [customerList, setCustomerList] = useState<{id:string;name:string;code:string}[]>([])
   const [quoteList, setQuoteList] = useState<{id:string;code:string;customerId:string;amount:number}[]>([])
+  const [sourceOpportunity, setSourceOpportunity] = useState<Opportunity | null>(null)
 
   useEffect(() => {
     getCustomers({ pageSize: 500 }).then(async res => {
@@ -93,11 +96,30 @@ export default function OrderForm() {
         if (o) setForm(o as Order)
         setLoading(false)
       }).catch(() => setLoading(false))
+    } else if (prefilledOpportunityId) {
+      getOpportunityById(prefilledOpportunityId).then(opp => {
+        setSourceOpportunity(opp)
+        if (!opp) {
+          setForm(prev => ({ ...prev, code: '', customerId: prefilledCustomerId || prev.customerId }))
+          return
+        }
+        const amount = opp.expectedAmount || 0
+        setForm(prev => ({
+          ...prev,
+          code: '',
+          customerId: opp.customerId || prefilledCustomerId || prev.customerId,
+          amount,
+          amountWithoutTax: isExportRoute ? amount : Math.round((amount / (1 + (prev.taxRate || 0) / 100)) * 100) / 100,
+          specialReq: opp.description ? `来自商机：${opp.name}\n${opp.description}` : prev.specialReq,
+        }))
+      }).catch(() => {
+        setForm(prev => ({ ...prev, code: '', customerId: prefilledCustomerId || prev.customerId }))
+      })
     } else {
       // 新建订单不预填单号：留空由后端统一编码(OR+year+6位)，避免前端假号同日重号
       setForm(prev => ({ ...prev, code: '', customerId: prefilledCustomerId || prev.customerId }))
     }
-  }, [id, isEdit, prefilledCustomerId])
+  }, [id, isEdit, isExportRoute, prefilledCustomerId, prefilledOpportunityId])
 
   const update = (field: keyof Order, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -155,6 +177,15 @@ export default function OrderForm() {
 
       <div className="card space-y-4">
         <h3 className="text-sm font-semibold text-gray-700">基本信息</h3>
+        {sourceOpportunity && (
+          <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-800">
+            <div className="font-medium">由商机转订单：{sourceOpportunity.name}</div>
+            <div className="mt-1 text-xs leading-5 text-green-700">
+              预测金额已预填，订单金额、税率、优惠和交付信息仍需按最终合同确认。
+              {sourceOpportunity.productIntents?.length ? ` 意向产品：${sourceOpportunity.productIntents.map(item => item.product ? `${item.product.name}${item.product.model ? ` (${item.product.model})` : ''}` : item.productId).join('、')}` : ' 暂无意向产品。'}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">订单编号</label>
