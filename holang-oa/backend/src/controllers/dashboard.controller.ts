@@ -172,7 +172,7 @@ export const getRecentActivities = async (req: AuthRequest, res: Response, next:
       type: 'followup',
       content: fu.content,
       customerName: fu.customer.companyName,
-      userName: fu.user.name,
+      userName: fu.user?.name || fu.operator || '未知',
       createdAt: fu.createdAt,
     }));
 
@@ -217,7 +217,7 @@ export const getPipelineSummary = async (req: AuthRequest, res: Response, next: 
       stage: item.stage,
       count: item._count.id,
       amount: item._sum.expectedAmount || 0,
-      weightedAmount: (item._sum.expectedAmount || 0) * (stageProbability[item.stage] / 100),
+      weightedAmount: (item._sum.expectedAmount || 0) * ((stageProbability[item.stage] ?? 0) / 100),
     }));
 
     res.json({

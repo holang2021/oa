@@ -1,14 +1,26 @@
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/I18nContext'
 import {
   Inbox, Clock, CheckCircle2, Bell, TrendingUp, Users, DollarSign, Package,
   ArrowRight, AlertCircle, Target, ClipboardCheck, ShoppingCart, Truck,
   Plus, X, GripVertical, Settings, BarChart3, FileText, Search,
-  ChevronUp, ChevronDown, LayoutTemplate, AlertTriangle, Zap,
-  CircleCheck, Hourglass, Maximize2, Move, ExternalLink, RefreshCcw
+  ChevronUp, ChevronDown, LayoutTemplate,
+  Maximize2, Move, ExternalLink, RefreshCcw
 } from 'lucide-react'
-import { getMyTodoTasks, getMyDoneTasks } from '../data/mockApprovalTasks'
+import { dashboardService, DashStats, PipelineItem, ActivityItem, SalesRankItem } from '../services/dashboardService'
+
+// 解码数据库存储的 HTML 实体（客户名/跟进内容里的 &amp; 等）
+function decodeHtml(s?: string | null): string {
+  return String(s || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+}
+
+const TOP_STAT_STYLES: Record<string, { bg: string; text: string; line: string }> = {
+  blue: { bg: 'bg-blue-50', text: 'text-blue-600', line: 'bg-blue-500' },
+  green: { bg: 'bg-green-50', text: 'text-green-600', line: 'bg-green-500' },
+  amber: { bg: 'bg-amber-50', text: 'text-amber-600', line: 'bg-amber-500' },
+  red: { bg: 'bg-red-50', text: 'text-red-600', line: 'bg-red-500' },
+}
 
 // Widget types
 type WidgetType = 'my_todos' | 'my_flows' | 'my_customers' | 'my_leads' | 'my_opps' | 'my_quotations' |
@@ -169,6 +181,35 @@ export default function Dashboard() {
   })
   const [showEditor, setShowEditor] = useState(false)
   const [customForm, setCustomForm] = useState<{ open: boolean; title: string; url: string }>({ open: false, title: '', url: '' })
+  const [dash, setDash] = useState<{ stats?: DashStats; pipeline?: PipelineItem[]; activities?: ActivityItem[]; ranking?: SalesRankItem[] }>({})
+  const [dashLoading, setDashLoading] = useState(true)
+  const [dashError, setDashError] = useState('')
+  const loadDashboard = useCallback(() => {
+    let alive = true
+    setDashLoading(true)
+    setDashError('')
+    Promise.all([
+      dashboardService.getStats(),
+      dashboardService.getPipelineSummary(),
+      dashboardService.getRecentActivities(),
+      dashboardService.getSalesRanking(),
+    ]).then(([s, p, a, r]) => {
+      if (!alive) return
+      const failed = [s, p, a, r].find((resp) => resp.code !== 0)
+      setDash({
+        stats: s.code === 0 ? s.data : undefined,
+        pipeline: p.code === 0 ? p.data : undefined,
+        activities: a.code === 0 ? a.data : undefined,
+        ranking: r.code === 0 ? r.data : undefined,
+      })
+      setDashError(failed ? failed.message || '工作台数据加载失败' : '')
+      setDashLoading(false)
+    }).catch((e: any) => {
+      if (alive) { setDashError(String(e?.message || e)); setDashLoading(false) }
+    })
+    return () => { alive = false }
+  }, [])
+  useEffect(() => loadDashboard(), [loadDashboard])
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const dragOverIdx = useRef<number | null>(null)
 
@@ -266,7 +307,16 @@ export default function Dashboard() {
       </div>
 
       {/* Fixed Top Stats Bar — always visible, not customizable */}
-      <TopStatsBar t={t} />
+      <TopStatsBar t={t} stats={dash.stats} loading={dashLoading} />
+
+      {dashError && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <span>{dashError}</span>
+          <button onClick={loadDashboard} className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100">
+            <RefreshCcw size={12} /> 重试
+          </button>
+        </div>
+      )}
 
       {/* Widget Editor Panel */}
       {showEditor && (
@@ -354,7 +404,7 @@ export default function Dashboard() {
               </div>
               {/* Widget Content */}
               <div className={`p-4 overflow-y-auto ${heightClass}`}>
-                <WidgetContent widget={item} t={t} />
+                <WidgetContent widget={item} t={t} dash={dash} loading={dashLoading} />
               </div>
             </div>
           )
@@ -408,101 +458,92 @@ export default function Dashboard() {
 }
 
 // Top Stats Bar — fixed, not customizable
-function TopStatsBar({ t }: { t: (k: string) => string }) {
+function TopStatsBar({ t, stats, loading }: { t: (k: string) => string; stats?: DashStats; loading?: boolean }) {
   const navigate = useNavigate()
-
-  const todos = useMemo(() => getMyTodoTasks(), [])
-  const done = useMemo(() => getMyDoneTasks(), [])
-  const overdueCount = todos.filter(t => t.isOverdue).length
-  const urgedCount = todos.filter(t => t.urgeCount > 0).length
-
-  const stats = [
-    { key: 'pending', label: t('dash.pending'), desc: t('dash.pendingDesc'), value: todos.length, icon: Hourglass, color: 'blue', path: '/dashboard/todos' },
-    { key: 'approved', label: t('dash.approved'), desc: t('dash.approvedDesc'), value: done.length, icon: CircleCheck, color: 'green', path: '/dashboard/done' },
-    { key: 'overdue', label: t('dash.overdue'), desc: t('dash.overdueDesc'), value: overdueCount, icon: AlertTriangle, color: 'red', path: '/dashboard/todos' },
-    { key: 'urged', label: t('dash.urged'), desc: t('dash.urgedDesc'), value: urgedCount, icon: Zap, color: 'amber', path: '/dashboard/todos' },
+  const c = stats?.counts
+  const items = [
+    { key: 'customers', label: t('dash.customers') || '客户总数', desc: t('dash.customersDesc') || '全部客户', value: c?.customers, icon: Users, color: 'blue', path: '/domestic/customers' },
+    { key: 'opps', label: t('dash.opps') || '商机', desc: t('dash.oppsDesc') || '进行中商机', value: c?.opportunities, icon: Target, color: 'green', path: '/domestic/opportunities' },
+    { key: 'quotes', label: t('dash.quotes') || '报价单', desc: t('dash.quotesDesc') || '已建报价', value: c?.quotes, icon: FileText, color: 'amber', path: '/domestic/quotations' },
+    { key: 'followups', label: t('dash.todayFollowUps') || '今日跟进', desc: t('dash.todayFollowUpsDesc') || '今日待跟进', value: c?.todayFollowUps, icon: Bell, color: 'red', path: '/domestic/followups' },
   ]
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {stats.map(s => (
+      {items.map(s => (
+        (() => {
+          const style = TOP_STAT_STYLES[s.color]
+          return (
         <button
           key={s.key}
           onClick={() => navigate(s.path)}
           className={`text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow group relative overflow-hidden`}
         >
           <div className="flex items-center justify-between">
-            <div className={`w-10 h-10 rounded-lg bg-${s.color}-50 flex items-center justify-center`}>
-              <s.icon size={18} className={`text-${s.color}-500`} />
+            <div className={`w-10 h-10 rounded-lg ${style.bg} flex items-center justify-center`}>
+              <s.icon size={18} className={style.text} />
             </div>
-            <span className={`text-2xl font-bold text-${s.color}-600`}>{s.value}</span>
+            <span className={`text-2xl font-bold ${style.text}`}>{loading ? '…' : (s.value ?? '—')}</span>
           </div>
           <div className="mt-2">
             <div className="text-sm font-medium text-gray-700">{s.label}</div>
             <div className="text-xs text-gray-400 mt-0.5">{s.desc}</div>
           </div>
-          <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-${s.color}-500 opacity-0 group-hover:opacity-100 transition-opacity`} />
+          <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${style.line} opacity-0 group-hover:opacity-100 transition-opacity`} />
         </button>
+          )
+        })()
       ))}
     </div>
   )
 }
 
-type ListItem = { label: string; path?: string }
-
-function WidgetContent({ widget, t }: { widget: LayoutItem; t: (k: string) => string }) {
+function WidgetContent({ widget, t, dash, loading }: { widget: LayoutItem; t: (k: string) => string; dash: any; loading?: boolean }) {
   const id = widget.id
+  const stats = dash?.stats
+  const pipeline = dash?.pipeline
+  const activities = dash?.activities
   switch (id) {
     case 'my_todos':
-      return <SimpleList items={[
-        { label: '审批报价单 HQ2607001', path: '/domestic/quotations' },
-        { label: '跟进客户 耐力股份', path: '/domestic/customers' },
-        { label: '提交周报', path: '#' },
-      ]} color="amber" t={t} />
     case 'my_flows':
-      return <SimpleList items={[
-        { label: '采购申请 PO-20260601', path: '#' },
-        { label: '客户退款申请', path: '#' },
-      ]} color="blue" t={t} />
-    case 'my_customers':
-      return <CustomerWidget t={t} />
     case 'my_leads':
-      return <SimpleList items={[
-        { label: '耐力股份 - 氮气发生器', path: '/domestic/leads' },
-        { label: '苏州精密 - 氧分析仪', path: '/domestic/leads' },
-        { label: '上海华虹 - 制氮机', path: '/domestic/leads' },
-        { label: '广州能源 - PSA装置', path: '/domestic/leads' },
-      ]} color="blue" t={t} subtitle="跟进中" />
     case 'my_opps':
-      return <SimpleList items={[
-        { label: '耐力股份 NPL10B 项目 - ¥280K', path: '/domestic/opportunities' },
-        { label: '苏州精密 - ¥135K', path: '/domestic/opportunities' },
-      ]} color="green" t={t} subtitle="预计成交金额" />
     case 'my_quotations':
-      return <SimpleList items={[
-        { label: 'HQ2607021 - 耐力股份 - ¥128K', path: '/domestic/quotations' },
-        { label: 'HQ2607018 - 苏州精密 - ¥65K', path: '/domestic/quotations' },
-      ]} color="purple" t={t} subtitle="待审批" />
     case 'my_orders':
-      return <SimpleList items={[
-        { label: 'HC2601002 - 耐力股份 - 生产中', path: '/domestic/orders' },
-        { label: 'HC2600098 - 上海华虹 - 已完成', path: '/domestic/orders' },
-      ]} color="green" t={t} subtitle="订单状态" />
     case 'my_collections':
-      return <div className="text-center py-4"><div className="text-3xl font-bold text-gray-700">¥285K</div><div className="text-xs text-gray-400 mt-1">本月已回款</div></div>
+      return <InDevWidget t={t} titleKey={widgetTitleKey(id)} />
+    case 'my_customers':
+      return <CustomerWidget t={t} customers={stats?.recentCustomers} loading={loading} />
     case 'stats':
-      return <StatsWidget t={t} />
+      return <StatsWidget t={t} stats={stats} loading={loading} />
     case 'pipeline':
-      return <PipelineWidget t={t} />
+      return <PipelineWidget t={t} pipeline={pipeline} loading={loading} />
     case 'recent_activity':
-      return <ActivityWidget t={t} />
     case 'notifications':
-      return <ActivityWidget t={t} />
+      return <ActivityWidget t={t} activities={activities} loading={loading} />
     case 'custom_page':
       return <CustomPageWidget title={widget.customTitle || ''} url={widget.customUrl || ''} />
     default:
       return <div className="text-gray-400 text-sm py-4 text-center">{t('dash.noData') || '暂无数据'}</div>
   }
+}
+
+function widgetTitleKey(id: string): string {
+  const map: Record<string, string> = {
+    my_todos: 'widget.todos', my_flows: 'widget.flows', my_leads: 'widget.leads',
+    my_opps: 'widget.opps', my_quotations: 'widget.quotations', my_orders: 'widget.orders',
+    my_collections: 'widget.collections',
+  }
+  return map[id] || 'widget.customPage'
+}
+
+function InDevWidget({ t, titleKey }: { t: (k: string) => string; titleKey: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-6 text-gray-300 space-y-1">
+      <RefreshCcw size={18} />
+      <p className="text-xs">{t(titleKey)}：列表数据接入中</p>
+    </div>
+  )
 }
 
 function CustomPageWidget({ title, url }: { title: string; url: string }) {
@@ -535,64 +576,40 @@ function CustomPageWidget({ title, url }: { title: string; url: string }) {
   )
 }
 
-function SimpleList({ items, color, t, subtitle }: { items: ListItem[]; color: string; t: (k: string) => string; subtitle?: string }) {
+function CustomerWidget({ t, customers, loading }: { t: (k: string) => string; customers?: { id: string; companyName: string; status: string; createdAt: string }[]; loading?: boolean }) {
   const navigate = useNavigate()
+  if (loading) return <div className="text-gray-400 text-sm py-4 text-center">加载中…</div>
+  if (!customers || customers.length === 0) return <div className="text-gray-400 text-sm py-4 text-center">暂无客户数据</div>
   return (
     <div className="space-y-2">
-      {items.map((item, i) => (
+      {customers.map((c) => (
         <div
-          key={i}
-          onClick={() => {
-            if (item.path && item.path !== '#') navigate(item.path)
-            else alert(t('dash.moduleInDev') || '该模块详情页正在开发中')
-          }}
-          className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 rounded-md px-1 py-0.5 transition-colors"
-        >
-          <span className={`w-1.5 h-1.5 rounded-full bg-${color}-400`} />
-          <span className="text-gray-600 flex-1">{item.label}</span>
-          {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function CustomerWidget({ t }: { t: (k: string) => string }) {
-  const navigate = useNavigate()
-  const customers = [
-    { name: '耐力股份', code: 'C26001', stage: '合同阶段', contact: '张经理' },
-    { name: '苏州精密', code: 'C26008', stage: '报价阶段', contact: '李工' },
-    { name: '上海华虹', code: 'C26015', stage: '维护中', contact: '王总' },
-    { name: '广州能源', code: 'C26022', stage: '线索阶段', contact: '陈经理' },
-  ]
-  return (
-    <div className="space-y-2">
-      {customers.map((c, i) => (
-        <div
-          key={i}
+          key={c.id}
           onClick={() => navigate('/domestic/customers')}
           className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 rounded-md px-1 py-0.5 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">{c.name[0]}</div>
+            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">{decodeHtml(c.companyName)[0] || '?'}</div>
             <div>
-              <span className="text-gray-700">{c.name}</span>
-              <span className="text-xs text-gray-400 ml-1">{c.code}</span>
+              <span className="text-gray-700">{decodeHtml(c.companyName)}</span>
+              <span className="text-xs text-gray-400 ml-1">{c.status}</span>
             </div>
           </div>
-          <span className="text-xs text-gray-400">{c.stage}</span>
+          <span className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleDateString()}</span>
         </div>
       ))}
     </div>
   )
 }
 
-function StatsWidget({ t }: { t: (k: string) => string }) {
+function StatsWidget({ t, stats, loading }: { t: (k: string) => string; stats?: DashStats; loading?: boolean }) {
+  if (loading) return <div className="text-gray-400 text-sm py-4 text-center">加载中…</div>
+  const c = stats?.counts
   const items = [
-    { label: '本月订单', value: '156', icon: Package, change: '+8%' },
-    { label: '本月营收', value: '¥1.2M', icon: DollarSign, change: '+12%' },
-    { label: '本月新客', value: '24', icon: Users, change: '+5%' },
-    { label: '转化率', value: '22.5%', icon: Target, change: '+2%' },
+    { label: t('dash.statCustomers') || '客户', value: c?.customers ?? '—', icon: Users },
+    { label: t('dash.statOpps') || '商机', value: c?.opportunities ?? '—', icon: Target },
+    { label: t('dash.statQuotes') || '报价单', value: c?.quotes ?? '—', icon: FileText },
+    { label: t('dash.statContracts') || '合同', value: c?.contracts ?? '—', icon: Package },
   ]
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -601,76 +618,67 @@ function StatsWidget({ t }: { t: (k: string) => string }) {
           <s.icon size={14} className="text-gray-400 mx-auto mb-1" />
           <div className="text-lg font-bold text-gray-700">{s.value}</div>
           <div className="text-[10px] text-gray-400">{s.label}</div>
-          <div className="text-[10px] text-green-500 mt-0.5">{s.change}</div>
         </div>
       ))}
     </div>
   )
 }
 
-function PipelineWidget({ t }: { t: (k: string) => string }) {
-  // 漏斗形态保留。颜色只用品牌主色 --color-primary（= 网站 CSS），以透明度分级表达阶段递进，
-  // 不新增任何颜色 token（见 docs/oa-design-tokens.css）。
-  const stages = [
-    { label: '线索', count: 45, opacity: 1.0 },
-    { label: '接触', count: 28, opacity: 0.82 },
-    { label: '报价', count: 15, opacity: 0.64 },
-    { label: '谈判', count: 8, opacity: 0.5 },
-    { label: '成交', count: 5, opacity: 0.4 },
-  ]
-  const fill = 'var(--color-primary)'
-  const W = 500
-  const H = 36
-  const G = 2
-  const totalH = stages.length * (H + G) - G
-  const widths = [W, W * 0.82, W * 0.66, W * 0.52, W * 0.40]
-
+function PipelineWidget({ t, pipeline, loading }: { t: (k: string) => string; pipeline?: PipelineItem[]; loading?: boolean }) {
+  if (loading) return <div className="text-gray-400 text-sm py-4 text-center">加载中…</div>
+  if (!pipeline || pipeline.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-gray-300 space-y-1">
+        <BarChart3 size={20} />
+        <p className="text-xs">暂无商机数据</p>
+        <p className="text-[10px]">录入商机后将显示销售漏斗</p>
+      </div>
+    )
+  }
+  const stageLabel: Record<string, string> = {
+    INITIAL_CONTACT: '线索', REQUIREMENT_CONFIRMED: '需求确认', QUOTING: '报价中',
+    CONTRACT_NEGOTIATION: '合同谈判', WON: '成交', LOST: '丢单',
+  }
+  const total = pipeline.reduce((s, p) => s + p.count, 0)
+  const maxCount = Math.max(...pipeline.map(p => p.count), 1)
   return (
-    <svg viewBox={`0 0 ${W} ${totalH}`} className="w-full" preserveAspectRatio="xMidYMid meet">
-      {stages.map((s, i) => {
-        const w = widths[i]
-        const nextW = widths[i + 1] || w
-        const y = i * (H + G)
-        const lx = (W - w) / 2
-        const rx = lx + w
-        const nlx = (W - nextW) / 2
-        const nrx = nlx + nextW
-        // 填充越深（opacity 高）用白字，越浅用主色字，保证可读
-        const textColor = s.opacity >= 0.64 ? '#FFFFFF' : 'var(--color-primary)'
+    <div className="space-y-1.5">
+      {pipeline.map((p, i) => {
+        const pct = total > 0 ? Math.round((p.count / total) * 100) : 0
+        const w = Math.max(Math.round((p.count / maxCount) * 100), 12)
         return (
-          <g key={i}>
-            <path d={`M ${lx} ${y} L ${rx} ${y} L ${nrx} ${y + H} L ${nlx} ${y + H} Z`} fill={fill} fillOpacity={s.opacity} />
-            <text x={W / 2} y={y + H / 2 + 5} textAnchor="middle" fill={textColor} fontSize="14" fontWeight="500">
-              {s.label} {s.count}
-            </text>
-          </g>
+          <div key={i} className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 w-16 shrink-0">{stageLabel[p.stage] || p.stage}</span>
+            <div className="flex-1 h-6 bg-gray-100 rounded-md overflow-hidden">
+              <div className="h-full bg-brand-500 rounded-md flex items-center justify-end pr-2" style={{ width: w + '%' }}>
+                <span className="text-[10px] text-white font-medium">{p.count}</span>
+              </div>
+            </div>
+            <span className="text-xs text-gray-400 w-12 text-right">{pct}%</span>
+          </div>
         )
       })}
-    </svg>
+    </div>
   )
 }
 
-function ActivityWidget({ t }: { t: (k: string) => string }) {
+function ActivityWidget({ t, activities, loading }: { t: (k: string) => string; activities?: ActivityItem[]; loading?: boolean }) {
   const navigate = useNavigate()
-  const items: ListItem[] = [
-    { label: '报价单 HQ2607001 审核通过', path: '/domestic/quotations' },
-    { label: '新线索 广州能源 已分配给你', path: '/domestic/leads' },
-    { label: '合同 HC2601002 已签署', path: '/domestic/orders' },
-    { label: '回款 ¥128,000 已到账', path: '/domestic/collections' },
-  ]
+  if (loading) return <div className="text-gray-400 text-sm py-4 text-center">加载中…</div>
+  if (!activities || activities.length === 0) return <div className="text-gray-400 text-sm py-4 text-center">暂无动态</div>
   return (
     <div className="space-y-3">
-      {items.map((item, i) => (
+      {activities.map((item, i) => (
         <div
-          key={i}
-          onClick={() => {
-            if (item.path && item.path !== '#') navigate(item.path)
-            else alert(t('dash.moduleInDev') || '该模块详情页正在开发中')
-          }}
+          key={item.id}
+          onClick={() => navigate('/domestic/followups')}
           className="flex gap-2.5 cursor-pointer hover:bg-gray-50 rounded-md px-1 py-0.5 transition-colors"
         >
           <div className="w-7 h-7 bg-brand-50 rounded-full flex items-center justify-center shrink-0"><AlertCircle size={12} className="text-brand-500" /></div>
-          <div><p className="text-xs text-gray-600">{item.label}</p><p className="text-[10px] text-gray-400 mt-0.5">{i + 1} {t('dash.hoursAgo')}</p></div>
+          <div>
+            <p className="text-xs text-gray-600">{decodeHtml(item.content)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{decodeHtml(item.customerName)} · {item.userName} · {new Date(item.createdAt).toLocaleDateString()}</p>
+          </div>
         </div>
       ))}
     </div>
