@@ -66,6 +66,11 @@ const getStatusKey = (s: string): string => {
   return 'PENDING'
 }
 
+const getOpportunitySource = (specialReq?: string) => {
+  const firstLine = specialReq?.split('\n')[0]?.trim()
+  return firstLine?.startsWith('来自商机：') ? firstLine.replace('来自商机：', '') : ''
+}
+
 export default function Orders() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -276,7 +281,9 @@ export default function Orders() {
             </span>
           </div>
           <div className="space-y-3">
-            {list.map(o => (
+            {list.map(o => {
+              const opportunitySource = getOpportunitySource(o.specialReq)
+              return (
               <div
                 key={o.id}
                 onClick={() => navigate(`${basePath}/orders/${o.id}`)}
@@ -292,9 +299,14 @@ export default function Orders() {
                   {salesTypeBadge(salesType)}
                   {o.country && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-500">{o.country}</span>
-                      )}
+                  )}
                     </div>
                     <div className="text-sm font-medium text-gray-900 mt-1 truncate">{o.customerName || o.customerId}</div>
+                    {opportunitySource && (
+                      <div className="mt-1 inline-flex max-w-full items-center rounded bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                        <span className="truncate">由商机转入：{opportunitySource}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                       <span>下单：{o.orderDate ? new Date(o.orderDate).toLocaleDateString('zh-CN') : (o.createdAt ? new Date(o.createdAt).toLocaleDateString('zh-CN') : '-')}</span>
                       <span>{o.salesPerson}</span>
@@ -315,7 +327,8 @@ export default function Orders() {
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       ))}
