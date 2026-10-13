@@ -27,6 +27,7 @@ export interface CreateOpportunityInput {
   customerId?: string;
   productId?: string | null;
   expectedAmount?: number;
+  winProbability?: number;
   expectedCloseDate?: string | null;
   stage?: string;
   description?: string | null;
@@ -46,7 +47,7 @@ export async function createOpportunity(input: CreateOpportunityInput, ctx: Serv
   }
 
   const stage = input.stage ?? 'INITIAL_CONTACT';
-  const winProbability = stageToWinProbability(stage);
+  const winProbability = input.winProbability ?? stageToWinProbability(stage);
 
   const opportunity = await oppRepo.createOpportunity({
     name: input.name,
@@ -106,6 +107,7 @@ export async function updateOpportunity(
     customerId?: string;
     productId?: string | null;
     expectedAmount?: number;
+    winProbability?: number;
     expectedCloseDate?: string | null;
     stage?: string;
     description?: string | null;
@@ -119,7 +121,7 @@ export async function updateOpportunity(
   if (ctx.scope !== 'ALL' && (existing.salesType ?? '').toUpperCase() !== ctx.scope) {
     throw new AppError('无权修改该商机', 403);
   }
-  const winProbability = data.stage ? stageToWinProbability(data.stage) : existing.winProbability;
+  const winProbability = data.winProbability ?? (data.stage ? stageToWinProbability(data.stage) : existing.winProbability);
   const updated = await oppRepo.updateOpportunity(id, {
     ...(data.name !== undefined && { name: data.name }),
     ...(data.customerId !== undefined && { customerId: data.customerId }),

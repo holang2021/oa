@@ -33,10 +33,6 @@ export default function OpportunityForm() {
     milestone: '',
     loseReason: '',
     collaborators: [] as string[],
-    taxRate: 13,
-    discount: 0,
-    costTotal: 0,
-    margin: 0,
     // 伙伴云补充字段
     customerContactId: '',
     remark: '',
@@ -87,7 +83,8 @@ export default function OpportunityForm() {
       const payload: any = {
         customerId: form.customerId,
         name: form.name,
-        expectedAmount: form.amount,
+        expectedAmount: Math.round(form.amount * 10000),
+        winProbability: form.probability,
         expectedCloseDate: form.expectedCloseDate ? new Date(form.expectedCloseDate).toISOString() : undefined,
         stage: ({
           '初步接洽': 'INITIAL_CONTACT',
@@ -212,32 +209,31 @@ export default function OpportunityForm() {
         <h3 className="text-sm font-semibold text-gray-700">金额信息</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">预计成交金额 <span className="text-red-500">*</span></label>
-            <input type="number" value={form.amount || ''} onChange={e => update('amount', Number(e.target.value))} className="input text-sm" placeholder="请输入金额" />
+            <label className="block text-xs font-medium text-gray-500 mb-1">预计成交金额（万元）<span className="text-red-500">*</span></label>
+            <input
+              type="number"
+              value={form.amount || ''}
+              onChange={e => update('amount', Math.max(0, Number(e.target.value)))}
+              className="input text-sm"
+              min="0"
+              step="0.1"
+              placeholder="如：8 表示 8 万元"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">成交概率 (%)</label>
-            <input type="number" value={form.probability || ''} onChange={e => update('probability', Number(e.target.value))} className="input text-sm" min="0" max="100" />
+            <input
+              type="number"
+              value={form.probability || ''}
+              onChange={e => update('probability', Math.min(100, Math.max(0, Number(e.target.value))))}
+              className="input text-sm"
+              min="0"
+              max="100"
+            />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">预计收入 (自动计算)</label>
-            <input type="text" value={form.amount ? (form.amount * form.probability / 100).toFixed(0) : '0'} disabled className="input text-sm bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">增值税税率 (%)</label>
-            <input type="number" value={form.taxRate || ''} onChange={e => update('taxRate', Number(e.target.value))} className="input text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">优惠金额</label>
-            <input type="number" value={form.discount || ''} onChange={e => update('discount', Number(e.target.value))} className="input text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">产品成本总额</label>
-            <input type="number" value={form.costTotal || ''} onChange={e => update('costTotal', Number(e.target.value))} className="input text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">订单毛利率 (%)</label>
-            <input type="number" value={form.margin || ''} onChange={e => update('margin', Number(e.target.value))} className="input text-sm" />
+            <label className="block text-xs font-medium text-gray-500 mb-1">预计收入（万元，自动计算）</label>
+            <input type="text" value={form.amount ? (form.amount * form.probability / 100).toFixed(1) : '0'} disabled className="input text-sm bg-gray-50" />
           </div>
         </div>
       </div>
