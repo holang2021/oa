@@ -1,20 +1,35 @@
 // ============================================================
 // Vitest 全局 setup —— 批次0 地基
-// 关键安全：复制真实 DB(holang-crm.db) 为临时副本，所有测试仅在副本上进行，
-// 绝不触碰生产数据（394 客户 / 283 订单 / 458 回款）。
+// 关键安全：复制当前配置的 SQLite DB 为临时副本，所有测试仅在副本上进行，
+// 绝不触碰源数据库。
 // 设置 DATABASE_URL 指向副本，必须在 import app 之前完成。
 // ============================================================
 import fs from 'node:fs';
 import path from 'node:path';
+import dotenv from 'dotenv';
 
 const backendDir = path.resolve(__dirname);
-const realDb = path.join(backendDir, 'prisma', 'holang-crm.db');
+dotenv.config({ path: path.join(backendDir, '.env') });
+
+const databaseUrl = process.env.DATABASE_URL || '';
+if (!databaseUrl.startsWith('file:')) {
+  throw new Error('Vitest currently requires a file: SQLite DATABASE_URL');
+}
+
+// Prisma resolves relative SQLite URLs from the schema directory.
+const configuredDb = databaseUrl.slice('file:'.length);
+const realDb = path.isAbsolute(configuredDb)
+  ? configuredDb
+  : path.resolve(backendDir, 'prisma', configuredDb);
+if (!fs.existsSync(realDb)) {
+  throw new Error(`Configured SQLite database does not exist: ${realDb}`);
+}
 const cacheDir = path.join(backendDir, 'node_modules', '.cache');
 if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir, { recursive: true });
 }
 // 每个 worker 独立副本：避免多 worker 并发 ALTER 同一 SQLite 文件导致锁竞争。
-// 副本由真实库【文件复制】得到（仅读字节，绝不开连接改真实库）。
+// 副本由当前配置库【文件复制】得到（仅读字节，绝不开连接改源库）。
 const workerId = process.env.VITEST_WORKER_ID || '0';
 const testDb = path.join(cacheDir, `holang-test-${workerId}.db`);
 
@@ -31,7 +46,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'batch0-test-secret';
 process.env.LOG_LEVEL = 'silent';
 
 // ── 批次1-A：将本批次 schema 变更（仅 ALTER ADD COLUMN / CREATE TABLE / 种子）
-//    应用到「测试库副本」，保证测试可跑新字段。绝不触碰真实库 holang-crm.db。
+//    应用到「测试库副本」，保证测试可跑新字段。绝不触碰源数据库。
 //    注意：必须【先设置 DATABASE_URL 再动态 import prisma】，否则 PrismaClient
 //    单例会在 import 时捕获 .env 中的真实库 URL（ESM import 提升），导致误改真实库。
 async function applyMigration(migrationDir: string, label: string) {

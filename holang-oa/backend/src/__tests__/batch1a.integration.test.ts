@@ -13,6 +13,20 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 beforeAll(async () => {
   await prisma.user.deleteMany({ where: { email: { contains: DOMAIN } } });
+  // 测试副本使用固定等级配置，避免运行库中的人工配置影响基线断言。
+  const gradeConfigs = [
+    { grade: 'A', label: 'A', followupMinDays: 5, followupMaxDays: 7, reviewDays: 30, maxRatioPct: 30 },
+    { grade: 'B', label: 'B', followupMinDays: 14, followupMaxDays: 21, reviewDays: 60, maxRatioPct: 100 },
+    { grade: 'C', label: 'C', followupMinDays: 28, followupMaxDays: 42, reviewDays: 90, maxRatioPct: 100 },
+  ];
+  for (const config of gradeConfigs) {
+    await prisma.customerGradeConfig.upsert({
+      where: { grade: config.grade },
+      create: config,
+      update: config,
+    });
+  }
+
   const specs = [
     { key: 'internal', role: ROLES.INTERNAL_SALES, wecom: 'wb_b1a_internal' },
     { key: 'external', role: ROLES.EXTERNAL_SALES, wecom: 'wb_b1a_external' },
@@ -48,6 +62,7 @@ function auth(key: string) {
 
 describe('批次1-A 集成：客户等级 A/B/C 频次', () => {
   it('POST /customers 带 4 选择题(A) => 返回 grade=A 且 nextFollowupAt 落在 5~7 天', async () => {
+    const beforeRequest = Date.now();
     const res = await request(app)
       .post('/api/v1/customers')
       .set(auth('internal'))
@@ -58,8 +73,7 @@ describe('批次1-A 集成：客户等级 A/B/C 频次', () => {
     expect(res.status).toBe(201);
     expect(['A', 'B']).toContain(res.body.data.grade); // A 占比控可能降为 B
     const next = new Date(res.body.data.nextFollowupAt).getTime();
-    const now = Date.now();
-    const days = (next - now) / 86400000;
+    const days = (next - beforeRequest) / 86400000;
     expect(days).toBeGreaterThanOrEqual(5);
     expect(days).toBeLessThanOrEqual(7);
   });
@@ -67,7 +81,7 @@ describe('批次1-A 集成：客户等级 A/B/C 频次', () => {
 
 describe('批次1-A 集成：公海服务端域隔离', () => {
   it('内销销售列公海 => 仅 INTERNAL', async () => {
-    const res = await request(app).get('/api/v1/customers/pool').set(auth('internal'));
+    const res = await request(app).get(`/api/v1/customers/pool?search=${encodeURIComponent(MARK)}`).set(auth('internal'));
     expect(res.status).toBe(200);
     const list: any[] = res.body.data.list;
     expect(list.every((c) => c.salesType === 'INTERNAL')).toBe(true);
@@ -75,7 +89,7 @@ describe('批次1-A 集成：公海服务端域隔离', () => {
   });
 
   it('外销销售列公海 => 仅 EXTERNAL', async () => {
-    const res = await request(app).get('/api/v1/customers/pool').set(auth('external'));
+    const res = await request(app).get(`/api/v1/customers/pool?search=${encodeURIComponent(MARK)}`).set(auth('external'));
     expect(res.status).toBe(200);
     const list: any[] = res.body.data.list;
     expect(list.every((c) => c.salesType === 'EXTERNAL')).toBe(true);

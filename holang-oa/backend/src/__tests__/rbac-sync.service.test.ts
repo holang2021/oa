@@ -35,7 +35,7 @@ describe('rbac-sync.service: 企微 1000081 同步骨架', () => {
     expect(m.systemOfRecord).toBe('OA');
     expect(m.source.agentId).toBe(1000081);
     expect(m.source.appName).toBe('HOLANG管理');
-    expect(m.roles).toHaveLength(8);
+    expect(m.roles).toHaveLength(15);
   });
 
   it('未配置企微凭证时进入 DRY_RUN 模式（不误改数据）', () => {

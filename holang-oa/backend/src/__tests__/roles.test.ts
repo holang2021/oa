@@ -86,8 +86,8 @@ describe('roles: 角色分类辅助', () => {
 });
 
 describe('roles: 权限矩阵', () => {
-  it('恰好 8 个权威角色', () => {
-    expect(listRolePermissions()).toHaveLength(8);
+  it('恰好 15 个权威角色', () => {
+    expect(listRolePermissions()).toHaveLength(15);
   });
 });
 

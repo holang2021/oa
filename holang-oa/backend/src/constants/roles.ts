@@ -1,6 +1,6 @@
 // ============================================================
 // HOLANG OA 统一角色模型（批次0 地基）
-// 权威角色集合：8 角色。所有 RBAC / 鉴权 / 企微同步 以此为唯一来源。
+// 权威角色集合：15 角色。所有 RBAC / 鉴权 / 企微同步 以此为唯一来源。
 // 设计原则：
 //   1. 角色是字符串常量（SQLite 兼容，User.role 为 String）。
 //   2. 保留对历史角色(SALES/MANAGER/VIEWER)的向后兼容映射，避免存量数据登录失败。
@@ -90,7 +90,7 @@ const ROLE_ALIASES: Record<string, Role> = {
 };
 
 /**
- * 将任意(可能历史)角色字符串解析为权威 8 角色。
+ * 将任意(可能历史)角色字符串解析为权威 15 角色。
  * 未知/空角色按最小权限回退为 INTERNAL_SALES。
  */
 export function resolveRole(raw: string | null | undefined): Role {
@@ -290,7 +290,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermission> = {
   },
 };
 
-/** 返回 8 角色权限矩阵（供前端/企微展示） */
+/** 返回 15 角色权限矩阵（供前端/企微展示） */
 export function listRolePermissions(): RolePermission[] {
   return Object.values(ROLE_PERMISSIONS);
 }
