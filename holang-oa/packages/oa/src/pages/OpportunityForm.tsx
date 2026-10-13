@@ -238,9 +238,12 @@ export default function OpportunityForm() {
         </div>
       </div>
 
-      {/* 产品明细 */}
+      {/* 意向产品 */}
       <div className="card space-y-4">
-        <h3 className="text-sm font-semibold text-gray-700">产品明细</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">意向产品</h3>
+          <p className="text-xs text-gray-400 mt-1">仅用于销售预测和需求判断；转订单时产品、数量、价格和税费可重新确认。</p>
+        </div>
         <div className="space-y-2">
           {products.filter(p => p.status === 'active').map(p => (
             <label key={p.id} className="flex items-center gap-2 text-sm">
