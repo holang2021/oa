@@ -614,23 +614,27 @@ export default function CustomerDetail() {
         </div>
 
         {/* 业务内链：保留当前客户上下文，直接进入下一步工作 */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
           <div>
-            <div className="text-sm font-medium text-gray-700">快捷操作</div>
-            <div className="text-xs text-gray-400 mt-0.5">已自动关联当前客户，完成后返回本页</div>
+            <div className="text-sm font-medium text-gray-700">客户工作台</div>
+            <div className="text-xs text-gray-400 mt-0.5">当前客户上下文已带入，完成后回到本页</div>
           </div>
-          <div className="grid grid-cols-2 sm:flex gap-2">
-            <button onClick={openFollowUp} className="btn-primary text-xs inline-flex items-center justify-center gap-1.5">
-              <MessageCircle size={14} /> 新增跟进
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <button onClick={openFollowUp} className="btn-primary text-xs inline-flex items-center justify-center gap-1.5 min-w-[112px]">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">1</span>
+              <MessageCircle size={14} /> 记跟进
             </button>
-            <button onClick={() => navigate(buildCreateLink('opportunities'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5">
-              <TrendingUp size={14} /> 新建商机
+            <button onClick={() => navigate(buildCreateLink('opportunities'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 min-w-[112px]">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-100 text-[10px] text-gray-500">2</span>
+              <TrendingUp size={14} /> 建商机
             </button>
-            <button onClick={() => navigate(buildCreateLink('orders'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5">
-              <ShoppingBag size={14} /> 新建订单
+            <button onClick={() => navigate(buildCreateLink('orders'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 min-w-[112px]">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-100 text-[10px] text-gray-500">3</span>
+              <ShoppingBag size={14} /> 建订单
             </button>
-            <button onClick={() => navigate(buildCreateLink('collections'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5">
-              <DollarSign size={14} /> 新建回款
+            <button onClick={() => navigate(buildCreateLink('collections'))} className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 min-w-[112px]">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-100 text-[10px] text-gray-500">4</span>
+              <DollarSign size={14} /> 登回款
             </button>
           </div>
         </div>
