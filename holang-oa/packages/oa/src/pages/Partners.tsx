@@ -74,6 +74,15 @@ export default function Partners() {
     try { return JSON.parse(localStorage.getItem('oa_user') || '{}') } catch { return {} as any }
   })()
   const canReview = ['ADMIN', 'INTERNAL_LEAD', 'EXTERNAL_LEAD', 'MANAGER'].includes(me.role)
+  const hasActiveFilter = !!q.trim() || !!statusTab
+  const emptyTitle = hasActiveFilter ? '没有找到匹配代理商' : '暂无代理商档案'
+  const emptyDesc = hasActiveFilter ? '可换公司名、联系人、邮箱或清空状态筛选后再看。' : '新增代理商后会先进入主管审批，通过后成为正式档案。'
+
+  const clearFilters = () => {
+    setQ('')
+    setSearchQuery('')
+    setStatusTab('')
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -106,26 +115,26 @@ export default function Partners() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 mb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="relative w-full sm:max-w-xl">
-          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="搜索公司、联系人、邮箱或负责人"
-            aria-label="搜索代理商档案"
-            className="h-[44px] w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 text-sm text-gray-700 outline-none transition-shadow placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-          />
-          {q && (
-            <button type="button" onClick={() => setQ('')} aria-label="清空搜索" title="清空搜索" className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
-              <X size={15} />
-            </button>
-          )}
+      <div className="mb-4 rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="relative flex-1">
+            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="找代理商：公司名、联系人、邮箱、负责人"
+              aria-label="搜索代理商档案"
+              className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-700 outline-none transition-shadow placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            {q && (
+              <button type="button" onClick={() => setQ('')} aria-label="清空搜索" title="清空搜索" className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
+                <X size={15} />
+              </button>
+            )}
+          </div>
+          <span className="text-xs text-gray-400 shrink-0">共 {total} 条</span>
         </div>
-        <span className="text-xs text-gray-400 shrink-0">共 {total} 条</span>
-        </div>
-        <div className="flex gap-1 text-sm overflow-x-auto pb-1">
+        <div className="mt-3 flex gap-1 text-sm overflow-x-auto pb-1">
           {[
             { k: '', label: '全部' },
             { k: 'PENDING', label: '待审批' },
@@ -138,6 +147,14 @@ export default function Partners() {
               className={`h-9 px-3 rounded-md whitespace-nowrap transition-colors ${statusTab === tb.k ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >{tb.label}</button>
           ))}
+        </div>
+        <div className="mt-2 flex flex-col gap-2 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+          <span>用于定位代理商主档；新增前先搜公司名，避免重复提交审批。</span>
+          {hasActiveFilter && (
+            <button type="button" onClick={clearFilters} className="self-start text-brand-600 hover:text-brand-700 sm:self-auto">
+              清空全部筛选
+            </button>
+          )}
         </div>
       </div>
 
@@ -159,7 +176,19 @@ export default function Partners() {
           <tbody>
             {loading && <tr><td colSpan={9} className="py-8 text-center text-gray-400">加载中…</td></tr>}
             {!loading && list.length === 0 && (
-              <tr><td colSpan={9} className="py-8 text-center text-gray-400">暂无代理商档案</td></tr>
+              <tr>
+                <td colSpan={9} className="py-10 text-center text-gray-400">
+                  <div className="space-y-3">
+                    <div className="font-medium text-gray-500">{emptyTitle}</div>
+                    <div className="text-xs text-gray-400">{emptyDesc}</div>
+                    {hasActiveFilter ? (
+                      <button type="button" onClick={clearFilters} className="btn-secondary text-xs">清空筛选</button>
+                    ) : (
+                      <button type="button" onClick={() => setShowNew(true)} className="btn-secondary text-xs">新增代理商</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             )}
             {!loading && list.map((p) => (
               <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50">
