@@ -101,6 +101,10 @@ export default function OpportunityForm() {
 
   const update = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }))
 
+  const goBack = () => {
+    nav(safeReturnTo)
+  }
+
   const handleSubmit = async () => {
     if (!form.customerId) { alert('请选择所属客户'); return }
     if (!form.name) { alert('请填写商机名称'); return }
@@ -150,7 +154,7 @@ export default function OpportunityForm() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => nav(-1)} className="btn-ghost p-2"><ArrowLeft size={18} /></button>
+        <button onClick={goBack} className="btn-ghost p-2"><ArrowLeft size={18} /></button>
         <h1 className="text-xl font-bold text-gray-900">{isEdit ? '编辑商机' : '新建商机'}</h1>
       </div>
 
@@ -323,7 +327,7 @@ export default function OpportunityForm() {
 
       {/* Actions */}
       <div className="flex justify-end gap-3">
-        <button onClick={() => nav(-1)} className="btn-ghost">取消</button>
+        <button onClick={goBack} className="btn-ghost">取消</button>
         <button onClick={handleSubmit} className="btn-primary flex items-center gap-2">
           <Save size={16} /> {isEdit ? '保存修改' : '创建商机'}
         </button>
