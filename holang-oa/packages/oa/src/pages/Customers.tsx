@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Phone, Mail, Loader2, Undo2 } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Phone, Mail, Loader2, Undo2, X } from 'lucide-react'
 import { getCustomers, getPoolCustomers, claimCustomer, returnCustomer, type Customer } from '../services/customerService'
 import { isCurrentUserAdmin } from '../services/rbacStore'
 import { useAuth } from '../contexts/AuthContext'
@@ -95,7 +95,7 @@ export default function Customers() {
     const start = (validPage - 1) * pageSize
     const end = start + pageSize
     setCustomers(filtered.slice(start, end))
-  }, [allCustomers, page, countryFilter])
+  }, [allCustomers, page, countryFilter, lineFilter])
 
   const handleDelete = (id: string) => {
     // TODO: 调用后端删除 API
@@ -166,6 +166,9 @@ export default function Customers() {
   const canReturn = (c: Customer) => c.salesOwnerId === currentUserId || isCurrentUserAdmin()
 
   const isPool = tab === 'pool'
+  const hasActiveFilter = !!search.trim() || !!countryFilter || !!lineFilter
+  const emptyTitle = hasActiveFilter ? '没有找到匹配客户' : '暂无我的客户'
+  const emptyDesc = hasActiveFilter ? '可换公司名、联系人、客户编号，或清空筛选后再看。' : '历史未分配客户可先到公海认领。'
 
   return (
     <div className="space-y-5">
@@ -199,36 +202,51 @@ export default function Customers() {
 
       {/* 我的客户：筛选栏 */}
       {!isPool && (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              placeholder="搜索客户名称/联系人/编号"
-              className="input-field pl-9"
-            />
+        <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+                placeholder="找客户：公司名、简称、联系人、客户编号"
+                className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-700 outline-none transition-shadow placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+              {search && (
+                <button type="button" onClick={() => { setSearch(''); setPage(1) }} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600" title="清空搜索" aria-label="清空搜索">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            <select
+              value={countryFilter}
+              onChange={(e) => { setCountryFilter(e.target.value); setPage(1) }}
+              className="input-field lg:w-44"
+            >
+              <option value="">全部国家</option>
+              {countries.map((co) => (
+                <option key={co} value={co}>{co}</option>
+              ))}
+            </select>
+            <select
+              value={lineFilter}
+              onChange={(e) => { setLineFilter(e.target.value); setPage(1) }}
+              className="input-field lg:w-36"
+            >
+              <option value="">全部业务线</option>
+              <option value="INDUSTRIAL">工业</option>
+              <option value="RETAIL">零售</option>
+            </select>
           </div>
-          <select
-            value={countryFilter}
-            onChange={(e) => { setCountryFilter(e.target.value); setPage(1) }}
-            className="input-field sm:w-44"
-          >
-            <option value="">全部国家</option>
-            {countries.map((co) => (
-              <option key={co} value={co}>{co}</option>
-            ))}
-          </select>
-          <select
-            value={lineFilter}
-            onChange={(e) => { setLineFilter(e.target.value); setPage(1) }}
-            className="input-field sm:w-36"
-          >
-            <option value="">全部业务线</option>
-            <option value="INDUSTRIAL">工业</option>
-            <option value="RETAIL">零售</option>
-          </select>
+          <div className="mt-2 flex flex-col gap-2 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+            <span>用于快速定位客户主档；新建前也可先搜索，避免重复建档。</span>
+            {hasActiveFilter && (
+              <button type="button" onClick={() => { setSearch(''); setCountryFilter(''); setLineFilter(''); setPage(1) }} className="self-start text-brand-600 hover:text-brand-700 sm:self-auto">
+                清空全部筛选
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -276,8 +294,13 @@ export default function Customers() {
                   <tr>
                     <td colSpan={10} className="text-center py-12 text-gray-400">
                       <div className="space-y-3">
-                        <div>暂无我的客户，历史未分配客户可先到公海认领</div>
-                        <button onClick={() => setTab('pool')} className="btn-secondary text-xs">查看公海客户</button>
+                        <div className="font-medium text-gray-500">{emptyTitle}</div>
+                        <div className="text-xs text-gray-400">{emptyDesc}</div>
+                        {hasActiveFilter ? (
+                          <button onClick={() => { setSearch(''); setCountryFilter(''); setLineFilter(''); setPage(1) }} className="btn-secondary text-xs">清空筛选</button>
+                        ) : (
+                          <button onClick={() => setTab('pool')} className="btn-secondary text-xs">查看公海客户</button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -350,8 +373,13 @@ export default function Customers() {
         <div className="lg:hidden space-y-3">
           {customers.length === 0 ? (
             <div className="text-center py-12 text-gray-400 bg-white rounded-xl space-y-3">
-              <div>暂无我的客户，历史未分配客户可先到公海认领</div>
-              <button onClick={() => setTab('pool')} className="btn-secondary text-xs">查看公海客户</button>
+              <div className="font-medium text-gray-500">{emptyTitle}</div>
+              <div className="text-xs text-gray-400">{emptyDesc}</div>
+              {hasActiveFilter ? (
+                <button onClick={() => { setSearch(''); setCountryFilter(''); setLineFilter(''); setPage(1) }} className="btn-secondary text-xs">清空筛选</button>
+              ) : (
+                <button onClick={() => setTab('pool')} className="btn-secondary text-xs">查看公海客户</button>
+              )}
             </div>
           ) : (
             customers.map((c) => (
