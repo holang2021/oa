@@ -83,6 +83,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [legacyOrderCount, setLegacyOrderCount] = useState(0)
 
   // 快速筛选
   const [companySearch, setCompanySearch] = useState('')   // 公司名称 / 简称
@@ -99,10 +100,21 @@ export default function Orders() {
   const loadOrders = async () => {
     setLoading(true)
     setError('')
+    setLegacyOrderCount(0)
     try {
       // 一次拉全量（preview 数据量小），年份/筛选在前端做，先看实物效果
       const result = await getOrders({ page: 1, pageSize: 1000, salesType })
-      setOrders(result.list)
+      let nextOrders = result.list
+
+      // 兼容旧订单：历史订单可能没有 salesType，严格按域查询会导致内销列表为空。
+      // 仅管理员可 fallback 到全量读取；普通销售仍由服务端域隔离控制。
+      if (nextOrders.length === 0 && salesType === 'INTERNAL' && isCurrentUserAdmin()) {
+        const fallback = await getOrders({ page: 1, pageSize: 1000 })
+        nextOrders = fallback.list.filter(o => !o.salesType || o.salesType === 'INTERNAL')
+        setLegacyOrderCount(nextOrders.filter(o => !o.salesType).length)
+      }
+
+      setOrders(nextOrders)
     } catch {
       setError('加载数据失败')
     } finally {
@@ -184,6 +196,12 @@ export default function Orders() {
           <Plus size={16} /> 新建订单
         </button>
       </div>
+
+      {legacyOrderCount > 0 && (
+        <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          已显示 {legacyOrderCount} 笔历史订单（缺少内外销标记）。后续数据治理阶段补齐后，将恢复为完全按销售域过滤。
+        </div>
+      )}
 
       {/* 筛选栏 */}
       <div className="card flex flex-col gap-3">
