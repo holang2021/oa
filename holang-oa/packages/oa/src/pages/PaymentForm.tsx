@@ -131,6 +131,10 @@ export default function PaymentForm() {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  const goBack = () => {
+    navigate(safeReturnTo)
+  }
+
   const handleSave = async () => {
     if (!form.orderId) { alert('请选择订单'); return }
     if (!form.amount || form.amount <= 0) { alert('请输入回款金额'); return }
@@ -182,7 +186,7 @@ export default function PaymentForm() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+        <button onClick={goBack} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
           <ArrowLeft size={18} />
         </button>
         <h1 className="text-xl font-bold text-gray-900">{isEdit ? '编辑回款' : '新建回款'}</h1>
@@ -378,7 +382,7 @@ export default function PaymentForm() {
       </div>
 
       <div className="flex items-center justify-end gap-3">
-        <button onClick={() => navigate(-1)} className="btn-secondary text-sm">取消</button>
+        <button onClick={goBack} className="btn-secondary text-sm">取消</button>
         <button
           onClick={handleSave}
           disabled={saving}
