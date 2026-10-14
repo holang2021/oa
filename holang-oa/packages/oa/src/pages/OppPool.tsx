@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, Search, Filter, Target, ChevronDown, Edit2, Trash2, Undo2, Loader2, ShoppingBag } from 'lucide-react'
+import { Plus, Search, Target, ChevronDown, Edit2, Trash2, Undo2, Loader2, ShoppingBag, X } from 'lucide-react'
 import { getOpportunities, getPoolOpportunities, claimOpportunity, returnOpportunity, type Opportunity } from '../services/opportunityService'
 import { isCurrentUserAdmin } from '../services/rbacStore'
 import { useAuth } from '../contexts/AuthContext'
@@ -20,6 +20,22 @@ function getStageLabel(stage?: string): string {
   return STAGE_MAP[stage] || stage
 }
 
+function getFollowHint(o: Opportunity) {
+  const stage = getStageLabel(o.stage)
+  if (stage === '赢单' || stage === '输单') return null
+  if (!o.expectedCloseDate) return { label: '未定跟进', cls: 'bg-gray-100 text-gray-500' }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(o.expectedCloseDate)
+  target.setHours(0, 0, 0, 0)
+  if (Number.isNaN(target.getTime())) return { label: '未定跟进', cls: 'bg-gray-100 text-gray-500' }
+  const days = Math.round((target.getTime() - today.getTime()) / 86400000)
+  if (days < 0) return { label: `已超时 ${Math.abs(days)} 天`, cls: 'bg-red-50 text-red-600' }
+  if (days === 0) return { label: '今日跟进', cls: 'bg-amber-50 text-amber-700' }
+  if (days <= 3) return { label: `${days} 天后跟进`, cls: 'bg-orange-50 text-orange-700' }
+  return { label: `${days} 天后`, cls: 'bg-gray-100 text-gray-500' }
+}
+
 export default function OppPool() {
   const { t } = useI18n()
   const { user } = useAuth()
@@ -32,7 +48,6 @@ export default function OppPool() {
   const [tab, setTab] = useState<'mine' | 'pool'>('mine')
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
-  const [showFilter, setShowFilter] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [opps, setOpps] = useState<Opportunity[]>([])
@@ -140,6 +155,18 @@ export default function OppPool() {
   const totalAmount = activeList.reduce((sum, o) => sum + (o.expectedAmount || 0), 0)
   const winAmount = activeList.filter(o => o.stage === 'WON').reduce((sum, o) => sum + (o.expectedAmount || 0), 0)
   const totalProbability = activeList.reduce((sum, o) => sum + (o.expectedAmount || 0) * (o.winProbability || 0) / 100, 0)
+  const hasActiveFilter = tab === 'mine' && (!!search.trim() || !!stageFilter)
+  const emptyTitle = tab === 'pool' ? '公海暂无商机' : (hasActiveFilter ? '没有找到匹配商机' : '暂无商机数据')
+  const emptyDesc = tab === 'pool'
+    ? '公海有商机时可认领到我的商机继续推进。'
+    : hasActiveFilter
+      ? '可换商机名称、编号、客户名，或清空阶段筛选后再看。'
+      : '从客户详情或本页新建商机，记录需求、预测金额和下一次跟进。'
+
+  const clearFilters = () => {
+    setSearch('')
+    setStageFilter('')
+  }
 
   return (
     <div className="space-y-5">
@@ -179,33 +206,41 @@ export default function OppPool() {
 
       {/* Filters (仅我的商机) */}
       {tab === 'mine' && (
-        <div className="card flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+          <div className="relative">
+            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="搜索商机名称或编号..."
-              className="input text-sm pl-9"
+              placeholder="找商机：商机名称、编号、客户名称"
+              className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-700 outline-none transition-shadow placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600" title="清空搜索" aria-label="清空搜索">
+                <X size={15} />
+              </button>
+            )}
           </div>
-          <button onClick={() => setShowFilter(!showFilter)} className="btn-ghost flex items-center gap-2">
-            <Filter size={16} /> 筛选 <ChevronDown size={14} className={`transition-transform ${showFilter ? 'rotate-180' : ''}`} />
-          </button>
-          {showFilter && (
-            <div className="flex gap-2 flex-wrap">
-              {['', '初步接洽', '需求确认', '方案报价', '商务谈判', '赢单', '输单'].map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStageFilter(s)}
-                  className={`px-3 py-1 rounded-full text-xs ${stageFilter === s ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-                >
-                  {s || '全部阶段'}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="mt-3 flex gap-2 flex-wrap">
+            {['', '初步接洽', '需求确认', '方案报价', '商务谈判', '赢单', '输单'].map(s => (
+              <button
+                key={s}
+                onClick={() => setStageFilter(s)}
+                className={`px-3 py-1 rounded-full text-xs ${stageFilter === s ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {s || '全部阶段'}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex flex-col gap-2 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+            <span>用于定位销售机会；重点看超时跟进、商务谈判和可转订单商机。</span>
+            {hasActiveFilter && (
+              <button type="button" onClick={clearFilters} className="self-start text-brand-600 hover:text-brand-700 sm:self-auto">
+                清空全部筛选
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -239,6 +274,7 @@ export default function OppPool() {
             <tbody>
               {activeList.map(o => {
                 const canReturn = o.salesOwner?.id === currentUserId || isCurrentUserAdmin()
+                const followHint = getFollowHint(o)
                 return (
                   <Fragment key={o.id}>
                     <tr className="border-b hover:bg-gray-50">
@@ -255,7 +291,10 @@ export default function OppPool() {
                       </td>
                       <td className="py-2">{o.customer?.companyName || '-'}</td>
                       <td className="py-2">
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${getStageColor(o.stage)}`}>{getStageLabel(o.stage)}</span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${getStageColor(o.stage)}`}>{getStageLabel(o.stage)}</span>
+                          {followHint && <span className={`px-2 py-0.5 rounded-full text-[11px] ${followHint.cls}`}>{followHint.label}</span>}
+                        </div>
                       </td>
                       <td className="py-2">¥{(o.expectedAmount || 0).toLocaleString()}</td>
                       <td className="py-2">{o.winProbability || 0}%</td>
@@ -324,7 +363,17 @@ export default function OppPool() {
         {!((tab === 'mine' ? loading : poolLoading)) && !((tab === 'mine' ? error : poolError)) && activeList.length === 0 && (
           <div className="text-center py-8 text-gray-400">
             <Target size={32} className="mx-auto mb-2 text-gray-300" />
-            <p>{tab === 'pool' ? '公海暂无商机' : '暂无商机数据'}</p>
+            <div className="space-y-3">
+              <div className="font-medium text-gray-500">{emptyTitle}</div>
+              <div className="text-xs text-gray-400">{emptyDesc}</div>
+              {tab === 'mine' && (
+                hasActiveFilter ? (
+                  <button type="button" onClick={clearFilters} className="btn-secondary text-xs">清空筛选</button>
+                ) : (
+                  <button type="button" onClick={() => nav(`${basePath}/opportunities/new`)} className="btn-secondary text-xs">新建商机</button>
+                )
+              )}
+            </div>
           </div>
         )}
       </div>
