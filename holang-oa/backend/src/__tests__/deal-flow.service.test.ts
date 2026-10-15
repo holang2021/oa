@@ -70,13 +70,23 @@ describe('D1 单元：合同/PI → 订单 流转断言', () => {
 });
 
 describe('D1 单元：订单 → 回款 流转断言', () => {
-  it('订单 CONFIRMED => 通过', () => {
-    expect(() => assertOrderConfirmed({ id: 'o1', status: 'CONFIRMED' })).not.toThrow();
+  it.each(['CONFIRMED', 'IN_PRODUCTION', 'SHIPPED', 'DELIVERED'])('订单 %s => 可登记回款', (status) => {
+    expect(() => assertOrderConfirmed({ id: 'o1', status })).not.toThrow();
   });
   it('订单 DRAFT => 409', () => {
     let err: unknown;
     try {
       assertOrderConfirmed({ id: 'o1', status: 'DRAFT' });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(AppError);
+    expect((err as AppError).statusCode).toBe(409);
+  });
+  it('订单 CANCELLED => 409', () => {
+    let err: unknown;
+    try {
+      assertOrderConfirmed({ id: 'o1', status: 'CANCELLED' });
     } catch (e) {
       err = e;
     }

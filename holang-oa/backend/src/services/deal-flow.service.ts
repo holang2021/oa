@@ -1,7 +1,7 @@
 // ============================================================
 // Deal Flow Service —— 批次1-B D1 (端到端状态机校验)
 // 闭环流转断言（纯函数，不碰 Prisma；实体由调用方预取后传入）：
-//   合同/PI 确认(CONFIRMED) 才可建订单；订单 CONFIRMED 才可登记回款。
+//   合同/PI 确认(CONFIRMED) 才可建订单；订单确认后可登记回款。
 // 返回明确业务错误(AppError)，非 500（门禁规则：明确错误）。
 // ============================================================
 import { AppError } from '../middleware/errorHandler';
@@ -41,12 +41,17 @@ export function assertPiConfirmed(pi: { status?: string | null; salesType?: stri
 }
 
 /**
- * 断言订单已确认（闭环：CONFIRMED 后才可登记回款）。
+ * 已确认订单进入生产、发货、交付后仍应可登记回款，不能因状态推进重新被拦截。
  * @param order 预取的订单实体（可为 null）
  */
 export function assertOrderConfirmed(order: { id?: string; status?: string | null } | null) {
   if (!order) throw new AppError('关联的订单不存在', 404);
-  if (order.status !== 'CONFIRMED') {
-    throw new AppError(`订单尚未确认(当前状态:${order.status})，只有 CONFIRMED 订单才可登记回款`, 409);
+  const paymentEligibleStates = ['CONFIRMED', 'IN_PRODUCTION', 'SHIPPED', 'DELIVERED'];
+  const status = (order.status ?? '').toUpperCase();
+  if (!paymentEligibleStates.includes(status)) {
+    throw new AppError(
+      `订单尚未进入有效履约状态(当前状态:${order.status})，确认、生产、发货或交付中的订单才可登记回款`,
+      409
+    );
   }
 }

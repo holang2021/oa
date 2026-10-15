@@ -151,7 +151,7 @@ export const createPayment = async (req: AuthRequest, res: Response, next: NextF
     }
     const data: any = { customerId: body.customerId, ...buildPaymentData(body, false) };
 
-    // 闭环校验：订单 CONFIRMED 后才可登记回款（D1 状态机）
+    // 闭环校验：订单确认后处于有效履约状态才可登记回款（D1 状态机）
     if (!body.orderId) {
       throw new AppError('登记回款必须关联一份订单(orderId)', 400);
     }
