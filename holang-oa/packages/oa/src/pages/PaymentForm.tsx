@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation, useSearchParams } from 'react-rout
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react'
 import { createPayment, updatePayment, getPaymentById } from '../services/paymentService'
 import { getCustomerById, getCustomers } from '../services/customerService'
-import { getOrders, type Order } from '../services/orderService'
+import { getOrderById, getOrders, type Order } from '../services/orderService'
 
 interface PaymentDraft {
   id: string
@@ -24,7 +24,6 @@ interface PaymentDraft {
   applyDate: string
   remark: string
 }
-
 const emptyForm = (): PaymentDraft => ({
   id: '',
   customerId: '',
@@ -58,6 +57,7 @@ export default function PaymentForm() {
   const isExportRoute = location.pathname.startsWith('/export')
   const basePath = isExportRoute ? '/export' : '/domestic'
   const prefilledCustomerId = searchParams.get('customerId') || ''
+  const prefilledOrderId = searchParams.get('orderId') || ''
   const returnTo = searchParams.get('returnTo') || ''
   const safeReturnTo = returnTo.startsWith(`${basePath}/`) ? returnTo : `${basePath}/collections`
 
@@ -82,10 +82,29 @@ export default function PaymentForm() {
           // 上下文客户已不可访问时，保留正常客户列表供用户重新选择。
         }
       }
+      let orders = orderRes.list
+      if (prefilledOrderId && !orders.some(o => o.id === prefilledOrderId)) {
+        try {
+          const order = await getOrderById(prefilledOrderId)
+          if (order) {
+            orders = [order, ...orders]
+            if (order.customerId && !customers.some(c => c.id === order.customerId)) {
+              try {
+                const customer = await getCustomerById(order.customerId)
+                if (customer) customers.unshift({ id: customer.id, name: customer.name })
+              } catch {
+                // 订单已带客户 ID，客户名称缺失不阻塞发起回款。
+              }
+            }
+          }
+        } catch {
+          // 订单不可访问时，保留正常订单列表供用户重新选择。
+        }
+      }
       setCustomerList(customers)
-      setOrderList(orderRes.list)
+      setOrderList(orders)
     }).catch(() => {}).finally(() => setLoadingOptions(false))
-  }, [prefilledCustomerId])
+  }, [prefilledCustomerId, prefilledOrderId])
 
   useEffect(() => {
     if (isEdit && id) {
@@ -113,9 +132,9 @@ export default function PaymentForm() {
       }).catch(() => {})
     } else {
       const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
-      setForm(prev => ({ ...prev, customerId: prefilledCustomerId || prev.customerId, code: `PAY${dateStr}001` }))
+      setForm(prev => ({ ...prev, customerId: prefilledCustomerId || prev.customerId, orderId: prefilledOrderId || prev.orderId, code: `PAY${dateStr}001` }))
     }
-  }, [id, isEdit, prefilledCustomerId])
+  }, [id, isEdit, prefilledCustomerId, prefilledOrderId])
 
   // 当选择订单时，自动带出客户
   useEffect(() => {
@@ -158,10 +177,11 @@ export default function PaymentForm() {
         customerAccount: form.customerAccount,
         remark: form.remark,
       }
-      if (isEdit && id) {
-        await updatePayment(id, payload)
-      } else {
-        await createPayment(payload)
+      const res = isEdit && id
+        ? await updatePayment(id, payload)
+        : await createPayment(payload)
+      if (res.code !== 0) {
+        throw new Error(res.message || '保存失败')
       }
       navigate(safeReturnTo)
     } catch (err: any) {
@@ -177,6 +197,11 @@ export default function PaymentForm() {
   const availableOrders = form.customerId
     ? orderList.filter(o => o.customerId === form.customerId && o.status.toUpperCase() === 'CONFIRMED')
     : orderList.filter(o => o.status.toUpperCase() === 'CONFIRMED')
+  const selectedOrder = form.orderId ? orderList.find(o => o.id === form.orderId) : undefined
+  const visibleOrders = selectedOrder && !availableOrders.some(o => o.id === selectedOrder.id)
+    ? [selectedOrder, ...availableOrders]
+    : availableOrders
+  const selectedOrderNotConfirmed = !!selectedOrder && selectedOrder.status.toUpperCase() !== 'CONFIRMED'
 
   const orderCreateParams = new URLSearchParams({
     customerId: form.customerId,
@@ -207,16 +232,21 @@ export default function PaymentForm() {
               className="input text-sm"
             >
               <option value="">请选择订单</option>
-              {availableOrders.map(o => (
+              {visibleOrders.map(o => (
                 <option key={o.id} value={o.id}>
                   {o.code} - ¥{o.amount.toLocaleString()} ({getCustomerName(o.customerId)})
                 </option>
               ))}
             </select>
-            {form.customerId && !loadingOptions && availableOrders.length === 0 && (
+            {form.customerId && !loadingOptions && visibleOrders.length === 0 && (
               <div className="mt-2 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 <span className="inline-flex items-start gap-1.5"><AlertTriangle size={14} className="mt-0.5 shrink-0" />该客户暂无已确认订单，确认订单后才能登记回款。</span>
                 <button type="button" onClick={() => navigate(`${basePath}/orders/new?${orderCreateParams.toString()}`)} className="shrink-0 font-medium text-brand-600 hover:text-brand-700">新建订单</button>
+              </div>
+            )}
+            {selectedOrderNotConfirmed && (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                该订单尚未确认，后端会拒绝登记回款；请先确认订单后再保存。
               </div>
             )}
           </div>

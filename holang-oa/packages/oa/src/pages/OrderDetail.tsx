@@ -9,6 +9,12 @@ import ApprovalFlow from '../components/ApprovalFlow'
 import { usePrintPreview } from '../components/PrintPreview'
 
 const orderStatusColors: Record<string, string> = {
+  PENDING: 'bg-gray-50 text-gray-600',
+  CONFIRMED: 'bg-blue-50 text-blue-700',
+  IN_PRODUCTION: 'bg-yellow-50 text-yellow-700',
+  SHIPPED: 'bg-brand-50 text-brand-700',
+  DELIVERED: 'bg-green-50 text-green-700',
+  CANCELLED: 'bg-red-50 text-red-700',
   pending: 'bg-gray-50 text-gray-600',
   confirmed: 'bg-blue-50 text-blue-700',
   in_production: 'bg-yellow-50 text-yellow-700',
@@ -16,8 +22,13 @@ const orderStatusColors: Record<string, string> = {
   delivered: 'bg-green-50 text-green-700',
   cancelled: 'bg-red-50 text-red-700',
 }
-
 const orderStatusLabels: Record<string, string> = {
+  PENDING: '待确认',
+  CONFIRMED: '已确认',
+  IN_PRODUCTION: '生产中',
+  SHIPPED: '已发货',
+  DELIVERED: '已交付',
+  CANCELLED: '已取消',
   pending: '待确认',
   confirmed: '已确认',
   in_production: '生产中',
@@ -90,6 +101,15 @@ export default function OrderDetail() {
 
   const fmtMoney = (v: number) => '\u00A5' + v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+  const handleCreatePayment = () => {
+    const params = new URLSearchParams({
+      customerId: order.customerId,
+      orderId: order.id,
+      returnTo: `${basePath}/orders/${order.id}`,
+    })
+    navigate(`${basePath}/collections/new?${params.toString()}`)
+  }
+
   const handlePrint = () => {
     openPreview('tpl-order-print', {
       orderNo: order.code,
@@ -122,6 +142,9 @@ export default function OrderDetail() {
         </div>
         <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
           <Printer size={13} />打印
+        </button>
+        <button onClick={handleCreatePayment} className="btn-primary text-xs inline-flex items-center gap-1.5">
+          <DollarSign size={13} />发起回款
         </button>
       </div>
 
@@ -274,7 +297,6 @@ export default function OrderDetail() {
     </div>
   )
 }
-
 /** 信息条目子组件 */
 function InfoItem({ icon, label, value }: { icon?: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
