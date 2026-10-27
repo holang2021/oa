@@ -36,7 +36,7 @@
 | WorkItemID | 范围与对象锁 | 状态 | 证据 | 风险与审批点 | 下一动作 |
 |---|---|---|---|---|---|
 | OA-MAIN-000 | 项目全貌、基线与任务登记；锁 `docs/crm-v1/` | 已完成 | 本文、`stage-0-baseline.md`、Git 提交记录 | 无业务写入 | 主线维护状态与对象锁 |
-| OA-DB-001 | PostgreSQL 迁移设计与独立测试库准备；锁 `backend/prisma/schema.prisma`（只读源）与独立 CI 配置 | 进行中：DB-01、DB-02 完成；临时 CI 基线已配置、待本地校验 | `postgresql-migration-execution-checklist-oa-db-001-2026-10-26.md`、`.github/workflows/postgresql-baseline.yml` | 临时服务容器不接触生产；远程运行仍需提交/推送批准 | 静态校验工作流，之后等待提交/推送批准 |
+| OA-DB-001 | PostgreSQL 迁移设计与独立测试库准备；锁 `backend/prisma/schema.prisma`（只读源）与独立 CI 配置 | 阻塞：临时 CI 草稿已推送但位于 OA 子目录，GitHub 未注册 | `postgresql-migration-execution-checklist-oa-db-001-2026-10-26.md`、提交 `5841683`、GitHub Actions API 空结果 | 需要明确批准把“仅调度 OA”的 Actions 文件新增到仓库根 `.github/`；不得触及同级系统 | 获批后创建根目录调度工作流并回读首轮结果 |
 | OA-CRM-002 | 阶段 0 后 CRM 流程增量的回归验收；锁相关后端测试与前端流程 | 自动化通过：14 文件/107 项；浏览器链路待执行 | `crm-regression-checklist-oa-crm-002-2026-10-26.md`、后端/前端构建通过 | 测试副本保护源 SQLite；Puppeteer 浏览器功能未覆盖 | 执行隔离浏览器链路验收并记录证据 |
 | OA-ENV-003 | 后端依赖完整性与可逆恢复方案；锁 `backend/node_modules/`（只读）及 `backend/package-lock.json`（只读） | 已完成：解除阻断的诊断支线 | 确认 pnpm 管理树与 npm 锁文件不一致，`bcrypt@5.1.1` 原生绑定文件缺失 | 未执行任何依赖写操作 | 结论并入 OA-CRM-002；如获批准，进入 OA-ENV-004 |
 | OA-ENV-004 | 受控恢复后端 npm 依赖并验证；锁 `backend/node_modules/` | 核心恢复完成：npm 锁文件安装、`bcrypt` 加载、测试与构建通过 | 原依赖与首次不完整安装均保留在 `outputs/dependency-quarantine/`；第二次安装成功 | Puppeteer 浏览器下载被显式跳过，相关功能未验收；隔离目录不得删除 | 在预发布环境验证 Puppeteer 功能后，按保留期处理隔离目录 |

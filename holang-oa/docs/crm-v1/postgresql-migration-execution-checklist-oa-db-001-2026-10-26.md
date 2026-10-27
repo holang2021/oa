@@ -5,7 +5,7 @@
 | 顺序 | 子项 | 完成条件 | 当前状态 | 下一动作 |
 |---|---|---|---|---|
 | DB-01 | 本机测试能力检查 | 确认是否已有 PostgreSQL 或容器运行时 | 已完成：未发现 Docker、Podman、`psql` 或 `pg_isready` | 选择测试环境来源 |
-| DB-02 | 选择测试环境来源 | 确定本地安装、独立测试服务器或受管测试库之一 | 已完成：GitHub Actions 临时 PostgreSQL 服务容器 | 本地校验工作流；提交并推送后才可远程执行 |
+| DB-02 | 选择测试环境来源 | 确定本地安装、独立测试服务器或受管测试库之一 | 方案选定但远程未生效：工作流位于 `holang-oa/.github`，GitHub 未识别 | 需批准在仓库根目录增加仅调度 OA 的工作流 |
 | DB-03 | 测试库交接 | 环境、最小权限角色、受控秘密变量和时间窗口就绪 | 待开始 | 按 `postgresql-test-environment-handoff-oa-db-001-2026-10-26.md` 交接 |
 | DB-04 | SQLite 一致性快照 | 只读快照、SHA-256、表记录数和候选 SHA 已记录 | 待开始 | 在批准窗口内生成并校验快照 |
 | DB-05 | PostgreSQL 基线 | 空库可重复建立当前 schema，不重放 SQLite 方言历史 | 待开始 | 生成独立 PostgreSQL 基线并审查 |
@@ -22,5 +22,6 @@
 - 已选：GitHub Actions 的 Ubuntu Runner 临时 PostgreSQL 服务容器。每次任务创建全新空库，任务结束即销毁；无服务器采购、无生产连接、无业务数据装载。
 - 本次工作流只将当前 SQLite Prisma 数据模型复制为 Runner 临时文件并改为 PostgreSQL provider，随后验证并在临时空库执行 `db push`。原 `schema.prisma`、历史 SQLite 迁移和现有测试路径均不改写。
 - 限制：该环境可验证 PostgreSQL schema 可建立，但不能代表生产网络、磁盘、并发或查询性能；这些仍留待独立预发布 PostgreSQL 环境。
-- 远程执行前置：需要一次明确批准的 Git 提交与推送；在此之前仅可进行本地文件与 YAML 静态校验。
+- 2026-10-27 远程回读：`5841683` 已推送，但 GitHub Actions API 未发现该提交或仓库的任何 workflow/run。原因是工作流文件位于 `holang-oa/.github/workflows/`，而 GitHub 仅从仓库根目录 `.github/workflows/` 注册工作流。
+- 下一门禁：若批准扩展到仓库根目录，可新增一个仅以 `holang-oa/**` 路径为触发条件、步骤全部在 `holang-oa/` 工作目录执行的调度文件；不得改动任何同级系统。未获批准前，保留当前文件作为已验证的 OA 内工作流草稿，不删除或移动。
 - 禁止：使用生产数据库、复用生产账号/连接串，或把真实凭据写入仓库、文档或聊天。
