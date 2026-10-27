@@ -77,8 +77,9 @@
 6. **生产运行验收**待服务器恢复后补做（见支线4 启动清单）。
 
 ## 5. 当前状态指针（2026-10-27）
-- 本地 `system-build` 领先 `origin` **17 个提交**；离线 bundle：`F:/HOLANGbuddy/03_项目资产/system-build-full-20261027.bundle`（`verify` OK）。
+- 本地 `system-build` 领先 `origin` **18 个提交**；离线 bundle：`F:/HOLANGbuddy/03_项目资产/system-build-full-20261027.bundle`（`verify` OK）。
 - 已闭环支线：C（P0-1 越权判定）、D（P0-2 交接留痕）、E（P1×3 收款整改）；验收签字单 P0/P1 全部**代码侧修复**，待生产验证。
 - 治理基线已含 **2.5 汇报契约**（WHEN/HOW/CHANNEL 三线写死）。
+- **方法论已沉淀为 Skill**：`holang-incremental-build`（用户级，HOLANG 既定规范命名），含双方法论 + 主线/支线 + 汇报契约 + 调度工作流 + 既有 Skill 边界；可跨项目复用。
 - 硬阻塞：**支线4 生产服务器离线**（待刘总给实例 / IP 或确认重建）。
 - 详细日志：`.workbuddy/memory/2026-10-27.md`；移交包 `docs/OA系统逻辑梳理与Codex接手指南.md`。
