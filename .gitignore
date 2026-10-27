@@ -117,3 +117,7 @@ _push_check.tmp
 # --- 依赖隔离副本（node_modules 备份，体积巨大、非源码） ---
 # 注意：只挡 quarantine 子目录，holang-oa/outputs/ci-static-validation/ 保持可见待主线判定。
 holang-oa/outputs/dependency-quarantine/
+
+# ============ 支线2 工作区收口归档（2026-10-27，非源码 scratch，禁止入库） ============
+# frontend-preview/、outputs/、_redact_filter.sh 已物理归档至此，作为运行残留留存备查、不入版本库。
+archive/scratch-20261027/

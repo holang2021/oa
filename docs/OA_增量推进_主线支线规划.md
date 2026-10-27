@@ -37,7 +37,7 @@
 | 支线 | 内容 | 状态 |
 |---|---|---|
 | 支线1 | 修 CI 完整性：`postgresql-ci-smoke.ts` 入库 + yml 加 smoke 步骤，使 CI 可触发验证 | ✅ 2026-10-27 完成 |
-| 支线2 | 收口工作区脏文件（未跟踪 scratch：`frontend-preview/`、`outputs/`、`_redact_filter.sh`、05运行记录临时 json、`OA_…-2026-10-06.md` 副本）→ 归档或加 gitignore | ⬜ 排期 |
+| 支线2 | 收口工作区脏文件（未跟踪 scratch：`frontend-preview/`、`outputs/`、`_redact_filter.sh`、05运行记录临时 json、`OA_…-2026-10-06.md` 副本）→ 归档或加 gitignore | ✅ 2026-10-27 完成（物理归档 `archive/scratch-20261027` + gitignore 已覆盖；凭据明文暴露/nul 残留另立 cleanup）|
 | 支线3 | 补 10-14 CRM 功能代码侧验收签字 | ✅ 2026-10-27 完成（签字单已出，2×P0 / 3×P1 待主线安排）|
 | 支线C（P0-1） | 修复 7 处 `role==='SALES'` 越权判定（customer×4 / report / followUp / target）→ 改用 `isSalesOnlyRole(resolveRole())` | ✅ 2026-10-27 完成（tsc 0 错误，主线已核验 diff）|
 | 支线D（P0-2） | 商机→订单交接留痕 + `opportunityId` 关联补齐（前端提交 payload→后端 buildOrderData 已含字段自动落库→createAuditLog+「系统交接」跟进） | ✅ 2026-10-27 完成（前后端 tsc 0 错误，主线已核验 diff）|
