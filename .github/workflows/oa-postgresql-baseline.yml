@@ -1,0 +1,69 @@
+name: OA PostgreSQL schema baseline
+
+on:
+  push:
+    branches: [system-build]
+    paths:
+      - 'holang-oa/backend/prisma/schema.prisma'
+      - 'holang-oa/backend/package.json'
+      - 'holang-oa/backend/package-lock.json'
+      - '.github/workflows/oa-postgresql-baseline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgresql-schema-baseline:
+    name: Validate OA data model on temporary PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: holang_oa_ci
+          POSTGRES_USER: holang_oa_ci
+          POSTGRES_PASSWORD: oa_ci_test_only
+        options: >-
+          --health-cmd "pg_isready -U holang_oa_ci -d holang_oa_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: holang-oa/backend/package-lock.json
+
+      - name: Install OA backend dependencies
+        working-directory: holang-oa/backend
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Prepare PostgreSQL-only schema copy
+        working-directory: holang-oa/backend
+        run: |
+          mkdir -p "$RUNNER_TEMP/holang-oa-postgresql"
+          cp prisma/schema.prisma "$RUNNER_TEMP/holang-oa-postgresql/schema.prisma"
+          sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$RUNNER_TEMP/holang-oa-postgresql/schema.prisma"
+          test "$(grep -c 'provider = "postgresql"' "$RUNNER_TEMP/holang-oa-postgresql/schema.prisma")" -eq 1
+
+      - name: Validate and apply temporary PostgreSQL baseline
+        working-directory: holang-oa/backend
+        env:
+          DATABASE_URL: postgresql://holang_oa_ci:oa_ci_test_only@127.0.0.1:5432/holang_oa_ci?schema=public
+          POSTGRES_SCHEMA: ${{ runner.temp }}/holang-oa-postgresql/schema.prisma
+        run: |
+          npx prisma validate --schema "$POSTGRES_SCHEMA"
+          npx prisma db push --schema "$POSTGRES_SCHEMA" --skip-generate
+          npx prisma migrate diff --from-empty --to-schema-datamodel "$POSTGRES_SCHEMA" --script > "$RUNNER_TEMP/holang-oa-postgresql/baseline.sql"
+          test -s "$RUNNER_TEMP/holang-oa-postgresql/baseline.sql"
