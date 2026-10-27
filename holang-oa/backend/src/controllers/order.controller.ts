@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { assertContractConfirmed, assertPiConfirmed } from '../services/deal-flow.service';
+import { createAuditLog } from '../repositories/audit-log.repository';
 
 const prisma = new PrismaClient();
 
@@ -186,6 +187,45 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
         salesOwner: { select: { id: true, name: true } },
       },
     });
+
+    // P0-2 修复：商机→订单交接留痕（结构化关联已落库 order.opportunityId）
+    // 仅当由商机转入（opportunityId 存在）时写审计+跟进；失败不阻断主流程
+    if (order.opportunityId) {
+      try {
+        await createAuditLog({
+          userId: req.user?.id ?? null,
+          action: 'WRITE',
+          entity: 'orders',
+          entityId: order.id,
+          salesType: order.salesType ?? null,
+          result: 'SUCCESS',
+          detail: {
+            handoffFromOpportunity: true,
+            opportunityId: order.opportunityId,
+            customerId: order.customerId,
+            orderCode: order.orderCode,
+          },
+          traceId: req.traceId ?? null,
+        });
+        const opp = await prisma.opportunity.findUnique({
+          where: { id: order.opportunityId },
+          select: { name: true },
+        });
+        await prisma.followUp.create({
+          data: {
+            customerId: order.customerId,
+            userId: order.salesOwnerId ?? req.user?.id ?? null,
+            method: 'SYSTEM',
+            content: `【系统交接】订单「${order.orderCode}」由商机「${opp?.name || order.opportunityId}」转入。`,
+            operator: req.user?.name ?? null,
+            followedAt: new Date(),
+          },
+        });
+      } catch (e) {
+        console.warn('交接留痕失败(不阻断订单创建):', e);
+      }
+    }
+
     res.status(201).json({ code: 0, message: '创建成功', data: order });
   } catch (error) {
     next(error);

@@ -154,6 +154,7 @@ export default function OrderForm() {
         receiverPhone: form.receiverPhone,
         receiverAddress: form.receiverAddress,
         specialReq: form.specialReq,
+        opportunityId: prefilledOpportunityId || undefined,
         discount: form.discount,
         taxRate: isExportRoute ? 0 : form.taxRate,
       }
