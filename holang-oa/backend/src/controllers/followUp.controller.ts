@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { FollowMethod } from '../constants/enums';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
+import { isSalesOnlyRole, resolveRole } from '../constants/roles';
 
 const prisma = new PrismaClient();
 
@@ -42,7 +43,7 @@ export const getFollowUps = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     // 普通销售只能看自己；主管/管理员可看全部，也可按 userId 指定负责人筛选
-    if (req.user?.role === 'SALES') {
+    if (isSalesOnlyRole(resolveRole(req.user?.role))) {
       where.userId = req.user.id;
     } else if (userId) {
       where.userId = userId;

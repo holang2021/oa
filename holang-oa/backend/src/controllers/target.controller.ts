@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { TargetPeriod } from '../constants/enums';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
+import { isSalesOnlyRole, resolveRole } from '../constants/roles';
 
 const prisma = new PrismaClient();
 
@@ -25,7 +26,7 @@ export const getTargets = async (req: AuthRequest, res: Response, next: NextFunc
 
     if (userId) {
       where.userId = userId;
-    } else if (req.user?.role === 'SALES') {
+    } else if (isSalesOnlyRole(resolveRole(req.user?.role))) {
       where.userId = req.user.id;
     }
 

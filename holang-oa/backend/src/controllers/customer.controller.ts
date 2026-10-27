@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { CustomerStatus, FollowMethod, ContactType } from '../constants/enums';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
-import { isSalesOnlyRole, Role } from '../constants/roles';
+import { isSalesOnlyRole, resolveRole, Role } from '../constants/roles';
 import { detectCountryFromPhones } from '../utils/phoneCountry';
 import { success, paginated } from '../utils/response';
 import { toServiceContext } from '../utils/ctx';
@@ -497,7 +497,7 @@ export const getCustomerById = async (req: AuthRequest, res: Response, next: Nex
     }
 
     // Check permission (sales can only view their own customers)
-    if (req.user?.role === 'SALES' && customer.salesOwnerId !== req.user.id) {
+    if (isSalesOnlyRole(resolveRole(req.user?.role)) && customer.salesOwnerId !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '权限不足',
@@ -603,7 +603,7 @@ export const updateCustomer = async (req: AuthRequest, res: Response, next: Next
     }
 
     // Check permission
-    if (req.user?.role === 'SALES' && existing.salesOwnerId !== req.user.id) {
+    if (isSalesOnlyRole(resolveRole(req.user?.role)) && existing.salesOwnerId !== req.user.id) {
       return res.status(403).json({
         code: 403,
         message: '权限不足',
@@ -938,7 +938,7 @@ export const batchUpdateStatus = async (req: AuthRequest, res: Response, next: N
     const result = await prisma.customer.updateMany({
       where: {
         id: { in: ids },
-        ...(req.user?.role === 'SALES' ? { salesOwnerId: req.user.id } : {}),
+        ...(isSalesOnlyRole(resolveRole(req.user?.role)) ? { salesOwnerId: req.user.id } : {}),
       },
       data: { status },
     });
@@ -978,7 +978,7 @@ export const exportCustomers = async (req: AuthRequest, res: Response, next: Nex
       where.industry = industry;
     }
 
-    if (req.user?.role === 'SALES') {
+    if (isSalesOnlyRole(resolveRole(req.user?.role))) {
       where.salesOwnerId = req.user.id;
     }
 
