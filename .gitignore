@@ -85,3 +85,9 @@ wecom-app-1000081/deploy/_trash_20260804/
 
 # ============ Python 字节码缓存 ============
 __pycache__/
+
+# ============ 本地推库辅助（含 PAT 令牌，禁止入库） ============
+push_repo.bat
+github_token.txt
+push_result.txt
+_push_check.tmp
