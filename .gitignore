@@ -91,3 +91,29 @@ push_repo.bat
 github_token.txt
 push_result.txt
 _push_check.tmp
+
+# ============ 工作区未跟踪文件收口（2026-10-27 支线A 补） ============
+# 说明：本节仅追加，不动上方既有安全规则（push_repo.bat / github_token.txt 等）。
+
+# --- Playwright CLI 抓取残留（console/page 快照，运行产物，非源码） ---
+.playwright-cli/
+
+# --- 每周邮件推送的一次性载荷 ---
+# seg1/seg2 为周报分片投递体，正文已由 oa_weekly_mail.md 完整保留，无需重复入库；
+# _mail_send_resp.json 为发送回执，内含机器人/真人身份 ID 与 mail_id，禁止入库。
+05_运行记录/oa_weekly_seg1.json
+05_运行记录/oa_weekly_seg2.json
+05_运行记录/_mail_send_resp.json
+
+# --- 一次性脱敏过滤脚本（硬编码指向 wecom-app-1000081 部署脚本，非通用工具） ---
+/_redact_filter.sh
+
+# --- 一次性前端预览工具（颜色清扫脚本 + 管理员截图脚本 + 抓取残留） ---
+/frontend-preview/
+
+# --- QA 截图产物（当前无任何文档引用，运行残留） ---
+/outputs/
+
+# --- 依赖隔离副本（node_modules 备份，体积巨大、非源码） ---
+# 注意：只挡 quarantine 子目录，holang-oa/outputs/ci-static-validation/ 保持可见待主线判定。
+holang-oa/outputs/dependency-quarantine/
