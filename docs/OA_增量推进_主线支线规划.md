@@ -4,10 +4,12 @@
 
 ## 主线（方向 · 把握）
 
-1. **GitHub FIRST 增量节奏**
-   - 任何改动/交付物先本地 `commit` 进 `system-build`，再生成离线 `*.bundle`（落 `F:/HOLANGbuddy/03_项目资产/`）供刘总本机 A 路径（双击 `推送system-build.bat`）推送。
-   - 本沙箱**不执行 `git push`**（三重网络/权限阻塞 + 需刘总授权）。push 由 A 路径兜底。
-   - 已落地：`.gitignore` 加固 `push_repo.bat` / `github_token.txt` / `push_result.txt` / `_push_check.tmp` 不入库存明文 PAT。
+1. **GitHub FIRST（刘总 2026-10-27 澄清 · 正确定义）**
+   - **本义**：遇到不会的 / 新的问题，**不闭门造车、不胡编乱造**，先到开源项目里找成熟的成功项目经验或方法论，站在巨人肩膀推进当下工作。
+   - **配套（备份铁律 · 另一条规则，勿混淆）**：改动先本地 `commit` 进 `system-build` + 生成离线 `*.bundle`（落 `F:/HOLANGbuddy/03_项目资产/`）供刘总 A 路径推送；本沙箱**不执行 `git push`**（需刘总授权）。
+   - **已应用（2026-10-27）**：PostgreSQL CI baseline 借 **Prisma 官方 Testing 系列** + 开源项目 `tsahil01/chat` 的 CI 实践验证——方向正确（service container + health check + `db push` + **必须 `prisma generate`**，否则 client 不存在导致 smoke 导入失败），并识别 2 项可对齐优化：① 加 `concurrency`（cancel-in-progress）避免同分支堆积浪费 runner；② 加 `timeout-minutes` 防卡死占资源。
+   - **方法论沉淀**：凡"新问题"先问「开源成熟项目怎么做」，再对照自身实现找差；不为尚未验证的假设直接下判。
+   - 已落地安全项：`.gitignore` 加固 `push_repo.bat` / `github_token.txt` / `push_result.txt` / `_push_check.tmp` 不入库存明文 PAT。
 
 2. **PostgreSQL CI 质量门禁（定位）**
    - 新增 `.github/workflows/oa-postgresql-baseline.yml`：用 GitHub Actions 临时起 PostgreSQL 16，验证 Prisma schema 在 PG 上的 `validate` + `db push` + smoke。
