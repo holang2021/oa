@@ -5,6 +5,7 @@ on:
     branches: [system-build]
     paths:
       - 'holang-oa/backend/prisma/schema.prisma'
+      - 'holang-oa/backend/scripts/postgresql-ci-smoke.ts'
       - 'holang-oa/backend/package.json'
       - 'holang-oa/backend/package-lock.json'
       - '.github/workflows/oa-postgresql-baseline.yml'
@@ -67,3 +68,5 @@ jobs:
           npx prisma db push --schema "$POSTGRES_SCHEMA" --skip-generate
           npx prisma migrate diff --from-empty --to-schema-datamodel "$POSTGRES_SCHEMA" --script > "$RUNNER_TEMP/holang-oa-postgresql/baseline.sql"
           test -s "$RUNNER_TEMP/holang-oa-postgresql/baseline.sql"
+          npx prisma generate --schema "$POSTGRES_SCHEMA"
+          npx tsx scripts/postgresql-ci-smoke.ts
