@@ -42,7 +42,12 @@
 | 支线C（P0-1） | 修复 7 处 `role==='SALES'` 越权判定（customer×4 / report / followUp / target）→ 改用 `isSalesOnlyRole(resolveRole())` | ✅ 2026-10-27 完成（tsc 0 错误，主线已核验 diff）|
 | 支线D（P0-2） | 商机→订单交接留痕 + `opportunityId` 关联补齐（前端提交 payload→后端 buildOrderData 已含字段自动落库→createAuditLog+「系统交接」跟进） | ✅ 2026-10-27 完成（前后端 tsc 0 错误，主线已核验 diff）|
 | 支线E（P1×3） | 收款创建域隔离 + 归属校验 + 防重复 + 单号后端化（currentScope 域判定 / 客户一致性 / 同订单同金额同日去重 / nextPaymentCode 后端编码） | ✅ 2026-10-27 完成（前后端 tsc 0 错误，主线已核验 diff）|
-| 支线4（硬阻塞·需刘总） | 推进生产服务器恢复（给新实例 ID/公网 IP 或确认重建）→ 恢复后 `_verify_*.py` 补端到端生产验证 + 一键推送 | 🔴 待刘总 |
+| 支线F（本地可运行性） | 本地构建+启动验证：前端 build 0 错误；后端 tsc 0 错误、本地 SQLite 建表、监听 3001、`/health`→200 | ✅ 2026-10-27 完成（**OA 本地能跑**，为购服务器兜底）|
+| 支线4（最后一步·需刘总） | **确认能跑后直接买服务器** → 部署 bundle + 跑 `_verify_*.py` 端到端验证 + 出生产验收报告 | 🔴 待刘总（购服务器，最后一步）|
+
+## 待主线安排的技术债 / 部署前置
+- **P3009 迁移兼容（支线F 发现）**：`prisma migrate deploy` 在全新 SQLite 上因历史迁移 `20260702_add_businessline_and_orders` SQL 报错失败；本次用 `prisma db push` 兜底建表成功。建议：统一改用 `db push` 或修复该迁移 SQL，保证生产迁移可重复执行。
+- **生产环境变量清单（部署前置）**：`DATABASE_URL`、`PORT`、`JWT_SECRET`（运行时鉴权必需）、企微 `WECOM_*`（`WECOM_CORPID/CORPSECRET/OAUTH_SECRET/...`）、`FRONTEND_URL`、`LOG_LEVEL`。puppeteer 导出功能需生产本地 Chromium 环境。
 
 ## 当前状态指针
 
