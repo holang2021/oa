@@ -1,5 +1,5 @@
 // Phase 1 端到端验证：公司-联系人一对多 + 主联系人互斥 + 存得住
-// 凭据从项目根 oa_login.json 读取（不硬编码）；BASE 取 argv[2]，默认 http://localhost:3001
+// 凭据从项目根 .env 读取（OA_USERNAME / OA_PASSWORD），缺省回退 admin/admin123；BASE 取 argv[2]，默认 http://localhost:3001
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,16 +7,26 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BASE = process.argv[2] || 'http://localhost:3001';
 
-const root = resolve(__dirname, '../../oa_login.json');
-let creds;
-try {
-  creds = JSON.parse(readFileSync(root, 'utf8'));
-} catch (e) {
-  console.error('无法读取 oa_login.json:', e.message);
-  process.exit(2);
+function loadEnv(p) {
+  try {
+    const text = readFileSync(p, 'utf8');
+    const o = {};
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const i = line.indexOf('=');
+      if (i < 0) continue;
+      const k = line.slice(0, i).trim();
+      let v = line.slice(i + 1).trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      if (k) o[k] = v;
+    }
+    return o;
+  } catch { return {}; }
 }
-const USER = creds.username || creds.user || 'admin';
-const PASS = creds.password || creds.pass || 'admin123';
+const env = loadEnv(resolve(__dirname, '../../.env'));
+const USER = env.OA_USERNAME || 'admin';
+const PASS = env.OA_PASSWORD || 'admin123';
 
 let fails = 0;
 const ok = (m) => console.log('  PASS:', m);
