@@ -131,8 +131,7 @@ export default function PaymentForm() {
         }
       }).catch(() => {})
     } else {
-      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
-      setForm(prev => ({ ...prev, customerId: prefilledCustomerId || prev.customerId, orderId: prefilledOrderId || prev.orderId, code: `PAY${dateStr}001` }))
+      setForm(prev => ({ ...prev, customerId: prefilledCustomerId || prev.customerId, orderId: prefilledOrderId || prev.orderId, code: '' }))
     }
   }, [id, isEdit, prefilledCustomerId, prefilledOrderId])
 

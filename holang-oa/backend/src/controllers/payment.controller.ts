@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import { currentScope } from '../middleware/salesType';
 import { assertOrderConfirmed } from '../services/deal-flow.service';
 
 const prisma = new PrismaClient();
@@ -143,6 +144,12 @@ function buildPaymentData(body: any, isUpdate: boolean) {
   return data;
 }
 
+async function nextPaymentCode(): Promise<string> {
+  const year = new Date().getFullYear();
+  const count = await prisma.payment.count();
+  return `PAY${year}${String(count + 1).padStart(6, '0')}`;
+}
+
 export const createPayment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const body = req.body || {};
@@ -157,6 +164,31 @@ export const createPayment = async (req: AuthRequest, res: Response, next: NextF
     }
     const _order = await prisma.order.findUnique({ where: { id: body.orderId } });
     assertOrderConfirmed(_order);
+
+    // 域隔离：非全域调用者只能登记本域订单回款（复用 enforceSalesTypeScope 注入的 req.scope）
+    const callerScope = currentScope(req);
+    if (callerScope !== 'ALL' && _order.salesType && _order.salesType !== callerScope) {
+      throw new AppError('无权为该销售域的订单登记回款', 403);
+    }
+    // 归属一致性：回款客户须与订单客户一致
+    if (_order.customerId && body.customerId && _order.customerId !== body.customerId) {
+      throw new AppError('回款客户与订单客户不一致', 400);
+    }
+
+    // 防重复：同订单 + 同金额 + 同日（按 createdAt 自然日）已存在回款则拒绝
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
+    const dup = await prisma.payment.findFirst({
+      where: { orderId: body.orderId, amount: body.amount, createdAt: { gte: startOfDay, lte: endOfDay } },
+    });
+    if (dup) {
+      throw new AppError('疑似重复回款：同日同订单同金额已存在回款记录', 409);
+    }
+
+    // 回款单号后端统一生成（PAY+year+6位），根除前端假号同日重号
+    if (!data.paymentCode) {
+      data.paymentCode = await nextPaymentCode();
+    }
 
     const payment = await prisma.payment.create({
       data,
