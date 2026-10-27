@@ -41,7 +41,7 @@
 | 支线3 | 补 10-14 CRM 功能代码侧验收签字 | ✅ 2026-10-27 完成（签字单已出，2×P0 / 3×P1 待主线安排）|
 | 支线C（P0-1） | 修复 7 处 `role==='SALES'` 越权判定（customer×4 / report / followUp / target）→ 改用 `isSalesOnlyRole(resolveRole())` | ✅ 2026-10-27 完成（tsc 0 错误，主线已核验 diff）|
 | 支线D（P0-2） | 商机→订单交接留痕 + `opportunityId` 关联补齐（前端提交 payload→后端 buildOrderData 已含字段自动落库→createAuditLog+「系统交接」跟进） | ✅ 2026-10-27 完成（前后端 tsc 0 错误，主线已核验 diff）|
-| 支线E（P1×3） | 收款域隔离 + 防重复 + 单号后端化 | ⬜ 排期 |
+| 支线E（P1×3） | 收款创建域隔离 + 归属校验 + 防重复 + 单号后端化（currentScope 域判定 / 客户一致性 / 同订单同金额同日去重 / nextPaymentCode 后端编码） | ✅ 2026-10-27 完成（前后端 tsc 0 错误，主线已核验 diff）|
 | 支线4（硬阻塞·需刘总） | 推进生产服务器恢复（给新实例 ID/公网 IP 或确认重建）→ 恢复后 `_verify_*.py` 补端到端生产验证 + 一键推送 | 🔴 待刘总 |
 
 ## 当前状态指针
