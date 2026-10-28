@@ -266,10 +266,6 @@ export default function OpportunityForm() {
               max="100"
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">预计收入（万元，自动计算）</label>
-            <input type="text" value={form.amount ? (form.amount * form.probability / 100).toFixed(1) : '0'} disabled className="input text-sm bg-gray-50" />
-          </div>
         </div>
       </div>
 
