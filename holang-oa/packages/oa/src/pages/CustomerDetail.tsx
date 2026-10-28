@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, MapPin, User, UserX, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, User, UserX, Building2, Calendar, Tag, TrendingUp, Clock, DollarSign, FileText, ShoppingBag, Receipt, MessageCircle, ChevronRight, Globe, Filter, Users, Loader2, Plus, X, Sparkles, Send, Pencil, Trash2, Reply, CornerDownRight, AlertTriangle, Save, CheckCircle2, Linkedin, Facebook, Instagram, Twitter, Smartphone, BookOpen, MessageSquare } from 'lucide-react'
 import { useI18n } from '../i18n/I18nContext'
 import { getCustomerById, updateCustomer, getCustomers, type Customer } from '../services/customerService'
 import { getContacts, createContact, updateContact, leaveContact, migrateContact, type Contact } from '../services/contactService'
@@ -67,6 +67,30 @@ const channelColors: Record<string, string> = {
   '电话': 'bg-blue-50 text-blue-700', '邮件': 'bg-brand-50 text-brand-700', 'WhatsApp': 'bg-emerald-50 text-emerald-700',
   '官网': 'bg-blue-50 text-blue-700', '社媒': 'bg-brand-50 text-brand-700', '线上': 'bg-indigo-50 text-indigo-700',
   '线下': 'bg-green-50 text-green-700', '系统': 'bg-gray-50 text-gray-600',
+}
+
+// 社媒账号关联：按内销/外销展示不同平台（内销偏国内渠道，外销偏海外渠道）
+type SocialPlatform = { name: string; Icon: typeof MessageCircle; boundField?: keyof Customer }
+const SOCIAL_PLATFORMS: Record<'domestic' | 'export', SocialPlatform[]> = {
+  domestic: [
+    { name: '微信', Icon: MessageCircle, boundField: 'contactWechat' },
+    { name: '企业微信', Icon: MessageCircle },
+    { name: '公众号', Icon: Mail },
+    { name: '抖音', Icon: Smartphone },
+    { name: '小红书', Icon: BookOpen },
+    { name: '微博', Icon: MessageSquare },
+    { name: '电话', Icon: Phone },
+    { name: '邮件', Icon: Mail },
+  ],
+  export: [
+    { name: 'WhatsApp', Icon: MessageCircle, boundField: 'contactWhatsapp' },
+    { name: 'LinkedIn', Icon: Linkedin },
+    { name: 'Facebook', Icon: Facebook },
+    { name: 'Instagram', Icon: Instagram },
+    { name: 'Twitter', Icon: Twitter },
+    { name: 'Telegram', Icon: Send },
+    { name: '邮件', Icon: Mail },
+  ],
 }
 
 // 联系人软信息(extension) 解析/序列化辅助
@@ -776,27 +800,30 @@ export default function CustomerDetail() {
 
             {/* Social Media Binding (Phase 2 Placeholder) */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">社媒账号关联</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">社媒账号关联</h3>
+              <p className="text-[11px] text-gray-400 mb-3">按客户「{salesTypeLabel(customer.salesType)}」展示对应社媒渠道</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {['WhatsApp', 'LinkedIn', '企业微信', 'Facebook'].map(platform => {
-                  const bound = platform === 'WhatsApp' && (customer.contactWhatsapp ? true : false)
-                  return (
-                    <div key={platform} className={`rounded-lg border p-3 flex items-center gap-3 ${bound ? 'border-emerald-200 bg-emerald-50' : 'border-dashed border-gray-200 bg-gray-50'}`}>
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bound ? 'bg-emerald-100' : 'bg-gray-100'}`}>
-                        {platform === 'WhatsApp' && <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className={bound ? 'text-emerald-600' : 'text-gray-300'}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/></svg>}
-                        {platform === 'LinkedIn' && <Globe size={16} className={bound ? 'text-blue-600' : 'text-gray-300'} />}
-                        {platform === '企业微信' && <MessageCircle size={16} className={bound ? 'text-green-600' : 'text-gray-300'} />}
-                        {platform === 'Facebook' && <Users size={16} className={bound ? 'text-blue-600' : 'text-gray-300'} />}
-                      </div>
-                      <div>
-                        <div className={`text-xs font-medium ${bound ? 'text-gray-700' : 'text-gray-400'}`}>{platform}</div>
-                        <div className={`text-[10px] ${bound ? 'text-emerald-600' : 'text-gray-400'}`}>
-                          {bound ? '已关联' : '待绑定'}
+                {(() => {
+                  const isExport = customer.salesType === 'EXTERNAL' || customer.salesType === 'export'
+                  const platforms = SOCIAL_PLATFORMS[isExport ? 'export' : 'domestic']
+                  return platforms.map(p => {
+                    const bound = p.boundField ? Boolean((customer as any)[p.boundField]) : false
+                    const { Icon } = p
+                    return (
+                      <div key={p.name} className={`rounded-lg border p-3 flex items-center gap-3 ${bound ? 'border-emerald-200 bg-emerald-50' : 'border-dashed border-gray-200 bg-gray-50'}`}>
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bound ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                          <Icon size={16} className={bound ? 'text-brand-600' : 'text-gray-300'} />
+                        </div>
+                        <div>
+                          <div className={`text-xs font-medium ${bound ? 'text-gray-700' : 'text-gray-400'}`}>{p.name}</div>
+                          <div className={`text-[10px] ${bound ? 'text-emerald-600' : 'text-gray-400'}`}>
+                            {bound ? '已关联' : '待绑定'}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                })()}
               </div>
               <p className="text-[10px] text-gray-400 mt-2">第二阶段将支持员工绑定个人社媒账号，自动同步客户互动记录</p>
             </div>
