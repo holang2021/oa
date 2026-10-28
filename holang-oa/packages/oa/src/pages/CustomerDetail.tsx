@@ -49,7 +49,7 @@ const orderStatusColors: Record<string, string> = {
 const orderStatusLabels: Record<string, string> = {
   pending: '待确认', confirmed: '已确认', in_production: '生产中', shipped: '已发货', delivered: '已交付', cancelled: '已取消',
 }
-const paymentTypeLabels: Record<string, string> = { deposit: '定金', progress: '进度款', final: '尾款', retention: '质保金' }
+const paymentTypeLabels: Record<string, string> = { advance: '预付款', shipment: '发货款', arrival: '到货款', commissioning: '调试款', retention: '质保金', final: '尾款', other: '其他', deposit: '定金', progress: '进度款' }
 const timelineTypeIcons: Record<string, any> = {
   call: Phone, visit: MapPin, email: Mail, meeting: Calendar, quotation: FileText, order: ShoppingBag,
   payment: DollarSign, note: FileText, whatsapp: MessageCircle, website: Globe, social: TrendingUp,

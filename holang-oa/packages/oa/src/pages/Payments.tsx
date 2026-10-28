@@ -6,7 +6,8 @@ import { useI18n } from '../i18n/I18nContext'
 import { isCurrentUserAdmin } from '../services/rbacStore'
 
 const paymentTypeLabels: Record<string, string> = {
-  deposit: '定金', progress: '进度款', final: '尾款', retention: '质保金',
+  advance: '预付款', shipment: '发货款', arrival: '到货款', commissioning: '调试款', retention: '质保金', final: '尾款', other: '其他',
+  deposit: '定金', progress: '进度款',
   PROGRESS: '进度款', DEPOSIT: '定金', FINAL: '尾款', RETENTION: '质保金',
 }
 

@@ -30,7 +30,7 @@ const emptyForm = (): PaymentDraft => ({
   orderId: '',
   code: '',
   amount: 0,
-  type: 'deposit',
+  type: 'advance',
   status: 'pending',
   plannedDate: '',
   receivedDate: '',
@@ -44,8 +44,8 @@ const emptyForm = (): PaymentDraft => ({
   remark: '',
 })
 
-const typeOptions = ['deposit', 'progress', 'final', 'retention']
-const typeLabels: Record<string, string> = { deposit: '定金', progress: '进度款', final: '尾款', retention: '质保金' }
+const typeOptions = ['advance', 'shipment', 'arrival', 'commissioning', 'retention', 'final', 'other']
+const typeLabels: Record<string, string> = { advance: '预付款', shipment: '发货款', arrival: '到货款', commissioning: '调试款', retention: '质保金', final: '尾款', other: '其他', deposit: '定金', progress: '进度款' }
 const paymentMethodOptions = ['银行转账', '承兑', '现金']
 
 export default function PaymentForm() {
