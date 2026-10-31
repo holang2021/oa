@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
+import path from 'path';
+import fs from 'fs';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -52,6 +54,8 @@ const corsOptions = {
   origin: [
     'http://localhost:5173',
     'http://localhost:8080',
+    'http://localhost:3001',
+    'http://192.168.3.157:3001',
     'https://oa.holangchina.com',
     process.env.FRONTEND_URL,
   ].filter(Boolean),
@@ -128,6 +132,18 @@ app.use(`${API_PREFIX}/todos`, todosRoutes);
 app.use(`${API_PREFIX}/currencies`, currencyRoutes);
 app.use(`${API_PREFIX}/code-rules`, codeRuleRoutes);
 app.use(`${API_PREFIX}/field-configs`, fieldConfigRoutes);
+
+// ── 生产托管：后端同时托管前端静态产物（本机常驻过渡用） ──
+// dist 与 backend 同属 holang-oa/，无论从 src/(tsx) 还是 dist/(node) 运行都能正确解析
+const DIST_DIR = path.resolve(__dirname, '../../packages/oa/dist');
+if (fs.existsSync(DIST_DIR)) {
+  // 已存在的静态资源（index.html / assets/*）直接返回
+  app.use(express.static(DIST_DIR, { index: false }));
+  // SPA 回退：非 /api 的 GET 请求统一返回 index.html（支持前端路由）
+  app.get(/^(?!\/api\/).*$/, (req: Request, res: Response) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {

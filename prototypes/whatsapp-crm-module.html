@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOLANG CRM · WhatsApp 模块设计原型</title>
+<style>
+  :root{
+    --brand:#1a56db; --brand-soft:#e8efff; --wa:#25D366; --wa-soft:#e7f8ee;
+    --ink:#1f2733; --muted:#6b7785; --line:#e6eaf0; --bg:#f5f7fa; --card:#fff;
+    --warn:#b7791f; --warn-soft:#fdf3e2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  body{background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;}
+  .topbar{background:var(--brand);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+  .logo{font-weight:800;letter-spacing:1px;font-size:18px;}
+  .topbar .sub{opacity:.85;font-size:12px;}
+  .tabs{display:flex;gap:4px;margin-left:24px;}
+  .tab{padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;opacity:.85;}
+  .tab.active{background:rgba(255,255,255,.2);opacity:1;font-weight:600;}
+  .wrap{max-width:1180px;margin:18px auto;padding:0 18px;}
+  .note{background:var(--warn-soft);border:1px solid #f0d9a8;color:#7a5410;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:12.5px;}
+  h2{font-size:16px;margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
+  .tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
+  .tag.wa{background:var(--wa-soft);color:#127a3a;}
+  .tag.sys{background:var(--brand-soft);color:var(--brand);}
+
+  /* Inbox */
+  .inbox{display:grid;grid-template-columns:320px 1fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;height:560px;}
+  .conv-list{border-right:1px solid var(--line);overflow:auto;}
+  .conv{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;gap:10px;cursor:pointer;}
+  .conv:hover{background:#fafbfc;}
+  .conv.active{background:var(--brand-soft);}
+  .av{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto;}
+  .conv .name{font-weight:600;}
+  .conv .snip{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .conv .meta{margin-left:auto;text-align:right;font-size:11px;color:var(--muted);}
+  .badge{background:#e5484d;color:#fff;border-radius:10px;padding:0 6px;font-size:10px;font-weight:700;display:inline-block;margin-top:4px;}
+  .rep{font-size:11px;color:var(--brand);margin-top:2px;}
+
+  .chat{display:flex;flex-direction:column;}
+  .chat-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+  .chat-head .owner{margin-left:auto;font-size:12px;color:var(--muted);}
+  .thread{flex:1;overflow:auto;padding:16px;background:#fafbfc;display:flex;flex-direction:column;gap:10px;}
+  .bub{max-width:62%;padding:8px 12px;border-radius:12px;font-size:13px;}
+  .bub.in{background:#fff;border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:3px;}
+  .bub.out{background:var(--wa);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+  .bub .t{font-size:10px;opacity:.7;margin-top:3px;}
+  .reply{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center;}
+  .reply input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;}
+  .btn{background:var(--brand);color:#fff;border:none;padding:9px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  .btn.wa{background:var(--wa);}
+
+  /* Timeline */
+  .cust-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:18px;align-items:center;margin-bottom:16px;}
+  .cust-card .big{font-size:18px;font-weight:700;}
+  .cust-card .kv{font-size:12px;color:var(--muted);}
+  .cust-card .pill{background:var(--brand-soft);color:var(--brand);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .timeline{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 20px;}
+  .tl-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .tl-item:last-child{border-bottom:none;}
+  .tl-dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;margin-top:4px;}
+  .tl-dot.wa{background:var(--wa);}
+  .tl-dot.sys{background:var(--brand);}
+  .tl-body{flex:1;}
+  .tl-title{font-weight:600;font-size:13px;}
+  .tl-sub{color:var(--muted);font-size:12px;margin-top:2px;}
+  .tl-time{font-size:11px;color:var(--muted);white-space:nowrap;}
+
+  /* Arch */
+  .flow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .node{padding:10px 14px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid var(--line);}
+  .node.src{background:var(--wa-soft);color:#127a3a;}
+  .node.api{background:#eef2ff;color:#3b3bcc;}
+  .node.gw{background:var(--brand-soft);color:var(--brand);}
+  .node.db{background:#fff7ed;color:#c2410c;}
+  .node.ui{background:#f0fdf4;color:#15803d;}
+  .arrow{color:var(--muted);font-size:18px;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px;}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;}
+  th{background:#f0f3f8;font-weight:600;}
+  td code{background:#f1f4f9;padding:1px 5px;border-radius:4px;font-size:11.5px;}
+  .sec{margin-top:22px;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">HOLANG</div>
+    <div class="sub">CRM · WhatsApp 模块设计原型（员工版）</div>
+    <div class="tabs">
+      <div class="tab active" onclick="show('inbox')">① 共享收件箱</div>
+      <div class="tab" onclick="show('tl')">② 客户时间线</div>
+      <div class="tab" onclick="show('arch')">③ 架构与数据模型</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="note">⚠️ 本原型为"先可见效果"草稿，待刘总确认后派 CodeBuddy 落地。当前生产服务器离线，真实 API 联调需待服务器恢复 + Meta 企业验证完成。所有聊天以 CRM 自有库为唯一真相源（防资料丢失）。</div>
+
+    <!-- ① Inbox -->
+    <section id="inbox">
+      <h2>① WhatsApp 共享收件箱 <span class="tag wa">员工在 CRM 内回消息，不用切出</span></h2>
+      <div class="inbox">
+        <div class="conv-list">
+          <div class="conv active">
+            <div class="av">AM</div>
+            <div style="flex:1;min-width:0;">
+              <div class="name">Ahmad Mohd <span class="tag wa">WhatsApp</span></div>
+              <div class="snip">收到，请发 PI 过来，我们本周定。</div>
+              <div class="rep">归属销售：李婷（外销）</div>
+            </div>
+            <div class="meta">10:42<span class="badge">2</span></div>
+          </div>
+          <div class="conv">
+            <div class="av">JS</div>
+            <div style="flex:1;min-width:0;">
+              <div class="name">José Silva</div>
+              <div class="snip">设备型号确认是 HL-200，谢谢。</div>
+              <div class="rep">归属销售：王强（外销）</div>
+            </div>
+            <div class="meta">昨天</div>
+          </div>
+          <div class="conv">
+            <div class="av">RK</div>
+            <div style="flex:1;min-width:0;">
+              <div class="name">Ravi Kumar</div>
+              <div class="snip">发货单收到了，正在清关。</div>
+              <div class="rep">归属销售：李婷（外销）</div>
+            </div>
+            <div class="meta">周一</div>
+          </div>
+        </div>
+        <div class="chat">
+          <div class="chat-head">
+            <div class="av" style="width:32px;height:32px;font-size:13px;">AM</div>
+            <div><div style="font-weight:600;">Ahmad Mohd</div><div style="font-size:11px;color:var(--muted);">WhatsApp · +60 12-345 6789 · Malaysia</div></div>
+            <div class="owner">坐席：李婷</div>
+          </div>
+          <div class="thread">
+            <div class="bub in">你好，HL-200 空压机报价多少？我们计划采购 3 台。<div class="t">10:30</div></div>
+            <div class="bub out">Ahmad 您好，已附报价单，3 台含运杂费合计 USD 18,600。<div class="t">10:35 · 已读 ✓✓</div></div>
+            <div class="bub in">收到，请发 PI 过来，我们本周定。<div class="t">10:42</div></div>
+          </div>
+          <div class="reply">
+            <input placeholder="输入回复（24h 窗口内可自由回；超时需走模板）">
+            <button class="btn ghost">模板</button>
+            <button class="btn wa">发送</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② Timeline -->
+    <section id="tl" style="display:none;">
+      <h2>② 客户 360° 时间线 <span class="tag sys">WhatsApp 对话与报价/订单同屏</span></h2>
+      <div class="cust-card">
+        <div><div class="big">Ahmad Trading Sdn Bhd</div><div class="kv">Malaysia · 外销(EXTERNAL) · 等级 A</div></div>
+        <div style="margin-left:auto;text-align:right;">
+          <span class="pill">归属：李婷</span>
+          <div class="kv" style="margin-top:4px;">WhatsApp：+60 12-345 6789</div>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot sys"></div><div class="tl-body"><div class="tl-title">报价单 Q-260410 创建</div><div class="tl-sub">李婷 · 金额 USD 18,600 · 3× HL-200</div></div><div class="tl-time">10-28</div></div>
+        <div class="tl-item"><div class="tl-dot wa"></div><div class="tl-body"><div class="tl-title">WhatsApp · Ahmad：请发 PI 过来，我们本周定</div><div class="tl-sub">坐席 李婷 · 入站 · wamid 已存证</div></div><div class="tl-time">10-30 10:42</div></div>
+        <div class="tl-item"><div class="tl-dot sys"></div><div class="tl-body"><div class="tl-title">PI-260430 已生成</div><div class="tl-sub">李婷 · 待客户确认</div></div><div class="tl-time">10-30 11:05</div></div>
+        <div class="tl-item"><div class="tl-dot wa"></div><div class="tl-body"><div class="tl-title">WhatsApp · 李婷：PI 已发，请查收</div><div class="tl-sub">坐席 李婷 · 出站(模板) · 已读</div></div><div class="tl-time">10-30 11:06</div></div>
+      </div>
+    </section>
+
+    <!-- ③ Arch -->
+    <section id="arch" style="display:none;">
+      <h2>③ 架构与数据模型 <span class="tag sys">官方 Cloud API + Coexistence</span></h2>
+      <div class="flow">
+        <div class="node src">员工手机<br>WhatsApp Business App</div>
+        <div class="arrow">→</div>
+        <div class="node api">Meta Cloud API<br>(Coexistence 镜像)</div>
+        <div class="arrow">→</div>
+        <div class="node gw">CRM 网关<br>签名校验 HMAC</div>
+        <div class="arrow">→</div>
+        <div class="node db">队列解耦<br>→ WhatsappMessage<br>(只追加)</div>
+        <div class="arrow">→</div>
+        <div class="node ui">CRM 收件箱<br>+ 客户时间线</div>
+      </div>
+
+      <div class="sec">
+        <h2 style="font-size:14px;">新增数据模型 A：WhatsappMessage（只追加，全量留底）</h2>
+        <table>
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td><code>wamid</code></td><td>String @unique</td><td>Meta 消息 ID，去重 + 历史/实时对账</td></tr>
+          <tr><td><code>contactId</code></td><td>FK → Contact</td><td>联系人（已含 whatsapp 字段，E.164 主键）</td></tr>
+          <tr><td><code>customerId</code></td><td>FK → Customer</td><td>冗余，便于时间线查询</td></tr>
+          <tr><td><code>agentUserId</code></td><td>FK → User</td><td>处理该号的 HOLANG 坐席/销售（归属）</td></tr>
+          <tr><td><code>waAccountId</code></td><td>String</td><td>该员工连接的 Business 号（多号管理）</td></tr>
+          <tr><td><code>direction</code></td><td>INBOUND/OUTBOUND</td><td>方向</td></tr>
+          <tr><td><code>messageType</code></td><td>text/image/...</td><td>消息类型</td></tr>
+          <tr><td><code>text / mediaUrl</code></td><td>String?</td><td>文本或媒体元信息</td></tr>
+          <tr><td><code>status</code></td><td>sent/delivered/read/failed</td><td>出站回执</td></tr>
+          <tr><td><code>eventId / eventType</code></td><td>String?</td><td>webhook 事件 ID/类型（去重）</td></tr>
+          <tr><td><code>signatureVerified</code></td><td>Boolean?</td><td>webhook 签名校验结果</td></tr>
+          <tr><td><code>rawPayload</code></td><td>String? (JSON)</td><td>原始事件，审计/重放</td></tr>
+          <tr><td><code>timestamp / createdAt</code></td><td>DateTime</td><td>事件时间 / 入库时间</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2 style="font-size:14px;">新增数据模型 B：WhatsappAccount（每员工一号，连接态管理）</h2>
+        <table>
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td><code>phoneNumberId</code></td><td>String</td><td>Meta 号码 ID</td></tr>
+          <tr><td><code>phoneE164</code></td><td>String @unique</td><td>归一化号码</td></tr>
+          <tr><td><code>ownerUserId</code></td><td>FK → User</td><td>该号归属员工</td></tr>
+          <tr><td><code>status</code></td><td>CONNECTED/PENDING</td><td>Coexistence 连接态</td></tr>
+          <tr><td><code>metaBizAccountId</code></td><td>String?</td><td>Meta 商业账户</td></tr>
+        </table>
+      </div>
+      <div class="note" style="margin-top:16px;">复用现有：Contact.whatsapp（E.164 主键）+ Customer.salesOwnerId（销售归属）+ CustomerAiMessage（落库范式）。无需新建客户维度。</div>
+    </section>
+  </div>
+
+  <script>
+    function show(id){
+      ['inbox','tl','arch'].forEach(s=>document.getElementById(s).style.display = s===id?'block':'none');
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

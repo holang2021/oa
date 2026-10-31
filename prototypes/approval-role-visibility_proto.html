@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HOLANG · 审批流角色可见性（千人千面）原型</title>
+<style>
+  :root{
+    --brand:#1a56db; --brand-50:#eff4ff; --brand-700:#1e40af;
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151; --gray-800:#1f2937;
+    --green-50:#ecfdf5; --green-600:#059669; --green-700:#047857;
+    --amber-50:#fffbeb; --amber-600:#d97706; --amber-700:#b45309;
+    --red-50:#fef2f2; --red-600:#dc2626; --red-700:#b91c1c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  body{background:var(--gray-50);color:var(--gray-800);padding:20px;max-width:1180px;margin:0 auto}
+  header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:#fff;border:1px solid var(--gray-200);border-radius:12px;margin-bottom:16px}
+  header img{height:28px}
+  header h1{font-size:17px;font-weight:700}
+  header .sub{font-size:12px;color:var(--gray-500);margin-top:2px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{padding:9px 18px;border-radius:9px;border:1px solid var(--gray-200);background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:var(--gray-600)}
+  .tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .panel{display:none}
+  .panel.active{display:block}
+  .card{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:15px;font-weight:700;margin-bottom:4px}
+  .card .hint{font-size:12px;color:var(--gray-500);margin-bottom:14px;line-height:1.6}
+  /* 流程画布 */
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .node{padding:10px 16px;border-radius:10px;border:2px solid var(--gray-200);background:var(--gray-50);cursor:pointer;font-size:13px;font-weight:600;color:var(--gray-600)}
+  .node.active{border-color:var(--brand);background:var(--brand-50);color:var(--brand-700)}
+  .node .meta{font-size:11px;font-weight:400;color:var(--gray-500);margin-top:2px}
+  .arrow{color:var(--gray-300);font-size:18px}
+  /* 矩阵 */
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid var(--gray-200);padding:8px 10px;text-align:left}
+  th{background:var(--gray-50);font-weight:600;color:var(--gray-700)}
+  td.fname{font-weight:600;color:var(--gray-800)}
+  td.group{background:var(--brand-50);color:var(--brand-700);font-weight:700;font-size:12px}
+  select{padding:5px 8px;border-radius:7px;border:1px solid var(--gray-200);font-size:12px;background:#fff;cursor:pointer}
+  .v-hidden{color:var(--red-600);font-weight:600}
+  .v-readonly{color:var(--amber-600);font-weight:600}
+  .v-edit{color:var(--green-600);font-weight:600}
+  /* 预览表单 */
+  .pctrl{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
+  .pctrl label{font-size:12px;color:var(--gray-600);display:block;margin-bottom:4px}
+  .pctrl select{padding:8px 12px;border-radius:8px;border:1px solid var(--gray-200);min-width:160px}
+  .formcard{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:20px}
+  .fgroup{margin-bottom:18px}
+  .fgroup h3{font-size:14px;font-weight:700;color:var(--gray-700);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--gray-100)}
+  .fgroup.hidden-group{display:none}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ffield{margin-bottom:10px}
+  .ffield label{font-size:12px;color:var(--gray-500);display:block;margin-bottom:4px}
+  .ffield .val{border:1px solid var(--gray-200);border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;color:var(--gray-800)}
+  .ffield.ro .val{background:var(--amber-50);color:var(--amber-700);border-color:#fde68a}
+  .ffield.hide{display:none}
+  .ffield .tag{font-size:10px;padding:1px 6px;border-radius:5px;margin-left:6px}
+  .tag-ro{background:var(--amber-50);color:var(--amber-700)}
+  .tag-edit{background:var(--green-50);color:var(--green-700)}
+  .legend{display:flex;gap:16px;font-size:12px;margin-top:10px;color:var(--gray-600)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+  .footer-note{font-size:12px;color:var(--gray-500);line-height:1.7;background:var(--brand-50);border:1px solid #dbeafe;padding:14px 16px;border-radius:10px}
+  .footer-note b{color:var(--brand-700)}
+  kbd{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:5px;padding:1px 6px;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <img src="HOLANG_Logo_Official.png" alt="HOLANG" />
+  <div>
+    <h1>审批流 · 角色可见性（千人千面）</h1>
+    <div class="sub">原型 Demo ｜ 用「回款审批流」举例 ｜ 设计审批流时按角色配置显示内容，审批时灵活生效</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="designer" onclick="switchTab('designer')">① 设计器（配置可见性）</div>
+  <div class="tab" data-tab="preview" onclick="switchTab('preview')">② 预览（按角色看效果）</div>
+</div>
+
+<!-- ============ 设计器 ============ -->
+<div class="panel active" id="panel-designer">
+  <div class="card">
+    <h2>审批流画布</h2>
+    <div class="hint">点击节点，配置该节点下<strong>每个角色能看到/编辑哪些字段</strong>。配置跟随节点，审批流转到哪一节点，就按那一节点的规则渲染 —— 这就是「千人千面 + 审批时灵活」。</div>
+    <div class="flow" id="flow"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="matrixTitle">字段 × 角色 可见性矩阵</h2>
+    <div class="hint">每一格选：<span class="v-hidden">隐藏</span> / <span class="v-readonly">只读</span> / <span class="v-edit">可编辑</span>。规则按节点存，不写死、可随时改。</div>
+    <table id="matrix"></table>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--red-600)"></span>隐藏：该角色在此节点看不到此字段</span>
+      <span><span class="dot" style="background:var(--amber-600)"></span>只读：能看到但改不了（如审批人看销售填的内容）</span>
+      <span><span class="dot" style="background:var(--green-600)"></span>可编辑：可填写/修改</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 预览 ============ -->
+<div class="panel" id="panel-preview">
+  <div class="card">
+    <h2>按角色 / 节点 预览回款表单</h2>
+    <div class="hint">切换下方角色与节点，看同一张「回款单」如何因角色、因审批阶段而呈现不同内容 —— 销售申请页看不到财务确认，财务审批页才出现并可编辑。</div>
+    <div class="pctrl">
+      <div><label>当前登录角色</label>
+        <select id="pvRole" onchange="renderPreview()">
+          <option value="sales">销售员（内销）</option>
+          <option value="finance">财务</option>
+          <option value="gm">总经理</option>
+          <option value="admin">管理员</option>
+        </select>
+      </div>
+      <div><label>当前所在节点</label>
+        <select id="pvNode" onchange="renderPreview()">
+          <option value="apply">① 销售申请页</option>
+          <option value="finance">② 财务审批页</option>
+          <option value="gm">③ 总经理审批页</option>
+        </select>
+      </div>
+    </div>
+    <div class="formcard" id="pvForm"></div>
+  </div>
+</div>
+
+<div class="footer-note">
+  <b>落地方案（待刘总确认后派 CodeBuddy 实施）：</b><br/>
+  1. <b>复用</b>现有 <kbd>fieldConfigStore</kbd> 的字段模型，给字段加一个「角色可见性」维度（<kbd>visibleByRole: { 角色: 'hidden'|'readonly'|'edit' }</kbd>），不另起一套；<br/>
+  2. 在<b>审批流设计器</b>（ApprovalTemplates / ApprovalEngine）每个节点加一个「字段可见性」配置面板，就是上面这个矩阵；<br/>
+  3. 表单渲染（如 PaymentForm）、审批页、企微审批卡片都按「当前角色 + 当前节点」取规则渲染，实现千人千面；<br/>
+  4. 与现有 RBAC（菜单/操作/数据权限）正交叠加：权限管「能不能进/能不能批」，可见性管「看到什么字段」。
+</div>
+
+<script>
+// ---------- 数据模型 ----------
+const ROLES = [
+  {id:'sales', name:'销售员'},
+  {id:'finance', name:'财务'},
+  {id:'gm', name:'总经理'},
+  {id:'admin', name:'管理员'},
+];
+// 回款单字段（取自真实 PaymentForm + fieldConfigStore 的 group 划分）
+const FIELDS = [
+  {key:'amount',   label:'回款金额',     group:'回款信息'},
+  {key:'status',   label:'回款状态',     group:'回款信息'},
+  {key:'planDate', label:'计划到账日期', group:'回款信息'},
+  {key:'actualDate',label:'实际到账日期', group:'回款信息'},
+  {key:'method',   label:'回款方式',     group:'回款信息'},
+  {key:'ratio',    label:'回款比例(%)',  group:'回款信息'},
+  {key:'confFinance', label:'财务确认',   group:'财务确认'},
+  {key:'confDate', label:'财务确认日期', group:'财务确认'},
+  {key:'voucher',  label:'回款凭证',     group:'财务确认'},
+  {key:'custAcct', label:'客户付款账户', group:'财务确认'},
+  {key:'applyDate',label:'申请时间',     group:'其他信息'},
+  {key:'remark',   label:'备注',         group:'其他信息'},
+];
+const NODES = {
+  apply:  {name:'① 销售申请', meta:'销售发起回款申请'},
+  finance: {name:'② 财务审批', meta:'财务核对并确认'},
+  gm:     {name:'③ 总经理审批', meta:'总经理终审'},
+};
+// 默认可见性： node -> field -> role -> 'hidden'|'readonly'|'edit'
+// 设计要点：财务确认组在「销售申请」对所有人隐藏；在「财务审批」仅财务可编辑、销售隐藏；总经理仅只读。
+const DEF = {
+  apply: {
+    '回款信息':{sales:'edit', finance:'readonly', gm:'readonly', admin:'edit'},
+    '财务确认':{sales:'hidden', finance:'hidden', gm:'hidden', admin:'hidden'},
+    '其他信息':{sales:'edit', finance:'readonly', gm:'readonly', admin:'edit'},
+  },
+  finance: {
+    '回款信息':{sales:'readonly', finance:'readonly', gm:'readonly', admin:'edit'},
+    '财务确认':{sales:'hidden', finance:'edit', gm:'readonly', admin:'edit'},
+    '其他信息':{sales:'readonly', finance:'readonly', gm:'readonly', admin:'edit'},
+  },
+  gm: {
+    '回款信息':{sales:'readonly', finance:'readonly', gm:'readonly', admin:'edit'},
+    '财务确认':{sales:'hidden', finance:'readonly', gm:'readonly', admin:'edit'},
+    '其他信息':{sales:'readonly', finance:'readonly', gm:'readonly', admin:'edit'},
+  },
+};
+// 将 DEF 展开为 config[node][fieldKey][role]
+const config = {};
+Object.keys(NODES).forEach(n=>{
+  config[n] = {};
+  FIELDS.forEach(f=>{ config[n][f.key] = {...DEF[n][f.group]}; });
+});
+let curNode = 'apply';
+
+// ---------- 渲染：流程画布 ----------
+function renderFlow(){
+  const el = document.getElementById('flow');
+  el.innerHTML = '';
+  Object.keys(NODES).forEach((n,i)=>{
+    const d = document.createElement('div');
+    d.className = 'node' + (n===curNode?' active':'');
+    d.onclick = ()=>{ curNode=n; renderFlow(); renderMatrix(); };
+    d.innerHTML = NODES[n].name + '<div class="meta">'+NODES[n].meta+'</div>';
+    el.appendChild(d);
+    if(i < Object.keys(NODES).length-1){
+      const a=document.createElement('div'); a.className='arrow'; a.textContent='→'; el.appendChild(a);
+    }
+  });
+}
+// ---------- 渲染：矩阵 ----------
+function renderMatrix(){
+  document.getElementById('matrixTitle').textContent = '字段 × 角色 可见性矩阵 ｜ 当前节点：'+NODES[curNode].name;
+  const t = document.getElementById('matrix');
+  let html = '<tr><th>字段</th><th>分组</th>';
+  ROLES.forEach(r=> html += '<th>'+r.name+'</th>');
+  html += '</tr>';
+  let lastGroup='';
+  FIELDS.forEach(f=>{
+    if(f.group!==lastGroup){
+      html += '<tr><td class="group" colspan="'+(ROLES.length+2)+'">'+f.group+'</td></tr>';
+      lastGroup=f.group;
+    }
+    html += '<tr><td class="fname">'+f.label+'</td><td style="color:var(--gray-400);font-size:11px">'+f.group+'</td>';
+    ROLES.forEach(r=>{
+      const v = config[curNode][f.key][r.id];
+      html += '<td><select onchange="setVis(\''+f.key+'\',\''+r.id+'\',this.value)">'+
+        opt('hidden',v)+opt('readonly',v)+opt('edit',v)+'</select></td>';
+    });
+    html += '</tr>';
+  });
+  t.innerHTML = html;
+}
+function opt(v,cur){
+  const label = v==='hidden'?'隐藏':v==='readonly'?'只读':'可编辑';
+  return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+label+'</option>';
+}
+function setVis(field,role,val){ config[curNode][field][role]=val; renderPreview(); }
+
+// ---------- 渲染：预览表单 ----------
+function renderPreview(){
+  const role = document.getElementById('pvRole').value;
+  const node = document.getElementById('pvNode').value;
+  const form = document.getElementById('pvForm');
+  const roleName = ROLES.find(r=>r.id===role).name;
+  let html = '<div style="font-size:12px;color:var(--gray-500);margin-bottom:14px">当前视角：<b style="color:var(--brand-700)">'+roleName+'</b> ＠ '+NODES[node].name+'</div>';
+  let lastGroup='';
+  FIELDS.forEach(f=>{
+    const v = config[node][f.key][role];
+    if(f.group!==lastGroup){
+      const grpVisible = ROLES.some(r=>config[node][f.key]? false : false); // placeholder
+      html += '<div class="fgroup" data-group="'+f.group+'"><h3>'+f.group+'</h3>';
+      lastGroup=f.group;
+    }
+    if(v==='hidden'){ html += fieldHtml(f,'hide',''); }
+    else if(v==='readonly'){ html += fieldHtml(f,'ro','<span class="tag tag-ro">只读</span>'); }
+    else { html += fieldHtml(f,'','<span class="tag tag-edit">可编辑</span>'); }
+  });
+  // 关闭最后一个 group 的 div：用正则补闭合
+  html += '</div>';
+  form.innerHTML = html;
+  // 隐藏整个不可见分组
+  hideEmptyGroups(node, role);
+}
+function fieldHtml(f, cls, tag){
+  return '<div class="ffield '+cls+'"><label>'+f.label+tag+'</label><div class="val">'+
+    (f.key==='status'?'已到账':f.key==='confFinance'?'待确认':f.key==='method'?'银行转账':(cls==='hide'?'':f.label+'…'))+
+    '</div></div>';
+}
+function hideEmptyGroups(node, role){
+  // 若一个分组下所有字段对当前角色都隐藏，则整组不显示
+  const groups = {};
+  FIELDS.forEach(f=>{ (groups[f.group]=groups[f.group]||[]).push(config[node][f.key][role]); });
+  document.querySelectorAll('#pvForm .fgroup').forEach(g=>{
+    const name = g.getAttribute('data-group');
+    const vals = groups[name]||[];
+    if(vals.length && vals.every(v=>v==='hidden')){
+      // 把该组内的 ffield 直接隐藏（组标题保留但变灰提示）
+      g.style.opacity=.45;
+      g.querySelectorAll('.ffield').forEach(ff=>ff.classList.add('hide'));
+    }
+  });
+}
+// ---------- tab ----------
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x.dataset.tab===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='preview') renderPreview();
+}
+
+// init
+renderFlow(); renderMatrix(); renderPreview();
+</script>
+</body>
+</html>
