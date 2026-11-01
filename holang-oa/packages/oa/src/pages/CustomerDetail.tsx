@@ -12,12 +12,13 @@ import { getQuotes, type Quote } from '../services/quoteService'
 import { getContracts, type Contract } from '../services/contractService'
 import { getPis, type ProformaInvoice } from '../services/piService'
 import { getFollowUps, createFollowUp, updateFollowUp, deleteFollowUp, type FollowUp } from '../services/followUpService'
+import { getEmailBindings, createEmailBinding, deleteEmailBinding, syncEmailBinding, getCustomerEmails, getEmailReminders, type EmailBinding, type EmailMessage, type EmailReminderResult } from '../services/emailService'
 import { getCurrentUser } from '../services/authService'
 import QuickAddContactSelect from '../components/QuickAddContactSelect'
 import CustomerAiChat from '../components/CustomerAiChat'
 import { followStages } from '../data/mockData'
 
-type TabKey = 'overview' | 'contacts' | 'opportunities' | 'quotations' | 'orders' | 'payments' | 'timeline' | 'ai'
+type TabKey = 'overview' | 'contacts' | 'opportunities' | 'quotations' | 'orders' | 'payments' | 'timeline' | 'mailbox' | 'ai'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: '概览' },
@@ -27,6 +28,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'orders', label: '订单' },
   { key: 'payments', label: '回款' },
   { key: 'timeline', label: '时间轴' },
+  { key: 'mailbox', label: '邮件箱' },
   { key: 'ai', label: 'AI 助手' },
 ]
 
@@ -176,6 +178,24 @@ export default function CustomerDetail() {
   const [addingFollowUp, setAddingFollowUp] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [newFollowUp, setNewFollowUp] = useState({ method: 'note', content: '', contactId: '' })
+
+  // ── 邮件归集（Phase 1）状态 ──
+  const [emailBindings, setEmailBindings] = useState<EmailBinding[]>([])
+  const [allCustomerEmails, setAllCustomerEmails] = useState<EmailMessage[]>([]) // 用于时间轴合并（全部）
+  const [mailboxFilter, setMailboxFilter] = useState<'all' | 'unread' | 'outbound' | 'unreplied'>('all')
+  const [mailboxSearch, setMailboxSearch] = useState('')
+  const [customerEmails, setCustomerEmails] = useState<EmailMessage[]>([])
+  const [emailStats, setEmailStats] = useState({ all: 0, unread: 0, outbound: 0, unreplied: 0 })
+  const [emailReminders, setEmailReminders] = useState<EmailReminderResult>({ count: 0, items: [] })
+  const [mailboxLoading, setMailboxLoading] = useState(false)
+  const [showBindModal, setShowBindModal] = useState(false)
+  const [bindForm, setBindForm] = useState({
+    email: '', authCode: '', authUser: '',
+    imapHost: 'imap.exmail.qq.com', imapPort: 993, imapSecure: true,
+    smtpHost: 'smtp.exmail.qq.com', smtpPort: 465, smtpSecure: true,
+  })
+  const [bindSubmitting, setBindSubmitting] = useState(false)
+  const [bindError, setBindError] = useState('')
 
   // Follow-up edit / reply / filter state
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null)
@@ -472,7 +492,7 @@ export default function CustomerDetail() {
     if (!id) return
     setRelLoading(true)
     try {
-      const [contactsRes, ordersRes, paymentsRes, oppsRes, followUpsRes, quotesRes, contractsRes, pisRes] = await Promise.all([
+      const [contactsRes, ordersRes, paymentsRes, oppsRes, followUpsRes, quotesRes, contractsRes, pisRes, bindingsRes, emailsRes] = await Promise.all([
         getContacts({ customerId: id, pageSize: 100 }),
         getOrders({ customerId: id, pageSize: 100 }),
         getPayments({ customerId: id, pageSize: 100 }),
@@ -481,6 +501,8 @@ export default function CustomerDetail() {
         getQuotes({ customerId: id, pageSize: 100 }),
         getContracts({ customerId: id, pageSize: 100 }),
         getPis({ customerId: id, pageSize: 100 }),
+        getEmailBindings(),
+        getCustomerEmails(id, 'all', ''),
       ])
       setCustContacts(contactsRes.list)
       setCustOrders(ordersRes.list)
@@ -491,6 +513,9 @@ export default function CustomerDetail() {
       setCustContracts(contractsRes.list.filter(c => !c.customerId || c.customerId === id))
       setCustPis(pisRes.list.filter(p => !p.customerId || p.customerId === id))
       setCustFollowUps(followUpsRes.list)
+      setEmailBindings(bindingsRes)
+      setAllCustomerEmails(emailsRes.list)
+      setEmailStats(emailsRes.stats)
     } catch {
       // silent fail - sub-tabs just show empty
     } finally {
@@ -519,8 +544,58 @@ export default function CustomerDetail() {
     )
   }
 
-  // Timeline = follow-ups（保留完整字段，用于编辑/回复/权限判断）
-  const custTimeline: FollowUp[] = custFollowUps
+  // 邮件箱：切到「邮件箱」tab 或切换过滤/搜索时拉取（含未回复提醒）
+  useEffect(() => {
+    if (!id || activeTab !== 'mailbox') return
+    let cancelled = false
+    setMailboxLoading(true)
+    Promise.all([
+      getCustomerEmails(id, mailboxFilter, mailboxSearch),
+      getEmailReminders(id),
+    ])
+      .then(([emailsRes, rem]) => {
+        if (cancelled) return
+        setCustomerEmails(emailsRes.list)
+        setEmailStats(emailsRes.stats)
+        setEmailReminders(rem)
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setMailboxLoading(false) })
+    return () => { cancelled = true }
+  }, [id, activeTab, mailboxFilter, mailboxSearch])
+
+  // 邮件自动归集：把同步进来的往来邮件映射成时间轴条目，与跟进记录合并
+  const emailToTimelineItem = (m: EmailMessage): any => {
+    const counterparty = m.direction === 'OUT' ? m.toAddr : m.fromAddr
+    const counterpartyName = m.direction === 'OUT' ? m.toName : m.fromName
+    return {
+      id: m.id,
+      _kind: 'email',
+      method: 'email',
+      channel: '邮件',
+      content: m.snippet || m.subject || '(无内容)',
+      followedAt: m.sentAt,
+      createdAt: m.sentAt,
+      operator: counterpartyName ? `${counterpartyName} <${counterparty}>` : counterparty,
+      parentId: null,
+      userId: undefined,
+      direction: m.direction,
+      fromAddr: m.fromAddr,
+      toAddr: m.toAddr,
+      subject: m.subject,
+      snippet: m.snippet,
+      isRead: m.isRead,
+      hasAttachment: m.hasAttachment,
+      openCount: m.openCount,
+      lastOpenedAt: m.lastOpenedAt,
+      sentAt: m.sentAt,
+    }
+  }
+  // Timeline = 跟进记录 + 同步邮件（邮件自动归集进时间轴；同步邮件来自 IMAP，手动邮件跟进来自 FollowUp，互不重复）
+  const custTimeline: any[] = [
+    ...custFollowUps,
+    ...allCustomerEmails.map(emailToTimelineItem),
+  ]
   // 时间范围过滤（近30/90天，按跟进时间或创建时间）
   const rangeFiltered = timelineRange === 'all'
     ? custTimeline
@@ -541,7 +616,7 @@ export default function CustomerDetail() {
   }
 
   // Channel interaction stats
-  const channelStats = custTimeline.reduce((acc, e) => { acc[e.channel || '系统'] = (acc[e.channel || '系统'] || 0) + 1; return acc }, {} as Record<string, number>)
+  const channelStats = custTimeline.reduce<Record<string, number>>((acc, e) => { acc[e.channel || '系统'] = (acc[e.channel || '系统'] || 0) + 1; return acc }, {})
   const allChannels = ['全部', ...Array.from(new Set(custTimeline.map(e => e.channel || '系统')))]
 
   const totalOrderAmount = custOrders.reduce((sum, o) => sum + o.amount, 0)
@@ -807,8 +882,31 @@ export default function CustomerDetail() {
                   const isExport = customer.salesType === 'EXTERNAL' || customer.salesType === 'export'
                   const platforms = SOCIAL_PLATFORMS[isExport ? 'export' : 'domestic']
                   return platforms.map(p => {
-                    const bound = p.boundField ? Boolean((customer as any)[p.boundField]) : false
+                    const isEmail = p.name === '邮件'
+                    const bound = isEmail
+                      ? emailBindings.length > 0
+                      : (p.boundField ? Boolean((customer as any)[p.boundField]) : false)
                     const { Icon } = p
+                    const emailCount = allCustomerEmails.length
+                    if (isEmail) {
+                      return (
+                        <div
+                          key={p.name}
+                          onClick={() => bound ? setActiveTab('mailbox') : setShowBindModal(true)}
+                          className={`rounded-lg border p-3 flex items-center gap-3 cursor-pointer transition-colors ${bound ? 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100' : 'border-dashed border-gray-200 bg-gray-50 hover:border-brand-200'}`}
+                        >
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bound ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                            <Icon size={16} className={bound ? 'text-brand-600' : 'text-gray-300'} />
+                          </div>
+                          <div>
+                            <div className={`text-xs font-medium ${bound ? 'text-gray-700' : 'text-gray-400'}`}>{p.name}</div>
+                            <div className={`text-[10px] ${bound ? 'text-emerald-600' : 'text-gray-400'}`}>
+                              {bound ? `已关联 · ${emailCount} 封` : '待绑定'}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
                     return (
                       <div key={p.name} className={`rounded-lg border p-3 flex items-center gap-3 ${bound ? 'border-emerald-200 bg-emerald-50' : 'border-dashed border-gray-200 bg-gray-50'}`}>
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bound ? 'bg-emerald-100' : 'bg-gray-100'}`}>
@@ -825,7 +923,7 @@ export default function CustomerDetail() {
                   })
                 })()}
               </div>
-              <p className="text-[10px] text-gray-400 mt-2">第二阶段将支持员工绑定个人社媒账号，自动同步客户互动记录</p>
+              <p className="text-[10px] text-gray-400 mt-2">邮箱已支持绑定公司腾讯企业邮箱（授权码加密存储），自动归集往来邮件；其余社媒渠道第二阶段开放</p>
             </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">基本信息</h3>
@@ -1617,6 +1715,7 @@ export default function CustomerDetail() {
                     const isOwner = evt.userId === currentUser?.id
                     const canEditDelete = isOwner
                     const canReply = isManager && !isOwner
+                    const isEmail = (evt as any)._kind === 'email'
                     const replies = repliesOf(evt.id)
                     return (
                       <div key={evt.id}>
@@ -1635,6 +1734,23 @@ export default function CustomerDetail() {
                               {evt.nextFollowUpAt && <span className="text-xs text-orange-500">下次跟进：{evt.nextFollowUpAt.slice(0, 10)}</span>}
                             </div>
                             <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{evt.content}</p>
+                            {isEmail && (
+                              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+                                <span className={`px-1.5 py-0.5 rounded ${evt.direction === 'OUT' ? 'bg-brand-50 text-brand-600' : 'bg-gray-100 text-gray-600'}`}>
+                                  {evt.direction === 'OUT' ? '发出' : '收到'}
+                                </span>
+                                <span className={evt.isRead ? 'text-gray-400' : 'text-brand-600 font-medium'}>
+                                  {evt.direction === 'IN' ? (evt.isRead ? '已读' : '未读') : (evt.isRead ? '已发' : '未发')}
+                                </span>
+                                {evt.hasAttachment && <span className="text-gray-400">📎 附件</span>}
+                                {evt.direction === 'OUT' && evt.openCount > 0 && (
+                                  <span className="text-emerald-600">✓ 打开追踪：已读 {evt.openCount} 次{evt.lastOpenedAt ? ` · 最近 ${evt.lastOpenedAt.slice(0, 16).replace('T', ' ')}` : ''}</span>
+                                )}
+                                {evt.direction === 'OUT' && evt.openCount === 0 && (
+                                  <span className="text-gray-400" title="IMAP 同步的发出邮件未嵌入追踪像素，无法精确追踪是否打开；此处以邮箱 \Seen 标记近似展示">打开追踪：未嵌入像素（以 IMAP \Seen 近似：{evt.isRead ? '已读' : '未读'}）</span>
+                                )}
+                              </div>
+                            )}
                             {evt.nextPlan && (
                               <div className="mt-1.5 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
                                 <span className="font-medium text-gray-600">下一步计划：</span>{evt.nextPlan}
@@ -1643,13 +1759,13 @@ export default function CustomerDetail() {
                             <div className="flex items-center gap-3 mt-1.5">
                               <span className="text-xs text-gray-400">{evt.operator || evt.user?.name || ''}</span>
                               <div className="flex items-center gap-2 ml-auto">
-                                {canEditDelete && (
+                                {canEditDelete && !isEmail && (
                                   <>
                                     <button onClick={() => handleOpenEdit(evt)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600"><Pencil size={12} /> 编辑</button>
                                     <button onClick={() => handleDeleteFollowUp(evt)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500"><Trash2 size={12} /> 删除</button>
                                   </>
                                 )}
-                                {canReply && (
+                                {canReply && !isEmail && (
                                   <button onClick={() => handleOpenReply(evt)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600"><Reply size={12} /> 回复/补充</button>
                                 )}
                               </div>
@@ -1743,9 +1859,207 @@ export default function CustomerDetail() {
             </>
           )}
 
+          {/* 客户邮件箱 Tab —— 邮件自动归集进时间轴（Phase 1 核心面板） */}
+          {activeTab === 'mailbox' && (() => {
+            const mailFilters: { key: 'all' | 'unread' | 'outbound' | 'unreplied'; label: string; count: number }[] = [
+              { key: 'all', label: '全部', count: emailStats.all },
+              { key: 'unread', label: '未读', count: emailStats.unread },
+              { key: 'outbound', label: '我发的', count: emailStats.outbound },
+              { key: 'unreplied', label: '待回复', count: emailStats.unreplied },
+            ]
+            return (
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <h3 className="text-sm font-semibold text-gray-700">客户邮件箱</h3>
+                {emailBindings.length > 0 ? (
+                  <span className="ml-3 text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">已绑定 · 腾讯企业邮箱 {emailBindings[0].email}</span>
+                ) : (
+                  <span className="ml-3 text-[11px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded">未绑定企业邮箱</span>
+                )}
+                <div className="ml-auto flex items-center gap-2">
+                  {emailBindings.length > 0 && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await syncEmailBinding(emailBindings[0].id)
+                          const [emailsRes, rem] = await Promise.all([getCustomerEmails(id!, mailboxFilter, mailboxSearch), getEmailReminders(id!)])
+                          setCustomerEmails(emailsRes.list)
+                          setEmailStats(emailsRes.stats)
+                          setEmailReminders(rem)
+                        } catch { /* silent */ }
+                      }}
+                      className="btn-ghost text-xs"
+                    >重新同步</button>
+                  )}
+                  <button onClick={() => setShowBindModal(true)} className="btn-primary text-xs">
+                    {emailBindings.length > 0 ? '重新绑定' : '去绑定'}
+                  </button>
+                </div>
+              </div>
+
+              {emailBindings.length === 0 ? (
+                <div className="card border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+                  <Mail size={28} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-500">尚未绑定公司企业邮箱</p>
+                  <p className="text-[11px] text-gray-400 mt-1">绑定后系统自动同步与该客户往来的全部邮件，无需手动记录</p>
+                  <button onClick={() => setShowBindModal(true)} className="btn-primary text-xs mt-3">绑定企业邮箱</button>
+                </div>
+              ) : (
+                <>
+                  {/* 未回复提醒 banner */}
+                  {emailReminders.count > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-xs flex items-start gap-2">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                      <div>
+                        <b>未回复提醒：</b>{emailReminders.count} 封已发邮件超过 48 小时未收到回复，请跟进 ——
+                        {emailReminders.items.slice(0, 3).map(r => (
+                          <span key={r.id} className="ml-1">「{(r.subject || '').slice(0, 20)}」（发往 {r.toAddr.split(',')[0]}）</span>
+                        ))}
+                        {emailReminders.count > 3 && <span> 等</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 工具栏：过滤 + 搜索 */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Filter size={12} className="text-gray-400 shrink-0" />
+                    {mailFilters.map(f => (
+                      <button key={f.key} onClick={() => setMailboxFilter(f.key)}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${mailboxFilter === f.key ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                        {f.label} ({f.count})
+                      </button>
+                    ))}
+                    <input
+                      value={mailboxSearch}
+                      onChange={e => setMailboxSearch(e.target.value)}
+                      placeholder="搜索主题 / 联系人"
+                      className="input text-sm flex-1 min-w-[160px] ml-2"
+                    />
+                  </div>
+
+                  {mailboxLoading ? (
+                    <div className="text-center py-12 text-gray-400"><Loader2 size={20} className="animate-spin mx-auto" /> 加载中...</div>
+                  ) : customerEmails.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">暂无该筛选条件下的邮件</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {customerEmails.map(m => {
+                        const cp = m.direction === 'OUT' ? m.toAddr : m.fromAddr
+                        const cpName = m.direction === 'OUT' ? m.toName : m.fromName
+                        const avatar = (cpName || cp || '?').trim().charAt(0).toUpperCase()
+                        const dateStr = new Date(m.sentAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        return (
+                          <div key={m.id} className={`flex gap-3 p-3 border rounded-lg ${m.direction === 'IN' && !m.isRead ? 'border-brand-100 bg-brand-50' : 'border-gray-200 bg-white'}`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${m.direction === 'OUT' ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-600'}`}>{avatar}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-gray-800 truncate">{m.subject || '(无主题)'}</span>
+                                {m.direction === 'IN' && !m.isRead && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />}
+                                {m.unreplied && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 shrink-0">待回复</span>}
+                                {m.hasAttachment && <span className="text-[10px] text-gray-400 shrink-0">📎</span>}
+                                <span className="text-[11px] text-gray-400 ml-auto shrink-0 whitespace-nowrap">{dateStr}</span>
+                              </div>
+                              <div className="text-[11px] text-gray-500 mt-0.5 truncate">
+                                {m.direction === 'OUT' ? `我 → ${cpName || cp}` : `${cpName || cp} → 我`}
+                              </div>
+                              <div className="text-xs text-gray-600 mt-0.5 line-clamp-2">{m.snippet || ''}</div>
+                              {m.direction === 'OUT' && m.openCount > 0 && (
+                                <div className="text-[11px] text-emerald-600 mt-1">✓ 打开追踪：已读 {m.openCount} 次{ m.lastOpenedAt ? ` · 最近 ${new Date(m.lastOpenedAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '' }</div>
+                              )}
+                              {m.direction === 'OUT' && m.openCount === 0 && (
+                                <div className="text-[11px] text-gray-400 mt-1" title="IMAP 同步的发出邮件未嵌入追踪像素，无法精确追踪；此处以 IMAP \Seen 近似">打开追踪：未嵌入像素（以 IMAP \Seen 近似）</div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            )
+          })()}
+
           {/* AI 助手 Tab */}
           {activeTab === 'ai' && (
             <CustomerAiChat customerId={id || ''} />
+          )}
+
+          {/* 绑定企业邮箱 弹窗 */}
+          {showBindModal && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-5 py-3 border-b">
+                  <span className="text-sm font-semibold text-gray-700">绑定企业邮箱</span>
+                  <button onClick={() => setShowBindModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                </div>
+                <div className="p-5 space-y-3">
+                  <p className="text-[11px] text-gray-400">绑定后系统自动同步该邮箱与客户的往来邮件，按客户归集展示。仅同步，不接管发信。</p>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">邮箱地址</label>
+                    <input value={bindForm.email} onChange={e => setBindForm(p => ({ ...p, email: e.target.value }))} placeholder="如 sales@holangchina.com" className="input text-sm w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">客户端授权码</label>
+                    <input type="password" value={bindForm.authCode} onChange={e => setBindForm(p => ({ ...p, authCode: e.target.value }))} placeholder="腾讯企业邮箱请使用「客户端授权码」，非登录密码" className="input text-sm w-full" />
+                    <p className="text-[11px] text-gray-400 mt-1">腾讯企业邮箱需在邮箱设置里生成 IMAP/SMTP 授权码；授权码与登录密码不同，更安全。</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">收件(IMAP)</label>
+                      <input value={bindForm.imapHost} onChange={e => setBindForm(p => ({ ...p, imapHost: e.target.value }))} className="input text-xs w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">端口/SSL</label>
+                      <div className="flex items-center gap-2">
+                        <input type="number" value={bindForm.imapPort} onChange={e => setBindForm(p => ({ ...p, imapPort: Number(e.target.value) }))} className="input text-xs w-20" />
+                        <label className="flex items-center gap-1 text-xs text-gray-500"><input type="checkbox" checked={bindForm.imapSecure} onChange={e => setBindForm(p => ({ ...p, imapSecure: e.target.checked }))} /> SSL</label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">发件(SMTP)</label>
+                      <input value={bindForm.smtpHost} onChange={e => setBindForm(p => ({ ...p, smtpHost: e.target.value }))} className="input text-xs w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">端口/SSL</label>
+                      <div className="flex items-center gap-2">
+                        <input type="number" value={bindForm.smtpPort} onChange={e => setBindForm(p => ({ ...p, smtpPort: Number(e.target.value) }))} className="input text-xs w-20" />
+                        <label className="flex items-center gap-1 text-xs text-gray-500"><input type="checkbox" checked={bindForm.smtpSecure} onChange={e => setBindForm(p => ({ ...p, smtpSecure: e.target.checked }))} /> SSL</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-emerald-600">● 凭据加密存储（AES-256-GCM），绝不落明文</div>
+                  {bindError && <div className="text-[11px] text-red-500">{bindError}</div>}
+                </div>
+                <div className="flex justify-end gap-3 px-5 py-3 border-t bg-gray-50">
+                  <button onClick={() => setShowBindModal(false)} className="btn-ghost">取消</button>
+                  <button
+                    disabled={bindSubmitting || !bindForm.email || !bindForm.authCode}
+                    onClick={async () => {
+                      setBindSubmitting(true); setBindError('')
+                      try {
+                        const res = await createEmailBinding(bindForm)
+                        if (res.code === 0) {
+                          const [b, e] = await Promise.all([getEmailBindings(), getCustomerEmails(id!, 'all', '')])
+                          setEmailBindings(b)
+                          setAllCustomerEmails(e.list)
+                          setEmailStats(e.stats)
+                          setShowBindModal(false)
+                        } else {
+                          setBindError(res.message || '绑定失败')
+                        }
+                      } catch {
+                        setBindError('绑定失败，请检查网络与服务')
+                      } finally { setBindSubmitting(false) }
+                    }}
+                    className="btn-primary text-xs flex items-center gap-1"
+                  >
+                    {bindSubmitting ? <><Loader2 size={14} className="animate-spin" /> 绑定中</> : '绑定并同步'}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -41,6 +41,8 @@ model User {
   submittedDealerReports DealerReport[] @relation("DealerReportSubmitter")
   contracts         Contract[]
   pis               Pi[]          @relation("UserPis")
+  // 邮件归集：绑定公司企业邮箱的业务归属人（业务员）
+  emailBindings     EmailBinding[]
 
   @@map("users")
 }
@@ -145,6 +147,8 @@ model Customer {
   deliveries    Delivery[]
   dealerReports DealerReport[]
   aiMessages    CustomerAiMessage[]
+  // 邮件自动归集：同步进来的往来邮件按客户匹配后落 EmailMessage，并入客户时间轴
+  emailMessages EmailMessage[]
 
   @@index([status])
   @@index([businessLine])
@@ -194,9 +198,12 @@ model Contact {
 
   customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
   createdBy     User?       @relation("ContactCreator", fields: [createdById], references: [id])
+  // 邮件归集：联系人邮箱命中往来邮件时，邮件关联到此联系人
+  emailMessages EmailMessage[]
 
   @@index([customerId])
   @@index([phone])
+  @@index([email])
   @@index([createdById])
   @@map("contacts")
 }
@@ -970,5 +977,86 @@ model DeliveryItem {
 
   @@index([deliveryId])
   @@map("delivery_items")
+}
+
+// ============================================================
+// 邮件归集（邮件自动归集进时间轴 / Phase 1）
+// 刘总业务诉求（9 问精简版，逐条对应，遵循「单一版本/模板≠模型」铁律，按真实需要建模）：
+//   1) 场景：外贸销售用公司腾讯企业邮箱(sales@holangchina.com)与客户往来，邮件散落邮箱，
+//      销售跟进要翻邮箱、手动抄录，效率低且易漏。
+//   2) 痛点：不自动归集 → 跟进无上下文、易撞单、离职交接丢历史。
+//   3) 目标：绑定邮箱后自动同步往来邮件，按客户邮箱归集进客户档案与时间轴，销售零录入即见全量往来。
+//   4) 客户资产：邮件是客户资产，销售离职时历史随客户留在系统（交接公海/新 owner），不随人走。
+//   5) 范围：仅 IMAP/SMTP 同步腾讯企业邮箱，不接管发信、不做群发/EDM（二期）。
+//   6) 安全：授权码(非登录密码)加密存储(AES-256-GCM)，绝不落明文（吸取伙伴云 key 明文事故）。
+//   7) 匹配：按 from/to 匹配 Customer.contactEmail 与 Contact.email，支持改派重匹配。
+//   8) 衍生：未回复提醒(48h)、发出邮件打开追踪（仅带像素的发出邮件真实可追踪）。
+//   9) 验收：客户详情页邮件箱 + 时间轴合并；绑定/解绑/手动同步接口；打开追踪像素。
+// ============================================================
+
+// 企业邮箱绑定（按绑定人/业务员维度，一人可绑一个公司邮箱）
+model EmailBinding {
+  id            String   @id @default(cuid())
+  userId        String   // 绑定归属人（业务员）；邮箱是公司资产，但归属到具体销售便于权限与交接
+  email         String   // 绑定的邮箱地址，如 sales@holangchina.com
+  provider      String   @default("exmail") // 服务商：exmail=腾讯企业邮箱
+  imapHost      String
+  imapPort      Int
+  imapSecure    Boolean  @default(true)
+  smtpHost      String
+  smtpPort      Int
+  smtpSecure    Boolean  @default(true)
+  authUser      String   // IMAP/SMTP 登录账号（通常=邮箱地址）
+  authEncrypted String   // 客户端授权码密文（AES-256-GCM），绝不存明文
+  syncState     String?  // JSON：{ lastUidValidity, lastUid, lastSyncAt } 增量同步游标
+  status        String   @default("active") // active | inactive
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner    User          @relation(fields: [userId], references: [id])
+  messages EmailMessage[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@map("email_bindings")
+}
+
+// 同步进来的往来邮件（收/发），匹配到客户/联系人后并入客户时间轴
+model EmailMessage {
+  id           String   @id @default(cuid())
+  bindingId    String
+  messageId    String   // IMAP Message-ID 或 UID，用于去重/增量
+  customerId   String?  // 匹配到的客户（可空=暂未匹配）
+  contactId    String?  // 匹配到的联系人（可空）
+  direction    String   // IN=收到 / OUT=发出
+  fromAddr     String
+  fromName     String?
+  toAddr       String
+  toName       String?
+  subject      String?
+  snippet      String?  // 正文摘要（前若干字符）
+  bodyText     String?  // 纯文本正文（截断上限，避免超大）
+  sentAt       DateTime // 邮件时间（Date 头）
+  isRead       Boolean  @default(false)
+  hasAttachment Boolean  @default(false)
+  // 打开追踪（仅对本系统经 SMTP 发出且带追踪像素的邮件有效；IMAP 同步的发出邮件无像素，以 \Seen 作近似，见后端注释）
+  openCount    Int      @default(0)
+  openIps      String?  // JSON 数组：打开来源 IP 列表
+  lastOpenedAt DateTime?
+
+  binding  EmailBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  contact  Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([bindingId])
+  @@index([customerId])
+  @@index([contactId])
+  @@index([direction])
+  @@index([sentAt])
+  @@index([fromAddr])
+  @@index([toAddr])
+  @@unique([bindingId, messageId])
+  @@map("email_messages")
 }
 

@@ -38,6 +38,8 @@ import todosRoutes from './routes/todos.routes';
 import currencyRoutes from './routes/currency.routes';
 import codeRuleRoutes from './routes/codeRule.routes';
 import fieldConfigRoutes from './routes/fieldConfig.routes';
+import emailBindingsRoutes from './routes/emailBindings.routes';
+import emailsRoutes from './routes/emails.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -47,7 +49,31 @@ import { auditMiddleware } from './middleware/audit';
 const app: Express = express();
 
 // Security middleware
-app.use(helmet());
+// 注意：本系统当前以纯 HTTP 部署在局域网(本机常驻过渡)，helmet 默认 CSP 含
+// `upgrade-insecure-requests`，会强制浏览器把 JS/CSS 等子资源改走 HTTPS，
+// 导致纯 HTTP 服务下前端资源加载失败、整页白屏。故关闭该指令。
+// 上线 HTTPS 后可恢复默认或单独开启 upgradeInsecureRequests。
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+        imgSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"],
+        styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      },
+    },
+    // 关闭 COOP，避免内网 HTTP 下 Chrome 持续打印 "header ignored (untrustworthy origin)" 警告
+    crossOriginOpenerPolicy: false,
+  })
+);
 
 // CORS configuration
 const corsOptions = {
@@ -132,6 +158,9 @@ app.use(`${API_PREFIX}/todos`, todosRoutes);
 app.use(`${API_PREFIX}/currencies`, currencyRoutes);
 app.use(`${API_PREFIX}/code-rules`, codeRuleRoutes);
 app.use(`${API_PREFIX}/field-configs`, fieldConfigRoutes);
+// 邮件归集（邮件自动归集进时间轴 / Phase 1）
+app.use(`${API_PREFIX}/email-bindings`, emailBindingsRoutes);
+app.use(API_PREFIX, emailsRoutes);
 
 // ── 生产托管：后端同时托管前端静态产物（本机常驻过渡用） ──
 // dist 与 backend 同属 holang-oa/，无论从 src/(tsx) 还是 dist/(node) 运行都能正确解析

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客户邮件箱 · 原型 v2 - HOLANG OA</title>
+<style>
+  :root{
+    --brand:#1a56db; --brand-50:#eef3fe; --brand-100:#dbe6fd; --brand-600:#1a56db; --brand-700:#1545b0;
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f6f7f9; --card:#ffffff;
+    --green:#0f6e56; --green-bg:#e1f5ee; --amber:#854f0b; --amber-bg:#faefda; --red:#a32d2d; --red-bg:#fcebeb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+  a{color:var(--brand);text-decoration:none}
+  .topbar{height:54px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:10}
+  .topbar img{height:28px}
+  .topbar .sys{font-weight:600;font-size:15px}
+  .topbar .spacer{flex:1}
+  .topbar .me{width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  .crumb{color:var(--muted);font-size:13px;margin-bottom:14px}
+  .crumb b{color:var(--ink)}
+  .cust-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:16px;margin-bottom:16px}
+  .cust-card .ava{width:46px;height:46px;border-radius:12px;background:var(--brand-50);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px}
+  .cust-card h2{font-size:19px;font-weight:600}
+  .cust-card .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:6px;background:var(--brand-50);color:var(--brand);margin-left:8px}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:9px 14px;font-size:13px;color:var(--muted);cursor:default}
+  .tab.on{color:var(--brand);font-weight:600;border-bottom:2px solid var(--brand)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px;transition:box-shadow .3s}
+  .card h3{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card h3 .hint{font-size:12px;font-weight:400;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .plat{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px}
+  .plat .ic{width:30px;height:30px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
+  .plat .nm{font-size:13px;font-weight:500}
+  .plat .st{font-size:11px;color:var(--muted)}
+  .plat.bound{border-color:var(--green);background:var(--green-bg)}
+  .plat.bound .st{color:var(--green)}
+  .plat.bound .ic{background:#fff;color:var(--green)}
+  .mbox-head{display:flex;align-items:center;margin-bottom:12px}
+  .mbox-head .title{font-size:15px;font-weight:600}
+  .mbox-head .bound-tag{margin-left:10px;font-size:12px;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:6px}
+  .mbox-head .spacer{flex:1}
+  .btn{border:1px solid var(--brand);color:var(--brand);background:#fff;padding:7px 14px;border-radius:9px;font-size:13px;cursor:pointer}
+  .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.ghost{border-color:var(--line);color:var(--muted)}
+  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .chip{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--line);color:var(--muted);cursor:default}
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .search{flex:1;min-width:160px;border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:13px;color:var(--ink)}
+  .mail{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;align-items:flex-start}
+  .mail:hover{border-color:var(--brand-100);background:var(--brand-50)}
+  .mail .av{width:38px;height:38px;border-radius:10px;background:var(--brand-50);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+  .mail .body{flex:1;min-width:0}
+  .mail .row1{display:flex;align-items:center;gap:8px}
+  .mail .subj{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mail .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex-shrink:0}
+  .mail .date{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+  .mail .from{font-size:12px;color:var(--muted);margin-top:2px}
+  .mail .snip{font-size:13px;color:#374151;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .mail.unread{background:var(--brand-50)}
+  .mail.unread .subj{color:var(--brand-700)}
+  .mail .tagmini{font-size:11px;padding:1px 7px;border-radius:5px;margin-left:6px}
+  .mail .tagmini.unread{background:var(--brand);color:#fff}
+  .mail .tagmini.wait{background:var(--red-bg);color:var(--red)}
+  .track{font-size:12px;color:var(--green);margin-top:5px}
+  .tl{position:relative;padding-left:24px}
+  .tl::before{content:"";position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--line)}
+  .tl-item{position:relative;margin-bottom:16px}
+  .tl-item .ic{position:absolute;left:-24px;top:0;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--brand);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--brand)}
+  .tl-item .t{font-size:13px;font-weight:500}
+  .tl-item .d{font-size:12px;color:var(--muted)}
+  .tl-item .x{font-size:13px;color:#374151;margin-top:2px}
+  .note{background:var(--amber-bg);border:1px solid #f0d9a8;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber);margin-top:4px}
+  .note b{color:#633806}
+  /* 录入邮箱即触发检索 动效 */
+  .demo-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .demo-row .search{max-width:260px}
+  .value-line{font-size:13px;color:#374151;margin-bottom:12px;line-height:1.7}
+  .demo-steps{margin-top:12px;min-height:8px}
+  .step{opacity:0;transform:translateY(4px);animation:fadein .35s forwards;font-size:13px;color:#374151;margin-top:8px;padding-left:6px;border-left:2px solid var(--brand-100)}
+  .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--brand);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-left:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadein{to{opacity:1;transform:none}}
+  .demo-result{opacity:0}
+  .demo-result.show{animation:fadein .4s forwards}
+  .ok{margin-top:12px;background:var(--green-bg);color:var(--green);border-radius:9px;padding:10px 12px;font-size:13px}
+  .remind{background:var(--amber-bg);border:1px solid #f0d9a8;color:var(--amber);border-radius:9px;padding:9px 12px;font-size:13px;margin-bottom:12px}
+  .remind b{color:#633806}
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(17,24,39,.45);display:none;align-items:center;justify-content:center;z-index:50}
+  .mask.show{display:flex}
+  .modal{background:#fff;width:440px;max-width:92vw;border-radius:16px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+  .modal h3{font-size:17px;font-weight:600;margin-bottom:4px}
+  .modal .desc{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;color:var(--ink);margin-bottom:6px;font-weight:500}
+  .field input{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px}
+  .field .ro{background:var(--bg);color:var(--muted);font-size:12px}
+  .field .tip{font-size:12px;color:var(--muted);margin-top:5px}
+  .modal .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+  .sec-note{font-size:12px;color:var(--green);margin-top:8px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <img src="HOLANG_Logo_Official.png" alt="HOLANG" />
+    <span class="sys">HOLANG All In One 管理系统</span>
+    <span class="spacer"></span>
+    <span class="me">刘</span>
+  </div>
+
+  <div class="wrap">
+    <div class="crumb">CRM · 外贸 · 客户管理 / <b>ABC Trading Co., Ltd.</b></div>
+
+    <div class="cust-card">
+      <div class="ava">AB</div>
+      <div>
+        <h2>ABC Trading Co., Ltd.<span class="tag">外销</span></h2>
+        <div class="sub">当事销售：李明 · 联系人：Mike · 国家：USA</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on">概览</div>
+      <div class="tab">联系人</div>
+      <div class="tab">商机</div>
+      <div class="tab">报价</div>
+      <div class="tab">订单</div>
+      <div class="tab">回款</div>
+      <div class="tab">时间轴</div>
+      <div class="tab">AI 助手</div>
+    </div>
+
+    <!-- 邮件自动归集进时间轴（本期核心） -->
+    <div class="card">
+      <h3>邮件自动归集进客户时间轴 <span class="hint">本期核心交互</span></h3>
+      <p class="value-line">绑定公司腾讯企业邮箱后，与该客户往来的<b>全部邮件（收/发）</b>自动出现在下方客户档案与时间轴，销售不用手动记录；员工离职交接也能一键继承邮件历史。</p>
+      <div class="demo-row">
+        <input id="demoEmail" class="search" value="mike@abctrading.com" />
+        <button class="btn primary" onclick="runDemo()">确认客户邮箱并归集</button>
+        <span class="hint" style="font-size:12px;color:var(--muted)">录入/确认客户邮箱即触发自动归集（示意）</span>
+      </div>
+      <div id="demoSteps" class="demo-steps"></div>
+      <div id="demoResult" class="demo-result">
+        <div class="ok">✓ 已归集 <b>4 封往来邮件</b> 到「ABC Trading Co., Ltd.」并<b>并入时间轴</b>，下方客户邮件箱已实时更新</div>
+      </div>
+    </div>
+
+    <!-- 社媒账号关联 -->
+    <div class="card">
+      <h3>社媒账号关联 <span class="hint">按客户「外销」展示对应社媒渠道</span></h3>
+      <div class="grid">
+        <div class="plat bound"><div class="ic">✉</div><div><div class="nm">邮件</div><div class="st">已关联 · 最近 12 封</div></div></div>
+        <div class="plat"><div class="ic">W</div><div><div class="nm">WhatsApp</div><div class="st">待绑定</div></div></div>
+        <div class="plat"><div class="ic">in</div><div><div class="nm">LinkedIn</div><div class="st">待绑定</div></div></div>
+        <div class="plat"><div class="ic">f</div><div><div class="nm">Facebook</div><div class="st">待绑定</div></div></div>
+        <div class="plat"><div class="ic">ig</div><div><div class="nm">Instagram</div><div class="st">待绑定</div></div></div>
+        <div class="plat"><div class="ic">X</div><div><div class="nm">Twitter</div><div class="st">待绑定</div></div></div>
+        <div class="plat"><div class="ic">tg</div><div><div class="nm">Telegram</div><div class="st">待绑定</div></div></div>
+        <div class="plat"><div class="ic">微</div><div><div class="nm">微信</div><div class="st">待绑定</div></div></div>
+      </div>
+    </div>
+
+    <!-- 客户邮件箱（核心） -->
+    <div class="card" id="mbox">
+      <div class="mbox-head">
+        <span class="title">客户邮件箱</span>
+        <span class="bound-tag">已绑定 · 腾讯企业邮箱 sales@holangchina.com</span>
+        <span class="spacer"></span>
+        <button class="btn ghost" onclick="openBind()">重新绑定</button>
+      </div>
+
+      <div class="toolbar">
+        <span class="chip on">全部 (12)</span>
+        <span class="chip">未读 (1)</span>
+        <span class="chip">我发的 (5)</span>
+        <span class="chip">待回复 (1)</span>
+        <input class="search" placeholder="搜索邮件主题 / 联系人" />
+      </div>
+
+      <div class="remind">⚠ <b>未回复提醒：</b>1 封已发邮件超过 48 小时未收到回复，请跟进 ——「Price list update - HOLANG 2026Q4」（发往 Mike，10-25）</div>
+
+      <div class="mail unread">
+        <div class="av">M</div>
+        <div class="body">
+          <div class="row1"><span class="dot"></span><span class="subj">RE: Quotation for ball mill - ABC Trading</span><span class="tagmini unread">未读</span><span class="date">10-28 14:32</span></div>
+          <div class="from">Mike &lt;mike@abctrading.com&gt; → 李明 &lt;sales@holangchina.com&gt;</div>
+          <div class="snip">Thanks for the quotation. Could you clarify the motor power options and lead time for 2 sets? Also we need the CE certificate and packing details before placing the PO.</div>
+        </div>
+      </div>
+
+      <div class="mail">
+        <div class="av">李</div>
+        <div class="body">
+          <div class="row1"><span class="subj">Price list update - HOLANG 2026Q4</span><span class="tagmini wait">待回复</span><span class="date">10-25 09:10</span></div>
+          <div class="from">李明 &lt;sales@holangchina.com&gt; → Mike &lt;mike@abctrading.com&gt;</div>
+          <div class="snip">Hi Mike, attached the updated price list valid till Dec. The ball mill FOB price is revised by 3% due to steel cost. Lead time remains 35 days.</div>
+          <div class="track">✓ 打开追踪：已读 3 次 · 美国 · 最近 10-29 09:12 打开 · 链接点击 1</div>
+        </div>
+      </div>
+
+      <div class="mail">
+        <div class="av">M</div>
+        <div class="body">
+          <div class="row1"><span class="subj">RE: The Answers of ball mill Questions</span><span class="date">10-22 18:05</span></div>
+          <div class="from">Mike &lt;mike@abctrading.com&gt; → 李明 &lt;sales@holangchina.com&gt;</div>
+          <div class="snip">We reviewed your answers. The capacity 5t/h meets our requirement. Please send the proforma invoice so we can start the import procedure.</div>
+        </div>
+      </div>
+
+      <div class="mail">
+        <div class="av">M</div>
+        <div class="body">
+          <div class="row1"><span class="subj">New inquiry - flotation cell</span><span class="date">10-18 11:20</span></div>
+          <div class="from">Mike &lt;mike@abctrading.com&gt; → 李明 &lt;sales@holangchina.com&gt;</div>
+          <div class="snip">Besides ball mill, we may also need a flotation cell for our new project. Could you share the model range and reference case in Chile?</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 时间轴（邮件并入） -->
+    <div class="card">
+      <h3>客户旅程时间轴 <span class="hint">邮件自动并入，与电话 / 拜访同屏</span></h3>
+      <div class="tl">
+        <div class="tl-item email"><div class="ic">✉</div><div class="t">邮件 · Mike → 李明</div><div class="d">10-28 14:32</div><div class="x">RE: Quotation for ball mill — 确认电机功率选项、交货期，需 CE 证书与包装细节</div></div>
+        <div class="tl-item"><div class="ic">☎</div><div class="t">电话 · 李明 → Mike</div><div class="d">10-26 16:10</div><div class="x">电话沟通报价细节，客户对 5t/h 规格认可</div></div>
+        <div class="tl-item email"><div class="ic">✉</div><div class="t">邮件 · 李明 → Mike（已读 3 次）</div><div class="d">10-25 09:10</div><div class="x">Price list update — 发送 2026Q4 更新报价单（FOB 上调 3%）</div></div>
+        <div class="tl-item"><div class="ic">★</div><div class="t">商机 · 球磨机出口 USA</div><div class="d">10-20</div><div class="x">阶段：报价中</div></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>本期范围（外销）：</b>绑定腾讯企业邮箱 → 邮件自动归集进时间轴 → 客户邮件箱（往来对象/主题/时间/内容摘要）→ <b>未回复提醒</b> → <b>邮件打开追踪</b>。价值在"自动归集引擎"，不在"录入"这步。<br>
+      <b>暂不做（观察）：</b>WhatsApp、Facebook、Instagram 等全渠道 —— 投入大、依赖第三方 API、合规风险高，等邮件跑稳再评估。<br>
+      <b>二期规划：</b>ChatGPT 自动起草回复、群发单显、按邮箱后缀查重防撞单。
+    </div>
+  </div>
+
+  <!-- 绑定企业邮箱 弹窗 -->
+  <div class="mask" id="mask">
+    <div class="modal">
+      <h3>绑定企业邮箱</h3>
+      <div class="desc">绑定后系统自动同步该邮箱与客户的往来邮件，按客户归集展示。仅同步，不接管发信。</div>
+      <div class="field">
+        <label>邮箱地址</label>
+        <input value="sales@holangchina.com" />
+      </div>
+      <div class="field">
+        <label>客户端授权码</label>
+        <input type="password" placeholder="腾讯企业邮箱请使用「客户端授权码」，非登录密码" />
+        <div class="tip">腾讯企业邮箱需在邮箱设置里生成 IMAP/SMTP 授权码；授权码与登录密码不同，更安全。</div>
+      </div>
+      <div class="field">
+        <label>收件服务器 (IMAP)</label>
+        <input class="ro" value="imap.exmail.qq.com : 993  SSL" readonly />
+      </div>
+      <div class="field">
+        <label>发件服务器 (SMTP)</label>
+        <input class="ro" value="smtp.exmail.qq.com : 465  SSL" readonly />
+      </div>
+      <div class="sec-note">● 凭据加密存储，绝不落明文（吸取此前伙伴云 key 明文教训）</div>
+      <div class="acts">
+        <button class="btn ghost" onclick="closeBind()">取消</button>
+        <button class="btn primary" onclick="closeBind()">绑定并同步</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openBind(){document.getElementById('mask').classList.add('show')}
+    function closeBind(){document.getElementById('mask').classList.remove('show')}
+    document.getElementById('mask').addEventListener('click',function(e){if(e.target===this)closeBind()})
+
+    function runDemo(){
+      var email = (document.getElementById('demoEmail').value||'').trim() || 'mike@abctrading.com';
+      var steps = document.getElementById('demoSteps');
+      var result = document.getElementById('demoResult');
+      result.className = 'demo-result';
+      result.style.display = 'none';
+      steps.innerHTML = '';
+      var s1 = document.createElement('div');
+      s1.className = 'step';
+      s1.textContent = '① 已登记客户邮箱：' + email;
+      steps.appendChild(s1);
+      setTimeout(function(){
+        var s2 = document.createElement('div');
+        s2.className = 'step';
+        s2.innerHTML = '② 正在检索公司腾讯企业邮箱（IMAP 全量+增量同步）… <span class="spinner"></span>';
+        steps.appendChild(s2);
+      }, 500);
+      setTimeout(function(){
+        var s3 = document.createElement('div');
+        s3.className = 'step';
+        s3.textContent = '③ 按邮箱匹配 4 封往来邮件，并归入客户时间轴';
+        steps.appendChild(s3);
+      }, 1700);
+      setTimeout(function(){
+        result.style.display = 'block';
+        result.className = 'demo-result show';
+        var box = document.getElementById('mbox');
+        if(box){
+          box.scrollIntoView({behavior:'smooth', block:'center'});
+          box.style.boxShadow = '0 0 0 3px var(--brand-100)';
+          setTimeout(function(){ box.style.boxShadow = ''; }, 2200);
+        }
+      }, 2400);
+    }
+  </script>
+</body>
+</html>
