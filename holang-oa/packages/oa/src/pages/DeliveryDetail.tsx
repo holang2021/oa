@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Edit, Package, Truck, User, Phone, MapPin, Calendar, FileText, Building2 } from 'lucide-react'
 import { getDeliveryById, type Delivery } from '../services/deliveryService'
+import ApprovalPanel from '../components/ApprovalPanel'
 
 export default function DeliveryDetail() {
   const { id } = useParams<{ id: string }>()
@@ -64,6 +65,9 @@ export default function DeliveryDetail() {
           <InfoItem icon={<FileText size={12} />} label="订单类型" value={delivery.orderType || '-'} />
         </div>
       </div>
+
+      {/* 审批流程 */}
+      <ApprovalPanel entityType="DELIVERY" entityId={id!} entityCode={delivery?.code} title={delivery ? `发货 ${delivery.code}` : undefined} />
 
       {/* 收货信息 */}
       <div className="card">

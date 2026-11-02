@@ -50,6 +50,7 @@ import RbacSettings from './pages/RbacSettings'
 import Offboarding from './pages/Offboarding'
 import OffboardingTodos from './pages/OffboardingTodos'
 import FeishuWiki from './pages/FeishuWiki'
+import ApprovalInbox from './pages/ApprovalInbox'
 import DocTemplateSettings from './pages/settings/DocTemplateSettings'
 import PrintTemplates from './pages/PrintTemplates'
 import GenericListPage from './components/GenericListPage'
@@ -97,6 +98,7 @@ function App() {
         <Route path="/dashboard/my-flows" element={<Guard><MyFlows /></Guard>} />
         <Route path="/dashboard/todos" element={<Guard><TodoTasks /></Guard>} />
         <Route path="/dashboard/done" element={<Guard><DoneTasks /></Guard>} />
+        <Route path="/approvals/inbox" element={<Guard><ApprovalInbox /></Guard>} />
         <Route path="/dashboard/notifications" element={<Guard><G config={notificationConfig} /></Guard>} />
 
         {/* 产品 */}

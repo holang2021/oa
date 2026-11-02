@@ -1062,3 +1062,57 @@ model EmailMessage {
   @@map("email_messages")
 }
 
+// ============================================================
+// 审批引擎 —— 支线4 OA-APPROVAL-FLOW (刘总 2026-11-02 拍板)
+// 通用审批主表 + 审批轨迹(历史)。
+// ═══ 仅新增，不改动任何既有模型/字段 ═══
+// 部署走 `prisma db push`（不写 PG 迁移文件）。sqlite 兼容：枚举全部用 String。
+// 已知 schema 现状（影响单据审批态镜像，见 approval.service 注释）：
+//   - approvalStatus 字段仅存在于 Contract / Order / Invoice；
+//   - Pi / Delivery 既有模型无 approvalStatus 字段（红线禁止改动既有模型），
+//     其审批态以 approvals 表为准，前端经 GET /doc 读取。
+// ============================================================
+model Approval {
+  id            String   @id @default(cuid())
+  entityType    String // CONTRACT / PI / ORDER / INVOICE / DELIVERY / DEALER_REPORT
+  entityId      String
+  entityCode    String? // 展示用单据编号
+  title         String? // 展示用标题
+  submitterId   String?
+  submitterName String?
+  status        String   @default("PENDING") // PENDING / APPROVED / REJECTED
+  salesType     String? // 单据销售域：INTERNAL / EXTERNAL（域隔离）
+  requiredRole  String // 决定谁能审：MANAGER（任一销售域主管）/ FINANCE（财务）
+  approverId    String?
+  approverName  String?
+  decidedAt     DateTime?
+  rejectReason  String? // 驳回原因（驳回必填）
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  steps         ApprovalStep[]
+
+  @@index([status])
+  @@index([entityType, entityId])
+  @@index([salesType])
+  @@index([requiredRole])
+  @@map("approvals")
+}
+
+model ApprovalStep {
+  id         String   @id @default(cuid())
+  approvalId String
+  action     String // SUBMIT / APPROVE / REJECT / RESUBMIT
+  actorId    String?
+  actorName  String?
+  actorRole  String?
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  approval   Approval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+
+  @@index([approvalId])
+  @@map("approval_steps")
+}
+

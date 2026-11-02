@@ -48,6 +48,7 @@ const ROLE_CODE_MAP: Record<string, string> = {
 // 团队复用资产：对所有已登录用户可见（后端仍按角色管控写入/设置）
 const PUBLIC_PATHS = new Set<string>([
   '/tools/feishu-wiki',
+  '/approvals/inbox',
 ])
 
 const ROLES_KEY = 'holang_rbac_roles'

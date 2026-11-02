@@ -115,6 +115,35 @@ User decision:     数据库选型（SQLite 对齐 vs Postgres 迁移）已暂�
 Next action:       刘总本机补 .env（基于占位）+ `docker compose build && up` 运行时验证；清理 .env.example 历史密钥 + 轮换 JWT/DB 密钥；git 历史含旧密钥，建议 BFG 清理（可选）
 ```
 
+### 支线 4 ｜ 审批流实做（OA-approval-01）【已完成】
+```
+WorkItemID:        OA-APPROVAL-FLOW
+DispatchKey:       OA-APPROVAL-FLOW-20261102-gen1
+Branch title:      支线｜审批流实做｜OA-approval-01
+Status:            completed（主线两趟 readback 验收：后端趟 + 前端趟）
+Object & access:   后端 schema.prisma(+Approval/ApprovalStep 模型，沿用 db push)、constants/approval.ts(新建)、
+                   services/approval.service.ts(新建)、controllers/approval.controller.ts(新建)、routes/approval.routes.ts(新建)；
+                   前端 复用 Approval*/ApprovalActions 等组件、useApproval.ts 改接真实 API、相关详情页加审批动作、
+                   packages/oa/src/services/approvalService.ts(新建)
+ObjectLock:        已释放
+Baseline checked:  system-build @ fe47f1d
+Expected delta:    真实审批引擎（提交→待审→通过/驳回带原因→可重新提交）+ 角色授权 + 销售域隔离 + 审计落库；
+                   6 类单据接入：合同/PI/订单→主管/ADMIN；发票→财务(FINANCE)/ADMIN；发货→主管/ADMIN；经销商报备→主管/ADMIN；
+                   主管看本域、ADMIN 看全部；驳回必填原因；重新提交仅提交人/ADMIN。前端 ApprovalFlow/ApprovalActions 接真实接口。
+Validation:        后端 tsc EXIT 0；prisma db push 临时库建表 EXIT 0；前端 npm run build EXIT 0
+Evidence:          commit（本支线提交，含后端趟+前端趟）；bundle system-build-20261102-approval.bundle；.workbuddy/memory/2026-11-02.md
+Actual delta 实战:  后端趟 Approval/ApprovalStep 模型 + constants(canApprove/visibleRequiredRoles) + service(submit/approve/reject/resubmit/inbox/done/doc + 审计落库 + salesType 镜像到 Contract/Order/Invoice/DealerReport；Pi/Delivery 无 approvalStatus 字段故以 approvals 表为准) + controller + routes(/api/v1/approvals) 注册于 app.ts:162 / routes/index.ts；
+                  前端趟 approvalService(6 接口真实客户端+类型) + ApprovalPanel(GET /doc 拉取+提交/同意/驳回必填原因/重提+轨迹时间轴，服务端权威) + RejectReasonModal(原因必填前端+后端双校验) + ApprovalInbox(待审/已办) +
+                  OrderDetail 以 ApprovalPanel 替换旧 mock ApprovalFlow；DeliveryDetail 加审批卡；App.tsx 注册 /approvals/inbox；MainLayout 加「审批待办」导航；rbacStore 纳入 PUBLIC_PATHS；i18n 补标签。
+Validation:        后端 tsc EXIT 0（隔离Agent回报）；prisma db push 临时库建表 EXIT 0；前端 npm run build EXIT 0（主线复跑复核）。
+Risks/blocker:     不影响既有报价→合同→PI→订单→回款闭环门禁（不改动 deal-flow.service）；部署机制沿用 db push（不加 PG 写法迁移）。
+                  补充：① CONTRACT/PI/INVOICE 前端当前无详情页 → 这三类仅能在「审批待办」被审批人处理，详情页发起提交暂无入口（既有缺口，不在本支线范围）；
+                        ② DEALER_REPORT 沿用既有独立审核路径(PUT /dealer-reports/:id/review)，本支线未重复接入新引擎，避免双审批（后端 DEALER_REPORT 实体支持保留，前向兼容）；
+                        ③ 旧模拟件 ApprovalFlow/useApproval/ApprovalDemo/ApprovalEngine/ApprovalTemplates/ApprovalStats 仍残留未清理（留待后续清理项）。
+User decision:     规则已按建议确认（刘总 2026-11-02「按建议来」）；CONTRACT/PI/INVOICE 详情页补建待拍板
+Next action:       刘总本机 docker compose build && up 验证审批闭环；是否推 GitHub（本机 bat 推 bundle）；CONTRACT/PI/INVOICE 详情页补建排期
+```
+
 ## 历史已落地（参考 MEMORY.md，不重复登记）
 offboarding 离职继承、Contact 治理、GOV-026 四功能、报价单同步（空壳暂不同步）、
 RBAC/审批流（待）、huoban_export 硬编码 key 清理（待）。详见 `.workbuddy/memory/MEMORY.md`。

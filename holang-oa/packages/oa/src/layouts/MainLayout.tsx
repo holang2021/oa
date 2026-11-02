@@ -37,6 +37,7 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null, view
       id: 'dashboard', labelKey: 'domain.dashboard', domainKey: '', icon: LayoutDashboard,
       items: filterItems([
         { to: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+        { to: '/approvals/inbox', labelKey: 'nav.approvalInbox', icon: Inbox },
       ])
     },
     {

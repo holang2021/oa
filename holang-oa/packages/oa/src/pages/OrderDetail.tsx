@@ -5,7 +5,7 @@ import { useI18n } from '../i18n/I18nContext'
 import { getOrderById } from '../services/orderService'
 import { getCustomerById } from '../services/customerService'
 import type { Order } from '../services/orderService'
-import ApprovalFlow from '../components/ApprovalFlow'
+import ApprovalPanel from '../components/ApprovalPanel'
 import { usePrintPreview } from '../components/PrintPreview'
 
 const orderStatusColors: Record<string, string> = {
@@ -291,9 +291,7 @@ export default function OrderDetail() {
       </div>
 
       {/* Card 3: 审批流程 */}
-      <div className="card">
-        <ApprovalFlow bizType="order" bizRecordId={id!} />
-      </div>
+      <ApprovalPanel entityType="ORDER" entityId={id!} entityCode={order?.code} title={order ? `订单 ${order.code}` : undefined} />
     </div>
   )
 }
