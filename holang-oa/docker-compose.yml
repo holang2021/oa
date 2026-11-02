@@ -23,7 +23,7 @@ services:
       - backend_data:/data
     networks:
       - holang-network
-    command: sh -c "npx prisma migrate deploy && npm run seed && npm run start:prod"
+    command: sh -c "npx prisma db push && npm run seed && npm run start:prod"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 30s

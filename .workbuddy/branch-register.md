@@ -107,7 +107,10 @@ Validation:        后端 tsc --noEmit EXIT=0；前端 npm run build EXIT=0；pr
                    docker 运行时由刘总本机验证（沙箱不可跑 docker）
 Evidence:          commit（见 git log 本支线提交）；bundle system-build-20261102-golive-hardening.bundle；.workbuddy/memory/2026-11-02.md
 Risks/blocker:     .env.example 受权限钩子保护，可能需刘总本地手动清历史密钥；
-                   git 历史仍含旧密钥，需轮换+可选历史清理；本地 dev 仍用 SQLite（不变）
+                   git 历史仍含旧密钥，需轮换+可选历史清理；本地 dev 仍用 SQLite（不变）。
+                   附：既有迁移文件为 PostgreSQL 写法（含 CREATE TYPE...ENUM/TIMESTAMP(3)），
+                   `migrate deploy` 在 SQLite 必败；团队本地本就用 `prisma db push`。
+                   故 docker 部署 command 由 `migrate deploy` 改为 `prisma db push`（已改 docker-compose.yml）。
 User decision:     数据库选型（SQLite 对齐 vs Postgres 迁移）已暂定 SQLite 对齐，待刘总确认
 Next action:       刘总本机补 .env（基于占位）+ `docker compose build && up` 运行时验证；清理 .env.example 历史密钥 + 轮换 JWT/DB 密钥；git 历史含旧密钥，建议 BFG 清理（可选）
 ```
