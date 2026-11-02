@@ -76,6 +76,42 @@ Next action:       刘总确认 → 派 CodeBuddy 核实 API 范围 + 改造为�
 
 ---
 
+### 支线 3 ｜ 上线就绪安全与部署修复（OA-go-live-01）【派发中】
+```
+WorkItemID:        OA-GOLIVE-HARDENING
+DispatchKey:       OA-GOLIVE-HARDENING-20261102-gen1
+Branch title:      支线｜上线就绪安全与部署修复｜OA-go-live-01
+Status:            completed（主线已 readback 验收；含强制改密闭环补全）
+Object & access:   docker-compose.yml、.env.example、backend/prisma/schema.prisma(+迁移)、
+                   backend/prisma/seed.ts、backend/src/utils/encryption.ts、
+                   backend/src/services/auth.service.ts、backend/src/controllers/auth.controller.ts、
+                   packages/oa/src/pages/Login.tsx、packages/oa/nginx.conf（新建）
+ObjectLock:        上述文件独占；与支线 2（未派发）错峰，无冲突
+Baseline checked:  system-build @ 6747f0c
+Expected delta:
+  ① 密钥外置：docker-compose 移除硬编码 POSTGRES_PASSWORD/JWT_SECRET/DATABASE_URL，
+     改 ${VAR} 插值（compose 自动读同目录 .env，已 gitignore）；新增 EMAIL_CRED_ENCRYPTION_KEY 注入；
+     .env.example 仅留占位（无真实密钥，受权限钩子保护可能无法读写，被拦则回报）。
+  ② 默认账号改密：User 模型加 mustChangePassword(Boolean, default false)+迁移；seed 三账号置 true；
+     authenticateUser 返回该标志；首次用默认密码登录时强制改密；前端 Login 引导改密。
+     闭环缺口修复（必要）：因既有 PUT /api/v1/auth/change-password 路由挂 authenticate 中间件（需 token，
+     首次登录无 token 会 401），新增免鉴权但须凭旧密码校验的 POST /api/v1/auth/force-change-password
+     专供首次改密（涉及 backend/src/routes/auth.routes.ts，已纳入本支线范围），前端改用之。
+  ③ 部署对齐：docker-compose 后端 DATABASE_URL 改 SQLite file:/data/holang-crm.db + 挂载卷；
+     移除未用的 postgres 服务；prisma migrate deploy 兼容 SQLite；前端 volume
+     ./frontend/dist→./packages/oa/dist，新建 packages/oa/nginx.conf（反代 /api/v1→backend:3000 + 静态）；
+     backend/frontend 加 healthcheck（/health）。
+  数据库选型决策：本支线采用"部署侧也用 SQLite"（与本地一致、零风险）；若刘总坚持生产用 Postgres，
+     需另起 L3 迁移（不在本支线）。
+Validation:        后端 tsc --noEmit EXIT=0；前端 npm run build EXIT=0；prisma validate；lint；
+                   docker 运行时由刘总本机验证（沙箱不可跑 docker）
+Evidence:          commit（见 git log 本支线提交）；bundle system-build-20261102-golive-hardening.bundle；.workbuddy/memory/2026-11-02.md
+Risks/blocker:     .env.example 受权限钩子保护，可能需刘总本地手动清历史密钥；
+                   git 历史仍含旧密钥，需轮换+可选历史清理；本地 dev 仍用 SQLite（不变）
+User decision:     数据库选型（SQLite 对齐 vs Postgres 迁移）已暂定 SQLite 对齐，待刘总确认
+Next action:       刘总本机补 .env（基于占位）+ `docker compose build && up` 运行时验证；清理 .env.example 历史密钥 + 轮换 JWT/DB 密钥；git 历史含旧密钥，建议 BFG 清理（可选）
+```
+
 ## 历史已落地（参考 MEMORY.md，不重复登记）
 offboarding 离职继承、Contact 治理、GOV-026 四功能、报价单同步（空壳暂不同步）、
 RBAC/审批流（待）、huoban_export 硬编码 key 清理（待）。详见 `.workbuddy/memory/MEMORY.md`。

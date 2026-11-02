@@ -48,6 +48,14 @@ router.put('/profile', authenticate, authController.updateProfile);
 router.put('/change-password', authenticate, authController.changePassword);
 
 /**
+ * @route   POST /api/v1/auth/force-change-password
+ * @desc    首次登录强制改密（免鉴权）
+ * @access  Public
+ * @note    关键：不挂 authenticate 中间件，否则首次登录用户（无 token）会收到 401 卡死流程。
+ */
+router.post('/force-change-password', authController.forceChangePassword);
+
+/**
  * @route   POST /api/v1/auth/refresh
  * @desc    Refresh JWT token
  * @access  Private

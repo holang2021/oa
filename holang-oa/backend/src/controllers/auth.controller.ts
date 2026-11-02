@@ -31,6 +31,12 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(6, '新密码至少6个字符'),
 });
 
+const forceChangePasswordSchema = z.object({
+  username: z.string().min(1, '用户名不能为空'),
+  oldPassword: z.string().min(1, '旧密码不能为空'),
+  newPassword: z.string().min(6, '新密码至少6个字符'),
+});
+
 /**
  * User login
  */
@@ -66,6 +72,17 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       return res.status(401).json({
         code: 401,
         message: '用户名或密码错误',
+        data: null,
+      });
+    }
+
+    // 首次登录强制改密：mustChangePassword 时不签发业务 token，
+    // 仅返回标志交由前端跳转改密流程（复用 PUT /api/v1/auth/change-password）。
+    if ((user as any).mustChangePassword) {
+      return res.json({
+        code: 200,
+        mustChangePassword: true,
+        message: '请先修改初始密码后再登录',
         data: null,
       });
     }
@@ -335,6 +352,51 @@ export const changePassword = async (req: AuthRequest, res: Response, next: Next
       code: 0,
       message: '密码修改成功',
       data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 首次登录强制改密（免鉴权）
+ * 不挂 authenticate 中间件：首次登录用户尚无 token，必须免鉴权才能改密。
+ * 成功后签发与 login 完全一致的 JWT token，返回结构也与 login 一致，前端可直接完成登录态设置。
+ */
+export const forceChangePassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Validate input
+    const validated = forceChangePasswordSchema.parse(req.body);
+    const { username, oldPassword, newPassword } = validated;
+
+    // 校验旧密码并重置密码（service 内部会校验旧密码、清除 mustChangePassword）
+    const user = await authService.forceChangePassword(username, oldPassword, newPassword);
+
+    // 签发与 login 成功完全相同的 JWT token
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET is not configured');
+    const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
+
+    const token = jwt.sign(
+      { id: user.id, name: user.name, role: user.role },
+      jwtSecret,
+      { expiresIn: jwtExpiresIn }
+    );
+
+    res.json({
+      code: 0,
+      message: '密码修改成功',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          wecomUserId: user.wecomUserId,
+        },
+      },
     });
   } catch (error) {
     next(error);

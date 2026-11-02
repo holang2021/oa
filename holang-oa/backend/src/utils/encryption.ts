@@ -31,6 +31,14 @@ function getKey(): Buffer {
       ? Buffer.from(raw, 'utf8').subarray(0, 32)
       : Buffer.from(raw.padEnd(32, '0'), 'utf8').subarray(0, 32);
   }
+  // 生产环境：密钥缺失或不足 32 字节时，拒绝退化为开发回退密钥（否则邮箱凭据等价于明文），
+  // 直接抛错，由调用方（邮件绑定/同步链路）捕获并阻断，绝不用弱密钥加密。
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[email-cred] 生产环境必须配置 EMAIL_CRED_ENCRYPTION_KEY（≥32 字节原始字符串或 64 位十六进制）。' +
+      '拒绝使用开发回退密钥加密凭据，以免企业邮箱授权码退化为明文等价！'
+    );
+  }
   if (!warned) {
     console.warn(
       '[email-cred] 未配置 EMAIL_CRED_ENCRYPTION_KEY，使用开发回退密钥加密凭据。生产环境务必配置 32 字节强密钥，否则凭据可被还原！'

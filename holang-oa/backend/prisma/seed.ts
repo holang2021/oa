@@ -19,6 +19,7 @@ async function main() {
       role: 'ADMIN',
       department: '管理部',
       isActive: true,
+      mustChangePassword: true,
     },
   });
 
@@ -37,6 +38,7 @@ async function main() {
       role: 'MANAGER',
       department: '销售部',
       isActive: true,
+      mustChangePassword: true,
     },
   });
 
@@ -55,6 +57,7 @@ async function main() {
       role: 'SALES',
       department: '销售部',
       isActive: true,
+      mustChangePassword: true,
     },
   });
 

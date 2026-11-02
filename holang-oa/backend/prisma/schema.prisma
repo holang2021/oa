@@ -24,6 +24,8 @@ model User {
   departments   String?   @map("departments") // 多部门：JSON 数组字符串，存部门名，如 ["生产部","技术部"]
   isActive      Boolean   @default(true)
   lastLoginAt   DateTime?
+  // 首次登录强制改密标志：seed 默认 true，改密成功后置 false（见 auth.service.changePassword）
+  mustChangePassword Boolean @default(false) @map("must_change_password")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
