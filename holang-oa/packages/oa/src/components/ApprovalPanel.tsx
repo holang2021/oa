@@ -4,7 +4,7 @@
 // 数据来自真实后端审批引擎，不依赖前端模拟件（useApproval / ApprovalFlow 等）。
 // ============================================================
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, AlertCircle, Check, X, Send, RotateCcw } from 'lucide-react'
+import { Loader2, AlertCircle, Check, X, Send, RotateCcw, Info } from 'lucide-react'
 import {
   getApprovalByEntity,
   submitApproval,
@@ -74,11 +74,13 @@ export default function ApprovalPanel({ entityType, entityId, entityCode, title 
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [noApprovalTip, setNoApprovalTip] = useState('')
   const [rejectOpen, setRejectOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+    setNoApprovalTip('')
     try {
       const list = await getApprovalByEntity(entityType, entityId)
       setApproval(pickActive(list))
@@ -99,9 +101,15 @@ export default function ApprovalPanel({ entityType, entityId, entityCode, title 
   const handleSubmit = async () => {
     setBusy(true)
     setError('')
+    setNoApprovalTip('')
     try {
-      await submitApproval({ entityType, entityId, entityCode, title })
-      await load()
+      const result = await submitApproval({ entityType, entityId, entityCode, title })
+      if (result.data) {
+        await load()
+      } else {
+        // 该单据未启用审批（后端 code 0, data null）
+        setNoApprovalTip(result.message || '该单据未启用审批')
+      }
     } catch (e: any) {
       setError(e?.message || '提交失败')
     } finally {
@@ -223,7 +231,13 @@ export default function ApprovalPanel({ entityType, entityId, entityCode, title 
 
           {/* 操作区 */}
           <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
-            {effectiveStatus === 'NONE' && (
+            {noApprovalTip && (
+              <span className="text-xs text-gray-400 inline-flex items-center gap-1.5">
+                <Info size={13} />{noApprovalTip}
+              </span>
+            )}
+
+            {effectiveStatus === 'NONE' && !noApprovalTip && (
               <button onClick={handleSubmit} disabled={busy} className="btn-primary text-xs inline-flex items-center gap-1.5">
                 {busy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                 提交审批

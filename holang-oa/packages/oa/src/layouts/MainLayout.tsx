@@ -143,6 +143,7 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null, view
       id: 'tools', labelKey: 'domain.tools', domainKey: 'domain.tools_tag', icon: Database,
       items: filterItems([
         { to: '/tools/approval', labelKey: 'nav.approval', icon: ClipboardCheck },
+        { to: '/tools/approval-rules', labelKey: 'nav.approvalRules', icon: ShieldCheck },
         { to: '/tools/templates', labelKey: 'nav.templates', icon: FileText },
         { to: '/tools/stats', labelKey: 'nav.stats', icon: BarChart3 },
         { to: '/tools/print-templates', labelKey: 'nav.printTemplates', icon: Printer },

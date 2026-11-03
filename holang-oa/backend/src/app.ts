@@ -41,6 +41,7 @@ import fieldConfigRoutes from './routes/fieldConfig.routes';
 import emailBindingsRoutes from './routes/emailBindings.routes';
 import emailsRoutes from './routes/emails.routes';
 import approvalRoutes from './routes/approval.routes';
+import approvalRuleRoutes from './routes/approvalRule.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -160,6 +161,7 @@ app.use(`${API_PREFIX}/currencies`, currencyRoutes);
 app.use(`${API_PREFIX}/code-rules`, codeRuleRoutes);
 app.use(`${API_PREFIX}/field-configs`, fieldConfigRoutes);
 app.use(`${API_PREFIX}/approvals`, approvalRoutes);
+app.use(`${API_PREFIX}/approval-rules`, approvalRuleRoutes);
 // 邮件归集（邮件自动归集进时间轴 / Phase 1）
 app.use(`${API_PREFIX}/email-bindings`, emailBindingsRoutes);
 app.use(API_PREFIX, emailsRoutes);

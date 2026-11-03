@@ -144,6 +144,33 @@ User decision:     规则已按建议确认（刘总 2026-11-02「按建议来�
 Next action:       刘总本机 docker compose build && up 验证审批闭环；是否推 GitHub（本机 bat 推 bundle）；CONTRACT/PI/INVOICE 详情页补建排期
 ```
 
+### 支线 5 ｜ 审批规则后台可配置 + 多级审批/多人会签（OA-approval-config）【候选，待刘总批准】
+```
+WorkItemID:        OA-APPROVAL-CONFIG
+DispatchKey:       （未派发）
+Branch title:      支线｜审批规则后台可配置+多级审批/多人会签｜OA-approval-config
+Status:            running（刘总 2026-11-03「按默认」批准生效；已派隔离 Agent 实现中）
+Object & access:   prisma/schema.prisma(+ApprovalRule 新表、Approval/ApprovalStep 加字段)、
+                   constants/approval.ts(降级/移除 DOC_REQUIRED_ROLE 硬编码)、services/approval.service.ts(重写支持多级+会签)、
+                   controllers/approval.controller.ts + routes/approval.routes.ts(+规则 CRUD 端点)、
+                   packages/oa 新增「审批规则配置」管理页(ADMIN)
+ObjectLock:        审批引擎相关文件独占（与支线 4 同对象，须串行错峰，支线 4 已 completed 无冲突）
+Baseline checked:  system-build @ 1ce1cf2
+Expected delta:    新增 ApprovalRule 表（按单据类型一条启用规则：enabled 开关 + levels 有序数组
+                   {approverType, salesTypeScope, countersign}）；Approval 加 ruleId/currentLevel、ApprovalStep 加 level；
+                   service 重写 submit/approve/reject/resubmit/inbox/done 以支持多级顺序 + 会签(SINGLE/ALL)；
+                   新增 GET/PUT /api/v1/approval-rules（ADMIN）；前端管理页配置 6 类单据的开关/级/角色/域/会签；
+                   seed 默认规则=现状(合同/PI/订单/发货→主管单级、发票→财务单级)，零回退。
+Validation:       后端 tsc EXIT 0；前端 build EXIT 0；prisma db push 临时库 EXIT 0；主线隔离冒烟覆盖
+                   开关/改角色/改域/加二级/会签；主线复跑 build 复核 readback。
+Evidence:          candidate: .workbuddy/skills-governance/candidates/2026-11-03-oa-approval-config.md
+Risks/blocker:     会签(ALL)"多人"界定与"无适用审批人"处理需刘总确认（见候选第七节）；
+                   DEALER_REPORT 仍走旧审核路径不接入新引擎（与支线4一致）；Pi/Delivery 不镜像(无字段，不变)；
+                   纯新增非破坏性迁移，可回滚。
+User decision:     刘总已确认四维度（含多级/会签，2026-11-03）；待批准候选并确认 D4 会签语义/无审批人兜底
+Next action:       隔离 Agent 实现中；完成后主线 readback 验收 → 提交 + 离线 bundle（沙箱不直推，刘总本机 push_repo.bat 推送）
+```
+
 ## 历史已落地（参考 MEMORY.md，不重复登记）
 offboarding 离职继承、Contact 治理、GOV-026 四功能、报价单同步（空壳暂不同步）、
 RBAC/审批流（待）、huoban_export 硬编码 key 清理（待）。详见 `.workbuddy/memory/MEMORY.md`。
@@ -152,8 +179,8 @@ RBAC/审批流（待）、huoban_export 硬编码 key 清理（待）。详见 `
 - Old mainline ID: 本对话
 - New mainline ID: （建新会话后填）
 - Project truth files: 见上"项目真相文件"
-- Active non-terminal: 支线 2（not-created，待派发）
-- Waiting approvals: 支线 2 需刘总正式点头 + 企业微信 OA 应用开"邮件"权限
+- Active non-terminal: 支线 2（not-created，待派发）、支线 5（candidate，待刘总批准生效）
+- Waiting approvals: 支线 2 需刘总正式点头 + 企业微信 OA 应用开"邮件"权限（支线 5 已批准，running）
 - Held object locks: 无（支线 1 已释放）
 - Completed dispatch keys that must not repeat: OA-EMAIL-PHASE1-20261101-gen1
 - Forbidden actions: 主线不 inline 写代码 / 不起服务 / 不 push；沙箱不直推 GitHub

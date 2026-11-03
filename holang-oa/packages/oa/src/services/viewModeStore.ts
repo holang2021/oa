@@ -46,6 +46,7 @@ export const ADMIN_ONLY_PATHS = new Set<string>([
   '/org/offboarding-todos', // 离职交接待办
   // 系统工具（整组均为配置层）
   '/tools/approval', // 审批引擎
+  '/tools/approval-rules', // 审批规则配置（支线5 后台可配置）
   '/tools/templates', // 审批模板
   '/tools/stats', // 审批统计
   '/tools/print-templates', // 打印模板

@@ -1082,7 +1082,11 @@ model Approval {
   submitterName String?
   status        String   @default("PENDING") // PENDING / APPROVED / REJECTED
   salesType     String? // 单据销售域：INTERNAL / EXTERNAL（域隔离）
-  requiredRole  String // 决定谁能审：MANAGER（任一销售域主管）/ FINANCE（财务）
+  // ═══ 支线5 OA-APPROVAL-CONFIG：规则驱动审批 ═══
+  ruleId        String? // 关联 ApprovalRule.id（按 entityType 查到的启用规则）
+  currentLevel  Int      @default(0) // 当前停在第几级（0-based）
+  // 兼容字段：写入首级 approverType 便于旧查询/展示；新引擎以 levels[currentLevel] 为准
+  requiredRole  String // 决定谁能审：MANAGER（任一销售域主管）/ FINANCE（财务）/ ADMIN
   approverId    String?
   approverName  String?
   decidedAt     DateTime?
@@ -1091,12 +1095,14 @@ model Approval {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  rule          ApprovalRule? @relation(fields: [ruleId], references: [id])
   steps         ApprovalStep[]
 
   @@index([status])
   @@index([entityType, entityId])
   @@index([salesType])
   @@index([requiredRole])
+  @@index([ruleId])
   @@map("approvals")
 }
 
@@ -1108,11 +1114,34 @@ model ApprovalStep {
   actorName  String?
   actorRole  String?
   comment    String?
+  level      Int? // 该动作发生在第几级（SUBMIT/RESUBMIT 为 null）；支线5 新增
   createdAt  DateTime @default(now())
 
   approval   Approval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
 
   @@index([approvalId])
   @@map("approval_steps")
+}
+
+// ============================================================
+// 审批规则 —— 支线5 OA-APPROVAL-CONFIG (刘总 2026-11-03 拍板)
+// 按单据类型一条启用规则，管理员后台可配置：是否启用 / 多级 / 会签 / 分域。
+// ═══ 仅新增表，不改动任何既有模型/字段 ═══
+// 部署走 `prisma db push`（不写 PG 迁移文件）。sqlite 兼容：枚举全部用 String，
+// levels 用 Json 存储有序数组（每项见 ApprovalLevel）。
+// ============================================================
+model ApprovalRule {
+  id         String   @id @default(cuid())
+  entityType String   @unique // CONTRACT / PI / ORDER / INVOICE / DELIVERY / DEALER_REPORT（每种单据唯一一条）
+  enabled    Boolean  @default(true) // D1 开关：是否启用审批
+  // D2/D3/D4：有序审批级数组，每项 { order, approverType, salesTypeScope, countersign }
+  // SQLite 不支持 Json 类型，按字符串(JSON)存储，读写在 service/controller 内序列化。
+  levels      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  approvals  Approval[]
+
+  @@map("approval_rules")
 }
 

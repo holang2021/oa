@@ -169,6 +169,28 @@ async function main() {
   console.log('管理员: admin / admin123');
   console.log('主管: manager / manager123');
   console.log('销售: sales / sales123');
+
+  // ── 支线5 审批规则默认配置（幂等 upsert by entityType，零回退）──
+  // 与支线4 原 DOC_REQUIRED_ROLE 行为完全一致：
+  //   合同/PI/订单/发货/经销商报备 -> 主管(MANAGER) 单级；发票 -> 财务(FINANCE) 单级。
+  // 经销商报备虽走独立审核路径（新引擎不接入），此处仍写入规则以便后台展示。
+  const defaultRules: { entityType: string; levels: any }[] = [
+    { entityType: 'CONTRACT', levels: [{ order: 0, approverType: 'MANAGER', salesTypeScope: null, countersign: 'SINGLE' }] },
+    { entityType: 'PI', levels: [{ order: 0, approverType: 'MANAGER', salesTypeScope: null, countersign: 'SINGLE' }] },
+    { entityType: 'ORDER', levels: [{ order: 0, approverType: 'MANAGER', salesTypeScope: null, countersign: 'SINGLE' }] },
+    { entityType: 'INVOICE', levels: [{ order: 0, approverType: 'FINANCE', salesTypeScope: null, countersign: 'SINGLE' }] },
+    { entityType: 'DELIVERY', levels: [{ order: 0, approverType: 'MANAGER', salesTypeScope: null, countersign: 'SINGLE' }] },
+    { entityType: 'DEALER_REPORT', levels: [{ order: 0, approverType: 'MANAGER', salesTypeScope: null, countersign: 'SINGLE' }] },
+  ];
+
+  for (const r of defaultRules) {
+    await prisma.approvalRule.upsert({
+      where: { entityType: r.entityType },
+      update: { levels: JSON.stringify(r.levels) },
+      create: { entityType: r.entityType, enabled: true, levels: JSON.stringify(r.levels) },
+    });
+  }
+  console.log('审批规则默认配置已写入（6 类单据）');
 }
 
 main()

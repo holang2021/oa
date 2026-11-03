@@ -22,6 +22,7 @@ import migrationRoutes from './migration.routes';
 import dealerRoutes from './dealer.routes';
 import apiConfigRoutes from './api-config.routes';
 import approvalRoutes from './approval.routes';
+import approvalRuleRoutes from './approvalRule.routes';
 
 // This file aggregates all routes for easier management
 // Actual route registration happens in app.ts
@@ -44,6 +45,7 @@ export {
   dealerRoutes,
   apiConfigRoutes,
   approvalRoutes,
+  approvalRuleRoutes,
 };
 
 export default router;

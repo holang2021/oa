@@ -93,10 +93,13 @@ function unwrap<T>(res: { code: number; message: string; data: T }): T {
   return res.data
 }
 
-/** 提交审批 */
-export async function submitApproval(payload: SubmitApprovalPayload): Promise<Approval> {
+/** 提交审批。返回 { data, message }：data 为 null 表示「该单据未启用审批」（后端 code 0, data null）。 */
+export async function submitApproval(
+  payload: SubmitApprovalPayload
+): Promise<{ data: Approval | null; message?: string }> {
   const res = await api.post<Approval>('/approvals/submit', payload)
-  return unwrap(res)
+  if (res.code !== 0) throw new Error(res.message || '操作失败')
+  return { data: res.data ?? null, message: res.message }
 }
 
 /** 同意审批 */
@@ -132,5 +135,41 @@ export async function getDone(): Promise<ApprovalListItem[]> {
 /** 按单据查询审批记录（同一单据可能有多条历史：驳回后再提交会同时存在 REJECTED 和 PENDING） */
 export async function getApprovalByEntity(entityType: EntityType, entityId: string): Promise<Approval[]> {
   const res = await api.get<Approval[]>('/approvals/doc', { entityType, entityId })
+  return unwrap(res)
+}
+
+// ───────────────────────────────────────────────────────────
+// 审批规则后台配置（支线5 OA-APPROVAL-CONFIG，ADMIN 专属）
+// ───────────────────────────────────────────────────────────
+export type ApproverType = 'MANAGER' | 'FINANCE' | 'ADMIN'
+export type SalesScope = 'INTERNAL' | 'EXTERNAL' | 'ALL' | null
+export type Countersign = 'SINGLE' | 'ALL'
+
+export interface ApprovalLevelConfig {
+  order: number
+  approverType: ApproverType
+  salesTypeScope: SalesScope
+  countersign: Countersign
+}
+
+export interface ApprovalRuleConfig {
+  entityType: EntityType
+  enabled: boolean
+  levels: ApprovalLevelConfig[]
+  configured: boolean
+}
+
+/** 列出全部 6 类单据的审批规则（GET /api/v1/approval-rules） */
+export async function getApprovalRules(): Promise<ApprovalRuleConfig[]> {
+  const res = await api.get<ApprovalRuleConfig[]>('/approval-rules')
+  return unwrap(res)
+}
+
+/** upsert 某单据类型的审批规则（PUT /api/v1/approval-rules/:entityType） */
+export async function upsertApprovalRule(
+  entityType: EntityType,
+  payload: { enabled: boolean; levels: ApprovalLevelConfig[] }
+): Promise<ApprovalRuleConfig> {
+  const res = await api.put<ApprovalRuleConfig>(`/approval-rules/${entityType}`, payload)
   return unwrap(res)
 }
