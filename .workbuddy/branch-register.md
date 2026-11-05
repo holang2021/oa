@@ -144,15 +144,16 @@ User decision:     规则已按建议确认（刘总 2026-11-02「按建议来�
 Next action:       刘总本机 docker compose build && up 验证审批闭环；是否推 GitHub（本机 bat 推 bundle）；CONTRACT/PI/INVOICE 详情页补建排期
 ```
 
-### 支线 5 ｜ 审批规则后台可配置 + 多级审批/多人会签（OA-approval-config）【候选，待刘总批准】
+### 支线 5 ｜ 审批规则后台可配置 + 多级审批/多人会签（OA-approval-config）【已完成】
 ```
 WorkItemID:        OA-APPROVAL-CONFIG
-DispatchKey:       （未派发）
+DispatchKey:       OA-APPROVAL-CONFIG-20261103-gen1
 Branch title:      支线｜审批规则后台可配置+多级审批/多人会签｜OA-approval-config
-Status:            running（刘总 2026-11-03「按默认」批准生效；已派隔离 Agent 实现中）
+Status:            completed（主线已 readback 验收，15/15 全过）
 Object & access:   prisma/schema.prisma(+ApprovalRule 新表、Approval/ApprovalStep 加字段)、
-                   constants/approval.ts(降级/移除 DOC_REQUIRED_ROLE 硬编码)、services/approval.service.ts(重写支持多级+会签)、
-                   controllers/approval.controller.ts + routes/approval.routes.ts(+规则 CRUD 端点)、
+                   constants/approval.ts(降级 DOC_REQUIRED_ROLE 兼容、新增 canApproveByLevel 跨域校验)、
+                   services/approval.service.ts(重写支持多级顺序 + 会签 SINGLE/ALL)、
+                   controllers/approvalRule.controller.ts + routes/approvalRule.routes.ts(+规则 CRUD 端点)、
                    packages/oa 新增「审批规则配置」管理页(ADMIN)
 ObjectLock:        审批引擎相关文件独占（与支线 4 同对象，须串行错峰，支线 4 已 completed 无冲突）
 Baseline checked:  system-build @ 1ce1cf2
@@ -161,14 +162,21 @@ Expected delta:    新增 ApprovalRule 表（按单据类型一条启用规则�
                    service 重写 submit/approve/reject/resubmit/inbox/done 以支持多级顺序 + 会签(SINGLE/ALL)；
                    新增 GET/PUT /api/v1/approval-rules（ADMIN）；前端管理页配置 6 类单据的开关/级/角色/域/会签；
                    seed 默认规则=现状(合同/PI/订单/发货→主管单级、发票→财务单级)，零回退。
-Validation:       后端 tsc EXIT 0；前端 build EXIT 0；prisma db push 临时库 EXIT 0；主线隔离冒烟覆盖
-                   开关/改角色/改域/加二级/会签；主线复跑 build 复核 readback。
-Evidence:          candidate: .workbuddy/skills-governance/candidates/2026-11-03-oa-approval-config.md
-Risks/blocker:     会签(ALL)"多人"界定与"无适用审批人"处理需刘总确认（见候选第七节）；
-                   DEALER_REPORT 仍走旧审核路径不接入新引擎（与支线4一致）；Pi/Delivery 不镜像(无字段，不变)；
-                   纯新增非破坏性迁移，可回滚。
-User decision:     刘总已确认四维度（含多级/会签，2026-11-03）；待批准候选并确认 D4 会签语义/无审批人兜底
-Next action:       隔离 Agent 实现中；完成后主线 readback 验收 → 提交 + 离线 bundle（沙箱不直推，刘总本机 push_repo.bat 推送）
+Validation:       后端 tsc --noEmit EXIT 0；前端 build EXIT 0；prisma db push 临时库 EXIT 0；
+                   隔离 Agent 24/24 冒烟全过；主线独立 readback 自写 15 断言真实 HTTP 冒烟（端口3211/一次性临时库）
+                   15/15 全过，含两条修复实测正确：[c]跨域拦截(scope=INTERNAL 级不处理 EXTERNAL 单)、
+                   [e1]会签未集齐停留当前级仍 PENDING 不越级。
+Evidence:          commit 65843e3（支线5，16 文件 +965/-100）；合并提交 cc0a343（接回 origin/system-build 的 CI 基线 1e64cd63，无冲突）；
+                   bundle system-build-20261103-merged.bundle（--all，含支线4+支线5+CI基线合并，system-build→cc0a343）；
+                   candidate: .workbuddy/skills-governance/candidates/2026-11-03-oa-approval-config.md
+                   推送：2026-11-05 主线经代理重试推送 GitHub system-build=cc0a343（ls-remote 复核通过）；合并后 tsc + 前端 build 均 EXIT 0。
+Risks/blocker:     会签(ALL)若某级 scope 全限 INTERNAL 但提交 EXTERNAL 单→该单卡 PENDING（预期"配置错误"边界，
+                   前端应引导管理员保证覆盖）；DEALER_REPORT 仍走旧审核路径不接入新引擎（与支线4一致）；
+                   Pi/Delivery 不镜像(无字段，不变)；纯新增非破坏性迁移，可回滚。
+User decision:     刘总 2026-11-03「按默认」批准：四维度(单据开关/谁批/分内销外销域/多级+会签)；
+                   会签=该级全签、任一人驳回整单驳回；无适用审批人时配置页禁止保存(400)。
+Next action:       已提交+离线 bundle 生成；沙箱不直推，刘总本机 push_repo.bat 推送 system-build-20261103-approval-config.bundle；
+                   后续可选补 CONTRACT/PI/INVOICE 前端详情页审批入口、刘总本机 docker 真跑审批闭环。
 ```
 
 ## 历史已落地（参考 MEMORY.md，不重复登记）
@@ -179,8 +187,8 @@ RBAC/审批流（待）、huoban_export 硬编码 key 清理（待）。详见 `
 - Old mainline ID: 本对话
 - New mainline ID: （建新会话后填）
 - Project truth files: 见上"项目真相文件"
-- Active non-terminal: 支线 2（not-created，待派发）、支线 5（candidate，待刘总批准生效）
-- Waiting approvals: 支线 2 需刘总正式点头 + 企业微信 OA 应用开"邮件"权限（支线 5 已批准，running）
+- Active non-terminal: 支线 2（not-created，待派发）
+- Waiting approvals: 支线 2 需刘总正式点头 + 企业微信 OA 应用开"邮件"权限
 - Held object locks: 无（支线 1 已释放）
 - Completed dispatch keys that must not repeat: OA-EMAIL-PHASE1-20261101-gen1
 - Forbidden actions: 主线不 inline 写代码 / 不起服务 / 不 push；沙箱不直推 GitHub

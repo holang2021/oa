@@ -5,14 +5,79 @@ import {
   loadPrintTemplates, savePrintTemplates, PrintTemplate, BUILTIN_TEMPLATES,
   getPaperSizeLabel, getAllCategories
 } from '../services/printTemplateStore'
+import { usePrintPreview } from '../components/PrintPreview'
 import {
   Plus, FileText, Printer, Search, ToggleLeft, ToggleRight,
   Trash2, Copy, X, ChevronRight, LayoutTemplate, Settings
 } from 'lucide-react'
 
+// 打印预览示例数据：CI 用真实客户样本（Allum Corporation），其余用通用示例
+function buildSampleData(tpl: PrintTemplate): Record<string, any> {
+  if (tpl.category === 'CI') {
+    return {
+      buyerName: 'Allum Corporation',
+      buyerAddress: '2121 Hiawassee Rd #120 Orlando, FL 32835,USA',
+      buyerAttn: 'Alessandro Ponso',
+      buyerEin: '35-260-2543',
+      buyerEmail: 'Allum@allumcorp.com',
+      invoiceNo: 'HC2606038',
+      invoiceDate: 'Sep 17, 2026',
+      countryOfOrigin: 'CHINA',
+      items: [
+        { name: '8419609090 Nitrogen Generator', spec: '', qty: 1, price: 'US$13,800.00', amount: 'US$13,800.00' },
+        { name: 'Export Packaging', spec: '', qty: 1, price: 'US$100.00', amount: 'US$100.00' },
+      ],
+      totalAmount: 'US$13,900.00',
+      amountInWords: 'UNITED STATES DOLLARS THIRTEEN THOUSAND NINE HUNDRED ONLY',
+      transactionMethod: 'EXW SUZHOU',
+      paymentTerm: 'TT 20% PREPAYMENT, 80% BALANCE BEFORE SHIPMENT',
+      deliveryDate: '20 DAYS AFTER RECEIVING THE PREPAYMENT',
+      remarks: 'ONE COMPLETE SET OF NPA15 SPARE PARTS FREE OF CHARGE',
+      beneficiaryAccount: '512912307432201',
+    }
+  }
+  if (tpl.category === 'PL') {
+    // 与 CI 共用同一客户（Allum Corporation）的买方/单据头数据键，仅单据专属字段不同 → 同客户 PI/CI/PL 互通
+    return {
+      buyerName: 'Allum Corporation',
+      buyerAddress: '2121 Hiawassee Rd #120 Orlando, FL 32835,USA',
+      buyerAttn: 'Alessandro Ponso',
+      buyerEin: '35-260-2543',
+      buyerEmail: 'Allum@allumcorp.com',
+      invoiceNo: 'HC2606038',
+      invoiceDate: 'Sep 23, 2026',
+      countryOfOrigin: 'CHINA',
+      items: [
+        { hsCode: '8419609090', name: 'Nitrogen Generator', qty: 1, package: '1 plywood crate', nw: 320, gw: 425 },
+      ],
+      totalNW: 320,
+      totalGW: 425,
+      totalPackages: 'TOTAL 1 CASE.',
+      grossWeight: 'GROSS WEIGHT: 425 KGS',
+      netWeight: 'NET WEIGHT: 320 KGS',
+      measurement: 'MEASUREMENT: 2.117 CBM',
+      netDimension: 'NPA15 Net Dimension: 1260×660×1680 mm',
+      crateDimension: 'NPA15 Dimensions of wooden crate packaging: 1390×810×1880 mm',
+      packingNote: 'Packing: Plywood case, fumigation-free. Goods are palletized and ready for forklift unloading.',
+    }
+  }
+  // 订单/报价/PI/合同等通用示例
+  return {
+    orderNo: 'HC20260001',
+    customerName: '示例客户',
+    orderDate: '2026-01-01',
+    deliveryDate: '2026-02-01',
+    totalAmount: '¥10,000.00',
+    items: [
+      { name: '示例产品', spec: '规格A', qty: 2, price: '¥5,000.00', amount: '¥10,000.00' },
+    ],
+  }
+}
+
 export default function PrintTemplates() {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const { openPreview, PrintPreviewComponent } = usePrintPreview()
   const [templates, setTemplates] = useState<PrintTemplate[]>(loadPrintTemplates())
   const [search, setSearch] = useState('')
   const [showEditor, setShowEditor] = useState(false)
@@ -79,6 +144,10 @@ export default function PrintTemplates() {
     savePrintTemplates(next)
   }
 
+  const handlePrint = (tpl: PrintTemplate) => {
+    openPreview(tpl.id, buildSampleData(tpl))
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -129,6 +198,7 @@ export default function PrintTemplates() {
                     onEdit={() => { setEditingTpl(tpl); setShowEditor(true) }}
                     onDelete={() => setDeleteConfirm(tpl.id)}
                     onDuplicate={() => duplicateTemplate(tpl)}
+                    onPrint={() => handlePrint(tpl)}
                   />
                 ))}
               </div>
@@ -158,6 +228,9 @@ export default function PrintTemplates() {
         />
       )}
 
+      {/* Print preview */}
+      {PrintPreviewComponent}
+
       {/* Delete confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -179,9 +252,9 @@ export default function PrintTemplates() {
 }
 
 function TemplateCard({
-  tpl, onToggle, onEdit, onDelete, onDuplicate
+  tpl, onToggle, onEdit, onDelete, onDuplicate, onPrint
 }: {
-  tpl: PrintTemplate; onToggle: () => void; onEdit: () => void; onDelete: () => void; onDuplicate: () => void
+  tpl: PrintTemplate; onToggle: () => void; onEdit: () => void; onDelete: () => void; onDuplicate: () => void; onPrint: () => void
 }) {
   const isBuiltin = BUILTIN_TEMPLATES.some(bt => bt.id === tpl.id)
   return (
@@ -211,6 +284,7 @@ function TemplateCard({
             <span className="text-[10px] text-gray-400">{tpl.enabled ? '启用' : '禁用'}</span>
           </div>
           <div className="flex items-center gap-1">
+            <button onClick={onPrint} className="p-1 rounded hover:bg-brand-50 text-brand-600" title="打印预览"><Printer size={13} /></button>
             <button onClick={onDuplicate} className="p-1 rounded hover:bg-gray-100 text-gray-400" title="复制"><Copy size={13} /></button>
             <button onClick={onEdit} className="p-1 rounded hover:bg-gray-100 text-gray-400" title="编辑"><Settings size={13} /></button>
             <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500" title="删除"><Trash2 size={13} /></button>

@@ -92,15 +92,17 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
                 <span className="font-medium">{String(val)}</span>
               </div>
             )
-          case 'table':
+          case 'table': {
             const items = field.key && Array.isArray(data[field.key]) ? data[field.key] : []
+            const hasTableFields = Array.isArray(field.tableFields) && field.tableFields.length > 0
+            const cols = field.columns || []
             return (
               <div key={idx} className="mb-4 flex-1">
                 <div className="text-xs text-gray-500 mb-1">{field.label}</div>
                 <table className="w-full text-xs border border-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {(field.columns || []).map((col, ci) => (
+                      {cols.map((col, ci) => (
                         <th key={ci} className={`border border-gray-200 px-2 py-1 ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}>
                           {col.content}
                         </th>
@@ -109,21 +111,32 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
-                      <tr><td colSpan={field.columns?.length || 1} className="border border-gray-200 px-2 py-3 text-center text-gray-400">暂无数据</td></tr>
+                      <tr><td colSpan={cols.length || 1} className="border border-gray-200 px-2 py-3 text-center text-gray-400">暂无数据</td></tr>
                     ) : items.map((item: any, ri: number) => (
                       <tr key={ri}>
                         <td className="border border-gray-200 px-2 py-1 text-center">{ri + 1}</td>
-                        <td className="border border-gray-200 px-2 py-1">{item.name || item.productName || ''}</td>
-                        <td className="border border-gray-200 px-2 py-1">{item.spec || item.specification || ''}</td>
-                        <td className="border border-gray-200 px-2 py-1 text-right">{item.qty || item.quantity || ''}</td>
-                        <td className="border border-gray-200 px-2 py-1 text-right">{item.price || item.unitPrice || ''}</td>
-                        <td className="border border-gray-200 px-2 py-1 text-right">{item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>
+                        {hasTableFields
+                          ? field.tableFields!.map((tf, ci) => (
+                              <td key={ci} className={`border border-gray-200 px-2 py-1 ${tf.align === 'right' ? 'text-right' : tf.align === 'center' ? 'text-center' : 'text-left'}`}>
+                                {String(item[tf.key || ''] ?? '')}
+                              </td>
+                            ))
+                          : (
+                            <>
+                              <td className="border border-gray-200 px-2 py-1">{item.name || item.productName || ''}</td>
+                              <td className="border border-gray-200 px-2 py-1">{item.spec || item.specification || ''}</td>
+                              <td className="border border-gray-200 px-2 py-1 text-right">{item.qty || item.quantity || ''}</td>
+                              <td className="border border-gray-200 px-2 py-1 text-right">{item.price || item.unitPrice || ''}</td>
+                              <td className="border border-gray-200 px-2 py-1 text-right">{item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>
+                            </>
+                          )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )
+          }
           case 'footer':
             return (
               <div key={idx} className={`mt-auto pt-4 text-xs text-gray-400 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
@@ -161,21 +174,21 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
         return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || 14}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:16px;">${field.content}</div>`
       case 'field':
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}"><span style="color:#999;font-size:11px;">${field.label}:</span><span style="font-weight:500;">${String(val)}</span></div>`
-      case 'table':
+      case 'table': {
         const items = field.key && Array.isArray(data[field.key]) ? data[field.key] : []
+        const hasTableFields = Array.isArray(field.tableFields) && field.tableFields.length > 0
         const cols = field.columns || []
         const th = cols.map(c => `<th style="border:1px solid #ddd;padding:4px 8px;font-size:11px;background:#f5f5f5;text-align:${c.align || 'left'};">${c.content}</th>`).join('')
         const tbody = items.length === 0
           ? `<tr><td colspan="${cols.length}" style="border:1px solid #ddd;padding:12px;text-align:center;color:#999;font-size:11px;">暂无数据</td></tr>`
-          : items.map((item: any, i: number) => `<tr>
-            <td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:center;">${i + 1}</td>
-            <td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;">${item.name || item.productName || ''}</td>
-            <td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;">${item.spec || item.specification || ''}</td>
-            <td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.qty || item.quantity || ''}</td>
-            <td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.price || item.unitPrice || ''}</td>
-            <td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>
-          </tr>`).join('')
+          : items.map((item: any, i: number) => {
+              const dataCells = hasTableFields
+                ? field.tableFields!.map(tf => `<td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:${tf.align === 'right' ? 'right' : tf.align === 'center' ? 'center' : 'left'};">${String(item[tf.key || ''] ?? '')}</td>`).join('')
+                : `<td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;">${item.name || item.productName || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;">${item.spec || item.specification || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.qty || item.quantity || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.price || item.unitPrice || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>`
+              return `<tr><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:center;">${i + 1}</td>${dataCells}</tr>`
+            }).join('')
         return `<div style="margin-bottom:16px;"><div style="font-size:11px;color:#999;margin-bottom:4px;">${field.label}</div><table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table></div>`
+      }
       case 'footer':
         return `<div style="margin-top:auto;padding-top:16px;font-size:${field.fontSize || 10}px;color:#999;text-align:${field.align || 'left'};">${field.content}</div>`
       case 'spacer':
