@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { PrintTemplate, getTemplateById } from '../services/printTemplateStore'
+import { PrintTemplate, PrintField, getTemplateById } from '../services/printTemplateStore'
+import { PRINT_FONT_FAMILY, PRINT_FONT_SIZES, PRINT_COLORS } from '../services/printDesignTokens'
 import { Printer, X, FileText } from 'lucide-react'
 
 interface PrintPreviewProps {
@@ -96,9 +97,21 @@ export default function PrintPreview({ templateId, data, open, onClose }: PrintP
   )
 }
 
+/** 字段标签：可由 labelKey 从单据数据切换中英文；中文用全角冒号 */
+function fieldLabel(field: PrintField, data: Record<string, any>) {
+  const label = field.labelKey && data[field.labelKey] ? String(data[field.labelKey]) : (field.label || '')
+  const colon = /[\u4e00-\u9fa5]/.test(label) ? '：' : ':'
+  return { label, colon }
+}
+
+/** 表格边框：真实外销单据用粗黑框，其余模板沿用设计系统的常规描边 */
+function tableBorder(field: PrintField) {
+  return field.bordered ? PRINT_COLORS.borderStrong : PRINT_COLORS.border
+}
+
 function RenderTemplateContent({ template, data }: { template: PrintTemplate; data: Record<string, any> }) {
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" style={{ fontFamily: PRINT_FONT_FAMILY, color: PRINT_COLORS.text }}>
       {template.fields.map((field, idx) => {
         const val = field.key ? (data[field.key] ?? '') : ''
 
@@ -107,20 +120,47 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
           case 'header': {
             const text = field.key && val !== '' && val != null ? String(val) : (field.content || '')
             return (
-              <div key={idx} className={`mb-4 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
-                style={{ fontSize: `${field.fontSize || 14}px`, fontWeight: field.bold ? 'bold' : 'normal' }}>
+              <div key={idx}
+                className={`mb-2 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
+                style={{ fontSize: `${field.fontSize || PRINT_FONT_SIZES.body}px`, fontWeight: field.bold ? 'bold' : 'normal', lineHeight: 1.4 }}>
                 {text}
               </div>
             )
           }
           case 'field': {
-            // 银行块等场景：标签也来自单据数据（外币=英文 / 人民币=中文），没有则回退模板静态标签
-            const label = field.labelKey && data[field.labelKey] ? String(data[field.labelKey]) : (field.label || '')
-            const colon = /[\u4e00-\u9fa5]/.test(label) ? '：' : ':'
+            const { label, colon } = fieldLabel(field, data)
             return (
-              <div key={idx} className={`flex items-center gap-2 mb-2 text-sm ${field.align === 'center' ? 'justify-center' : field.align === 'right' ? 'justify-end' : ''}`}>
-                <span className="text-gray-500 text-xs">{label}{colon}</span>
-                <span className="font-medium">{String(val)}</span>
+              <div key={idx}
+                className={`flex items-center gap-2 mb-1.5 ${field.align === 'center' ? 'justify-center' : field.align === 'right' ? 'justify-end' : ''}`}
+                style={{ fontSize: `${PRINT_FONT_SIZES.body}px`, lineHeight: 1.4 }}>
+                {!field.hideLabel && <span style={{ color: PRINT_COLORS.secondary, fontSize: `${PRINT_FONT_SIZES.label}px` }}>{label}{colon}</span>}
+                <span style={{ fontWeight: 500 }}>{String(val)}</span>
+              </div>
+            )
+          }
+          // 真实 logo（public/HOLANG_Logo_Official.png，高 28px）
+          case 'image':
+            return (
+              <div key={idx} style={{ marginBottom: 8 }}>
+                <img src={field.src || ''} alt="HOLANG" style={{ height: `${field.height || 28}px`, width: 'auto', display: 'block' }} />
+              </div>
+            )
+          // 买方信息（左）与单据头（右）并排两栏，对齐真实外销单据
+          case 'twoColumn': {
+            const cell = (f: PrintField, i: number) => {
+              const v = f.key ? (data[f.key] ?? '') : ''
+              const { label, colon } = fieldLabel(f, data)
+              return (
+                <div key={i} style={{ display: 'flex', gap: 6, fontSize: `${PRINT_FONT_SIZES.body}px`, marginBottom: 3, lineHeight: 1.4 }}>
+                  {!f.hideLabel && <span style={{ color: PRINT_COLORS.secondary, fontSize: `${PRINT_FONT_SIZES.label}px`, whiteSpace: 'nowrap' }}>{label}{colon}</span>}
+                  <span style={{ fontWeight: 500 }}>{String(v)}</span>
+                </div>
+              )
+            }
+            return (
+              <div key={idx} style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>{(field.left || []).map(cell)}</div>
+                <div style={{ minWidth: 180 }}>{(field.right || []).map(cell)}</div>
               </div>
             )
           }
@@ -128,14 +168,27 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
             const items = field.key && Array.isArray(data[field.key]) ? data[field.key] : []
             const hasTableFields = Array.isArray(field.tableFields) && field.tableFields.length > 0
             const cols = field.columns || []
+            const border = tableBorder(field)
+            const showNo = field.showRowNumber !== false
+            const thStyle: React.CSSProperties = {
+              border: `1px solid ${border}`, padding: '5px 8px',
+              fontSize: `${PRINT_FONT_SIZES.table}px`,
+              background: field.bordered ? PRINT_COLORS.surface : PRINT_COLORS.bg,
+              fontWeight: field.bordered ? 700 : 600,
+            }
+            const tdStyle = (align?: string): React.CSSProperties => ({
+              border: `1px solid ${border}`, padding: '5px 8px',
+              fontSize: `${PRINT_FONT_SIZES.table}px`,
+              textAlign: (align === 'right' ? 'right' : align === 'center' ? 'center' : 'left') as React.CSSProperties['textAlign'],
+            })
             return (
-              <div key={idx} className="mb-4 flex-1">
-                <div className="text-xs text-gray-500 mb-1">{field.label}</div>
-                <table className="w-full text-xs border border-gray-200">
-                  <thead className="bg-gray-50">
+              <div key={idx} className="mb-3 flex-1">
+                <div style={{ fontSize: `${PRINT_FONT_SIZES.label}px`, color: PRINT_COLORS.secondary, marginBottom: 4 }}>{field.label}</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
                     <tr>
                       {cols.map((col, ci) => (
-                        <th key={ci} className={`border border-gray-200 px-2 py-1 ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}>
+                        <th key={ci} style={{ ...thStyle, textAlign: (col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left') as React.CSSProperties['textAlign'] }}>
                           {col.content}
                         </th>
                       ))}
@@ -143,23 +196,21 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
-                      <tr><td colSpan={cols.length || 1} className="border border-gray-200 px-2 py-3 text-center text-gray-400">暂无数据</td></tr>
+                      <tr><td colSpan={cols.length || 1} style={{ ...tdStyle('center'), color: PRINT_COLORS.muted }}>暂无数据</td></tr>
                     ) : items.map((item: any, ri: number) => (
                       <tr key={ri}>
-                        <td className="border border-gray-200 px-2 py-1 text-center">{ri + 1}</td>
+                        {showNo && <td style={tdStyle('center')}>{ri + 1}</td>}
                         {hasTableFields
                           ? field.tableFields!.map((tf, ci) => (
-                              <td key={ci} className={`border border-gray-200 px-2 py-1 ${tf.align === 'right' ? 'text-right' : tf.align === 'center' ? 'text-center' : 'text-left'}`}>
-                                {String(item[tf.key || ''] ?? '')}
-                              </td>
+                              <td key={ci} style={tdStyle(tf.align)}>{String(item[tf.key || ''] ?? '')}</td>
                             ))
                           : (
                             <>
-                              <td className="border border-gray-200 px-2 py-1">{item.name || item.productName || ''}</td>
-                              <td className="border border-gray-200 px-2 py-1">{item.spec || item.specification || ''}</td>
-                              <td className="border border-gray-200 px-2 py-1 text-right">{item.qty || item.quantity || ''}</td>
-                              <td className="border border-gray-200 px-2 py-1 text-right">{item.price || item.unitPrice || ''}</td>
-                              <td className="border border-gray-200 px-2 py-1 text-right">{item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>
+                              <td style={tdStyle()}>{item.name || item.productName || ''}</td>
+                              <td style={tdStyle()}>{item.spec || item.specification || ''}</td>
+                              <td style={tdStyle('right')}>{item.qty || item.quantity || ''}</td>
+                              <td style={tdStyle('right')}>{item.price || item.unitPrice || ''}</td>
+                              <td style={tdStyle('right')}>{item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>
                             </>
                           )}
                       </tr>
@@ -171,18 +222,20 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
           }
           case 'footer':
             return (
-              <div key={idx} className={`mt-auto pt-4 text-xs text-gray-400 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
-                style={{ fontSize: `${field.fontSize || 10}px` }}>
+              <div key={idx}
+                className={`mt-auto pt-4 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
+                style={{ fontSize: `${field.fontSize || PRINT_FONT_SIZES.small}px`, color: PRINT_COLORS.muted }}>
                 {field.content}
               </div>
             )
           case 'spacer':
-            return <div key={idx} className="h-4" />
+            return <div key={idx} style={{ height: 12 }} />
           case 'qrcode':
             return (
-              <div key={idx} className={`flex justify-center mb-2 ${field.align === 'center' ? '' : field.align === 'right' ? 'justify-end' : 'justify-start'}`}>
-                <div className="w-24 h-24 bg-gray-100 border border-gray-200 rounded flex items-center justify-center text-xs text-gray-400">
-                  {val ? val.slice(0, 12) : 'QR CODE'}
+              <div key={idx} className={`flex mb-2 ${field.align === 'center' ? 'justify-center' : field.align === 'right' ? 'justify-end' : 'justify-start'}`}>
+                <div className="w-24 h-24 bg-gray-100 border border-gray-200 rounded flex items-center justify-center"
+                  style={{ fontSize: `${PRINT_FONT_SIZES.label}px`, color: PRINT_COLORS.muted }}>
+                  {val ? String(val).slice(0, 12) : 'QR CODE'}
                 </div>
               </div>
             )
@@ -194,6 +247,7 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
   )
 }
 
+/** 生成打印 HTML：字体 / 字号 / 颜色全部走 printDesignTokens，与 React 预览同口径 */
 function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): string {
   const { width, height, orientation } = template
   const w = orientation === 'portrait' ? width : height
@@ -204,35 +258,48 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
     switch (field.type) {
       case 'header': {
         const text = field.key && val !== '' && val != null ? String(val) : (field.content || '')
-        return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || 14}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:16px;">${text}</div>`
+        return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || PRINT_FONT_SIZES.body}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:8px;line-height:1.4;">${text}</div>`
       }
       case 'field': {
-        // 与 React 预览同口径：标签可按单据数据切换中英文
-        const label = field.labelKey && data[field.labelKey] ? String(data[field.labelKey]) : (field.label || '')
-        const colon = /[\u4e00-\u9fa5]/.test(label) ? '：' : ':'
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}"><span style="color:#999;font-size:11px;">${label}${colon}</span><span style="font-weight:500;">${String(val)}</span></div>`
+        const { label, colon } = fieldLabel(field, data)
+        const labelHTML = field.hideLabel ? '' : `<span style="color:${PRINT_COLORS.secondary};font-size:${PRINT_FONT_SIZES.label}px;">${label}${colon}</span>`
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:${PRINT_FONT_SIZES.body}px;line-height:1.4;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}">${labelHTML}<span style="font-weight:500;">${String(val)}</span></div>`
+      }
+      case 'image':
+        return `<div style="margin-bottom:8px;"><img src="${field.src || ''}" alt="HOLANG" style="height:${field.height || 28}px;width:auto;display:block;" /></div>`
+      case 'twoColumn': {
+        const cell = (f: PrintField) => {
+          const v = f.key ? (data[f.key] ?? '') : ''
+          const { label, colon } = fieldLabel(f, data)
+          const l = f.hideLabel ? '' : `<span style="color:${PRINT_COLORS.secondary};font-size:${PRINT_FONT_SIZES.label}px;white-space:nowrap;">${label}${colon}</span>`
+          return `<div style="display:flex;gap:6px;font-size:${PRINT_FONT_SIZES.body}px;margin-bottom:3px;line-height:1.4;">${l}<span style="font-weight:500;">${String(v)}</span></div>`
+        }
+        return `<div style="display:flex;gap:24px;align-items:flex-start;margin-bottom:10px;"><div style="flex:1;min-width:0;">${(field.left || []).map(cell).join('')}</div><div style="min-width:180px;">${(field.right || []).map(cell).join('')}</div></div>`
       }
       case 'table': {
         const items = field.key && Array.isArray(data[field.key]) ? data[field.key] : []
         const hasTableFields = Array.isArray(field.tableFields) && field.tableFields.length > 0
         const cols = field.columns || []
-        const th = cols.map(c => `<th style="border:1px solid #ddd;padding:4px 8px;font-size:11px;background:#f5f5f5;text-align:${c.align || 'left'};">${c.content}</th>`).join('')
+        const border = tableBorder(field)
+        const showNo = field.showRowNumber !== false
+        const th = cols.map(c => `<th style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;background:${field.bordered ? PRINT_COLORS.surface : PRINT_COLORS.bg};font-weight:${field.bordered ? 700 : 600};text-align:${c.align || 'left'};">${c.content}</th>`).join('')
         const tbody = items.length === 0
-          ? `<tr><td colspan="${cols.length}" style="border:1px solid #ddd;padding:12px;text-align:center;color:#999;font-size:11px;">暂无数据</td></tr>`
+          ? `<tr><td colspan="${cols.length}" style="border:1px solid ${border};padding:12px;text-align:center;color:${PRINT_COLORS.muted};font-size:${PRINT_FONT_SIZES.table}px;">暂无数据</td></tr>`
           : items.map((item: any, i: number) => {
               const dataCells = hasTableFields
-                ? field.tableFields!.map(tf => `<td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:${tf.align === 'right' ? 'right' : tf.align === 'center' ? 'center' : 'left'};">${String(item[tf.key || ''] ?? '')}</td>`).join('')
-                : `<td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;">${item.name || item.productName || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;">${item.spec || item.specification || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.qty || item.quantity || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.price || item.unitPrice || ''}</td><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:right;">${item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>`
-              return `<tr><td style="border:1px solid #ddd;padding:4px 8px;font-size:11px;text-align:center;">${i + 1}</td>${dataCells}</tr>`
+                ? field.tableFields!.map(tf => `<td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;text-align:${tf.align === 'right' ? 'right' : tf.align === 'center' ? 'center' : 'left'};">${String(item[tf.key || ''] ?? '')}</td>`).join('')
+                : `<td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;">${item.name || item.productName || ''}</td><td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;">${item.spec || item.specification || ''}</td><td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;text-align:right;">${item.qty || item.quantity || ''}</td><td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;text-align:right;">${item.price || item.unitPrice || ''}</td><td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;text-align:right;">${item.amount || (item.qty && item.price ? item.qty * item.price : '')}</td>`
+              const no = showNo ? `<td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;text-align:center;">${i + 1}</td>` : ''
+              return `<tr>${no}${dataCells}</tr>`
             }).join('')
-        return `<div style="margin-bottom:16px;"><div style="font-size:11px;color:#999;margin-bottom:4px;">${field.label}</div><table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table></div>`
+        return `<div style="margin-bottom:12px;"><div style="font-size:${PRINT_FONT_SIZES.label}px;color:${PRINT_COLORS.secondary};margin-bottom:4px;">${field.label}</div><table style="width:100%;border-collapse:collapse;"><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table></div>`
       }
       case 'footer':
-        return `<div style="margin-top:auto;padding-top:16px;font-size:${field.fontSize || 10}px;color:#999;text-align:${field.align || 'left'};">${field.content}</div>`
+        return `<div style="margin-top:auto;padding-top:16px;font-size:${field.fontSize || PRINT_FONT_SIZES.small}px;color:${PRINT_COLORS.muted};text-align:${field.align || 'left'};">${field.content}</div>`
       case 'spacer':
-        return `<div style="height:16px;"></div>`
+        return `<div style="height:12px;"></div>`
       case 'qrcode':
-        return `<div style="display:flex;justify-content:${field.align === 'center' ? 'center' : field.align === 'right' ? 'flex-end' : 'flex-start'};margin-bottom:8px;"><div style="width:96px;height:96px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999;">${val ? val.slice(0, 12) : 'QR CODE'}</div></div>`
+        return `<div style="display:flex;justify-content:${field.align === 'center' ? 'center' : field.align === 'right' ? 'flex-end' : 'flex-start'};margin-bottom:8px;"><div style="width:96px;height:96px;background:${PRINT_COLORS.bg};border:1px solid ${PRINT_COLORS.border};border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:${PRINT_FONT_SIZES.label}px;color:${PRINT_COLORS.muted};">${val ? String(val).slice(0, 12) : 'QR CODE'}</div></div>`
       default:
         return ''
     }
@@ -242,7 +309,7 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
 <html><head><meta charset="utf-8"><title>打印</title>
 <style>
 @page { size: ${w}mm ${h}mm; margin: 10mm; }
-body { margin: 0; padding: 0; font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+body { margin: 0; padding: 0; font-family: ${PRINT_FONT_FAMILY}; color: ${PRINT_COLORS.text}; }
 /* @page 已留 10mm 页边距，可打印区 = ${w - 20} × ${h - 20}mm；
    纸张容器改用 100% 自适应宽度（原固定 ${w}mm 会超出可打印区导致右侧被裁），
    高度用 min-height 让内容多时自然分页而不被截断。 */
