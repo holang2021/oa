@@ -113,13 +113,17 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
               </div>
             )
           }
-          case 'field':
+          case 'field': {
+            // 银行块等场景：标签也来自单据数据（外币=英文 / 人民币=中文），没有则回退模板静态标签
+            const label = field.labelKey && data[field.labelKey] ? String(data[field.labelKey]) : (field.label || '')
+            const colon = /[\u4e00-\u9fa5]/.test(label) ? '：' : ':'
             return (
               <div key={idx} className={`flex items-center gap-2 mb-2 text-sm ${field.align === 'center' ? 'justify-center' : field.align === 'right' ? 'justify-end' : ''}`}>
-                <span className="text-gray-500 text-xs">{field.label}:</span>
+                <span className="text-gray-500 text-xs">{label}{colon}</span>
                 <span className="font-medium">{String(val)}</span>
               </div>
             )
+          }
           case 'table': {
             const items = field.key && Array.isArray(data[field.key]) ? data[field.key] : []
             const hasTableFields = Array.isArray(field.tableFields) && field.tableFields.length > 0
@@ -202,8 +206,12 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
         const text = field.key && val !== '' && val != null ? String(val) : (field.content || '')
         return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || 14}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:16px;">${text}</div>`
       }
-      case 'field':
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}"><span style="color:#999;font-size:11px;">${field.label}:</span><span style="font-weight:500;">${String(val)}</span></div>`
+      case 'field': {
+        // 与 React 预览同口径：标签可按单据数据切换中英文
+        const label = field.labelKey && data[field.labelKey] ? String(data[field.labelKey]) : (field.label || '')
+        const colon = /[\u4e00-\u9fa5]/.test(label) ? '：' : ':'
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}"><span style="color:#999;font-size:11px;">${label}${colon}</span><span style="font-weight:500;">${String(val)}</span></div>`
+      }
       case 'table': {
         const items = field.key && Array.isArray(data[field.key]) ? data[field.key] : []
         const hasTableFields = Array.isArray(field.tableFields) && field.tableFields.length > 0

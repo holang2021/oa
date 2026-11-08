@@ -6,6 +6,7 @@ export type Orientation = 'portrait' | 'landscape'
 export interface PrintField {
   type: 'text' | 'field' | 'table' | 'line' | 'image' | 'qrcode' | 'barcode' | 'footer' | 'header' | 'spacer'
   label?: string
+  labelKey?: string         // 动态标签：从 data[labelKey] 取（如外币/人民币银行块切换中英文标签）
   key?: string                // data field key to render
   content?: string            // static text content
   fontSize?: number           // px
@@ -192,13 +193,13 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'DELIVERY DATE', key: 'deliveryDate' },
       { type: 'field', label: 'REMARKS', key: 'remarks' },
       { type: 'spacer' },
-      { type: 'header', content: 'Bank details:', fontSize: 11, bold: true, align: 'left' },
-      { type: 'field', label: 'Beneficiary Bank', key: 'beneficiaryBank' },
-      { type: 'field', label: 'Bank Address', key: 'bankAddress' },
-      { type: 'field', label: 'Swift Code', key: 'swiftCode' },
-      { type: 'field', label: 'Beneficiary', key: 'beneficiary' },
-      { type: 'field', label: 'Account No.', key: 'beneficiaryAccount' },
-      { type: 'field', label: 'PAYMENT ROUTE', key: 'paymentRoute' },
+      { type: 'header', content: 'Bank details:', key: 'bankDetailsTitle', fontSize: 11, bold: true, align: 'left' },
+      { type: 'field', label: 'Beneficiary Bank', labelKey: 'bankLabel1', key: 'beneficiaryBank' },
+      { type: 'field', label: 'Bank Address', labelKey: 'bankLabel2', key: 'bankAddress' },
+      { type: 'field', label: 'Swift Code', labelKey: 'bankLabel3', key: 'swiftCode' },
+      { type: 'field', label: 'Beneficiary', labelKey: 'bankLabel4', key: 'beneficiary' },
+      { type: 'field', label: 'Account No.', labelKey: 'bankLabel5', key: 'beneficiaryAccount' },
+      { type: 'field', label: 'PAYMENT ROUTE', labelKey: 'bankLabel6', key: 'paymentRoute' },
       { type: 'spacer' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 11, bold: false, align: 'right' },
       { type: 'header', content: 'Authorized Signature', fontSize: 11, bold: false, align: 'right' },
@@ -253,13 +254,13 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'DELIVERY DATE', key: 'deliveryDate' },
       { type: 'field', label: 'REMARKS', key: 'remarks' },
       { type: 'spacer' },
-      { type: 'header', content: 'Bank details:', fontSize: 11, bold: true, align: 'left' },
-      { type: 'field', label: 'Beneficiary Bank', key: 'beneficiaryBank' },
-      { type: 'field', label: 'Bank Address', key: 'bankAddress' },
-      { type: 'field', label: 'Swift Code', key: 'swiftCode' },
-      { type: 'field', label: 'Beneficiary', key: 'beneficiary' },
-      { type: 'field', label: 'Account No.', key: 'beneficiaryAccount' },
-      { type: 'field', label: 'PAYMENT ROUTE', key: 'paymentRoute' },
+      { type: 'header', content: 'Bank details:', key: 'bankDetailsTitle', fontSize: 11, bold: true, align: 'left' },
+      { type: 'field', label: 'Beneficiary Bank', labelKey: 'bankLabel1', key: 'beneficiaryBank' },
+      { type: 'field', label: 'Bank Address', labelKey: 'bankLabel2', key: 'bankAddress' },
+      { type: 'field', label: 'Swift Code', labelKey: 'bankLabel3', key: 'swiftCode' },
+      { type: 'field', label: 'Beneficiary', labelKey: 'bankLabel4', key: 'beneficiary' },
+      { type: 'field', label: 'Account No.', labelKey: 'bankLabel5', key: 'beneficiaryAccount' },
+      { type: 'field', label: 'PAYMENT ROUTE', labelKey: 'bankLabel6', key: 'paymentRoute' },
       { type: 'spacer' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 11, bold: false, align: 'right' },
       { type: 'header', content: 'Authorized Signature', fontSize: 11, bold: false, align: 'right' },

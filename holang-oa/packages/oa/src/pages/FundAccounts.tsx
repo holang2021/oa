@@ -2,46 +2,58 @@
 // ERP·财务 → 资金账户
 // 刘总 2026-11-08 指定：收款账户资料建在这里，不放「系统设置 → 币种与汇率」。
 // 原页面是 GenericListPage + comingSoon 占位（"功能开发中"），本页替换为真实可维护页面。
-// 数据真源：盖章《开票资料》；存储复用后端 /field-configs 的 bank_accounts 模块。
+//
+// 刘总 2026-11-08 第二轮截图意见（本版落地）：
+//  1) 外币卡片混进了中文「行号」→ 外币账户一律英文口径，国内专属字段不显示；
+//  2) 内销回款只中文即可 → 人民币账户（卡片 / 编辑表单 / 打印银行块）全中文，不出现英文；
+//  3) 没有新增账户、删除账户 → 支持新增任意币种账户、删除、同币种多套并指定默认协同。
+//
+// 数据真源：盖章《开票资料》；存储复用后端 /field-configs 的 bank_accounts 模块（无新表 / 新 API）。
 // ============================================================
 
 import { useState, useEffect } from 'react'
-import { Pencil, X, Save, RotateCw, Building2 } from 'lucide-react'
+import { Pencil, X, Save, RotateCw, Building2, Plus, Trash2, Star } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { isCurrentUserAdmin } from '../services/rbacStore'
 import { getViewMode, subscribeViewMode } from '../services/viewModeStore'
 import {
   initBankAccounts, getBankAccounts, saveBankAccounts, missingBankFields,
+  makeBankAccountId, withDefaultAccount,
   DEFAULT_BANK_ACCOUNTS, ACCOUNT_TYPE_LABEL, type BankAccount,
 } from '../services/bankAccountStore'
 
 const GROUPS = [
   {
-    key: 'FOREIGN', title: '外汇账户（出口收汇）',
-    desc: 'USD / EUR · 出口单据 Bank details 用英文口径',
+    key: 'FOREIGN', title: '外币账户（出口收汇）',
+    desc: 'USD / EUR · 全英文口径，打印在出口单据的 Bank details',
     match: (a: BankAccount) => a.accountType !== 'DOMESTIC',
   },
   {
-    key: 'DOMESTIC', title: '国内交易账户（内销回款）',
-    desc: 'CNY / RMB · 国内交易与开票资料口径（中文主体 / 行号 / 信用代码）',
+    key: 'DOMESTIC', title: '人民币账户（内销回款）',
+    desc: 'CNY / RMB · 全中文口径，用于国内交易与开票资料',
     match: (a: BankAccount) => a.accountType === 'DOMESTIC',
   },
 ]
 
-const CURRENCY_LABEL: Record<string, string> = { USD: '美元', EUR: '欧元', CNY: '人民币' }
-const CURRENCY_ORDER = ['USD', 'EUR', 'CNY']
+const CURRENCY_LABEL: Record<string, string> = { USD: '美元', EUR: '欧元', CNY: '人民币', GBP: '英镑', JPY: '日元', HKD: '港币' }
+const CURRENCY_ORDER = ['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'HKD']
+const CURRENCY_SUGGESTIONS = ['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'HKD']
 
-const FIELDS: { key: keyof BankAccount; label: string }[] = [
+// 编辑表单按账户性质分开：外币只出现英文字段，人民币只出现中文字段，不再混显。
+const FOREIGN_FIELDS: { key: keyof BankAccount; label: string }[] = [
+  { key: 'accountNo', label: 'Account No.' },
+  { key: 'beneficiaryBank', label: 'Beneficiary Bank' },
+  { key: 'beneficiary', label: 'Beneficiary' },
+  { key: 'swiftCode', label: 'Swift Code' },
+  { key: 'bankAddress', label: 'Bank Address' },
+]
+const DOMESTIC_FIELDS: { key: keyof BankAccount; label: string }[] = [
   { key: 'accountNo', label: '银行账号' },
-  { key: 'beneficiaryBank', label: '开户行（英文，打印用）' },
-  { key: 'beneficiaryBankCn', label: '开户行（中文）' },
-  { key: 'beneficiary', label: '收款人（英文，打印用）' },
-  { key: 'beneficiaryCn', label: '收款人（中文）' },
-  { key: 'swiftCode', label: 'SWIFT Code' },
+  { key: 'beneficiaryBankCn', label: '开户行' },
+  { key: 'beneficiaryCn', label: '收款单位' },
   { key: 'bankCode', label: '银行行号' },
-  { key: 'bankAddress', label: '银行地址' },
-  { key: 'taxNo', label: '统一社会信用代码（国内交易账户）' },
-  { key: 'companyAddress', label: '注册地址（中文）' },
+  { key: 'taxNo', label: '统一社会信用代码' },
+  { key: 'companyAddress', label: '注册地址' },
 ]
 
 export default function FundAccounts() {
@@ -53,10 +65,17 @@ export default function FundAccounts() {
   const canEdit = viewMode === 'admin'
     || isCurrentUserAdmin()
     || String(user?.role || '').toUpperCase() === 'ADMIN'
+
   const [accounts, setAccounts] = useState<BankAccount[]>(() => getBankAccounts())
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // 新增账户（币种可自由输入，不写死三个；公共银行资料从同性质账户带入，账号必须自己填）
+  const [adding, setAdding] = useState(false)
+  const [newCurrency, setNewCurrency] = useState('USD')
+  const [newType, setNewType] = useState<'FOREIGN' | 'DOMESTIC'>('FOREIGN')
+  const [newAccountNo, setNewAccountNo] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -72,8 +91,8 @@ export default function FundAccounts() {
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
   })
 
-  const patch = (code: string, key: keyof BankAccount, value: string) =>
-    setAccounts(prev => prev.map(a => (a.currency === code ? { ...a, [key]: value } : a)))
+  const patch = (id: string, key: keyof BankAccount, value: string) =>
+    setAccounts(prev => prev.map(a => (a.id === id ? { ...a, [key]: value } : a)))
 
   const handleSave = async () => {
     setSaving(true)
@@ -81,7 +100,7 @@ export default function FundAccounts() {
     try {
       await saveBankAccounts(accounts)
       setEditing(null)
-      setMsg({ ok: true, text: '已保存。开 PI 时会按币种自动带出这些账户，并打印到 Bank details。' })
+      setMsg({ ok: true, text: '已保存。开 PI 时会按币种自动带出默认协同账户，并打印到客户单据。' })
     } catch (e: any) {
       setMsg({ ok: false, text: e?.message || '保存失败（账户资料仅管理员可修改）' })
     } finally {
@@ -91,7 +110,57 @@ export default function FundAccounts() {
 
   const handleReset = () => {
     setAccounts(DEFAULT_BANK_ACCOUNTS.map(a => ({ ...a })))
-    setMsg({ ok: true, text: '已恢复内置《开票资料》，点「保存全部」后生效。' })
+    setEditing(null)
+    setMsg({ ok: true, text: '已恢复内置《开票资料》三套账户，点「保存全部」后生效。' })
+  }
+
+  /** 新增账户：主键用 id，允许同币种多套；该币种原本没有账户时自动设为默认协同 */
+  const handleAdd = () => {
+    const code = String(newCurrency || '').trim().toUpperCase()
+    if (!code) { setMsg({ ok: false, text: '请先填写币种代码，如 USD / EUR / CNY。' }); return }
+    if (!String(newAccountNo || '').trim()) { setMsg({ ok: false, text: '请先填写银行账号，避免生成空账户。' }); return }
+    const template = accounts.find(a => a.accountType === newType)
+      || DEFAULT_BANK_ACCOUNTS.find(a => a.accountType === newType)
+      || DEFAULT_BANK_ACCOUNTS[0]
+    const hasSameCurrency = accounts.some(a => a.currency === code)
+    const created: BankAccount = {
+      ...template,
+      id: makeBankAccountId(code),
+      currency: code,
+      accountType: newType,
+      accountNo: String(newAccountNo).trim(),
+      paymentRoute: '',
+      isDefault: !hasSameCurrency,
+    }
+    setAccounts(prev => [...prev, created])
+    setEditing(created.id)
+    setAdding(false)
+    setNewAccountNo('')
+    setMsg({ ok: true, text: `已新增 ${code} 账户，请补齐资料后点「保存全部」；${hasSameCurrency ? '如需改默认协同，点卡片上的「设为默认」。' : '已自动设为该币种默认协同。'}` })
+  }
+
+  /** 删除账户：删掉默认账户时把同币种剩余的第一套顶上，避免该币种失去默认协同 */
+  const handleDelete = (id: string) => {
+    const target = accounts.find(a => a.id === id)
+    if (!target) return
+    const sameCount = accounts.filter(a => a.currency === target.currency).length
+    const warn = sameCount === 1
+      ? `删除后「${target.currency}」将没有任何收款账户，开该币种 PI 会提示「账户未维护」。确定删除？`
+      : `确定删除 ${target.currency} 账户 ${target.accountNo || '(空账号)'} 吗？`
+    if (!window.confirm(warn)) return
+    let next = accounts.filter(a => a.id !== id)
+    if (target.isDefault) {
+      const first = next.find(a => a.currency === target.currency)
+      if (first) next = next.map(a => (a.id === first.id ? { ...a, isDefault: true } : a))
+    }
+    setAccounts(next)
+    if (editing === id) setEditing(null)
+    setMsg({ ok: true, text: '已从列表移除，点「保存全部」后正式生效。' })
+  }
+
+  const handleSetDefault = (id: string) => {
+    setAccounts(prev => withDefaultAccount(prev, id))
+    setMsg({ ok: true, text: '已设为该币种默认协同账户，点「保存全部」后生效。' })
   }
 
   return (
@@ -106,9 +175,9 @@ export default function FundAccounts() {
 
       {/* 默认协同说明 */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-900 leading-6">
-        <strong>按币种默认协同</strong>：开 PI 选择 USD / EUR / CNY 时，系统自动带出对应收款账户及回款路径，
-        并打印到单据的 Bank details；销售不用手工挑，也不会再出现「选欧元却印美元账号」。
-        资料来源为盖章《开票资料》，此处修改后对全系统开单生效。
+        <strong>按币种默认协同</strong>：开 PI 选择币种时，系统自动带出该币种的默认账户及回款路径，
+        并打印到客户单据；销售不用手工挑，也不会出现「选欧元却印美元账号」。
+        <strong>外币账户全英文、人民币账户全中文</strong>（刘总 2026-11-08 口径）；资料来源为盖章《开票资料》，此处修改后对全系统开单生效。
       </div>
 
       {msg && (
@@ -120,23 +189,80 @@ export default function FundAccounts() {
         </div>
       )}
 
-      {/* 账户按性质分组：人民币「国内交易账户」单独成组体现，不与外汇户混在一起 */}
+      {/* 工具条：新增账户 */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {canEdit && (
+          <button
+            onClick={() => setAdding(v => !v)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-sm rounded-lg hover:bg-brand-700"
+          >
+            <Plus size={14} />
+            {adding ? '收起新增' : '新增账户'}
+          </button>
+        )}
+        <span className="text-xs text-gray-400">可同币种多套账户，指定一套为「默认协同」；外币账户不显示国内行号 / 信用代码。</span>
+      </div>
+
+      {adding && canEdit && (
+        <div className="bg-white border border-brand-200 rounded-xl p-4 space-y-3">
+          <div className="text-sm font-medium text-gray-700">新增账户</div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">账户性质</label>
+              <select value={newType} onChange={e => setNewType(e.target.value as 'FOREIGN' | 'DOMESTIC')}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm">
+                <option value="FOREIGN">外币账户 · 出口收汇（英文）</option>
+                <option value="DOMESTIC">人民币账户 · 内销回款（中文）</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">币种代码</label>
+              <input list="bank-currency-suggestions" value={newCurrency}
+                onChange={e => setNewCurrency(e.target.value.toUpperCase())}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm" />
+              <datalist id="bank-currency-suggestions">
+                {CURRENCY_SUGGESTIONS.map(c => <option key={c} value={c}>{CURRENCY_LABEL[c]}</option>)}
+              </datalist>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">银行账号</label>
+              <input value={newAccountNo} onChange={e => setNewAccountNo(e.target.value)}
+                placeholder="必填，新增后可在卡片里补齐其他资料"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={handleAdd}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-xs rounded-lg hover:bg-brand-700">
+              <Plus size={13} /> 添加
+            </button>
+            <span className="text-xs text-gray-400">开户行 / 收款人等公共资料会从同性质账户带入，账号留给您自己填，避免误带旧账号。添加后记得点「保存全部」。</span>
+          </div>
+        </div>
+      )}
+
+      {/* 账户按性质分组：外币账户（英文）/ 人民币账户（中文） */}
       {GROUPS.map((group) => {
         const rows = ordered.filter(group.match)
-        if (!rows.length) return null
         return (
           <div key={group.key} className="space-y-2">
             <div className="flex items-baseline gap-2 flex-wrap">
               <h3 className="text-sm font-medium text-gray-700">{group.title}</h3>
               <span className="text-xs text-gray-400">{group.desc}</span>
             </div>
+            {!rows.length && (
+              <div className="text-xs text-gray-400 bg-white border border-dashed border-gray-300 rounded-lg px-4 py-3">
+                暂无{group.key === 'FOREIGN' ? '外币' : '人民币'}账户，可点「新增账户」添加；也可点「恢复内置开票资料」。
+              </div>
+            )}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {rows.map((a) => {
                 const isDomestic = a.accountType === 'DOMESTIC'
                 const miss = missingBankFields(a)
-                const isEditing = editing === a.currency
+                const isEditing = editing === a.id
+                const fields = isDomestic ? DOMESTIC_FIELDS : FOREIGN_FIELDS
                 return (
-                  <div key={a.currency} className={`bg-white border rounded-xl p-4 ${isDomestic ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
+                  <div key={a.id} className={`bg-white border rounded-xl p-4 ${isDomestic ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -145,16 +271,23 @@ export default function FundAccounts() {
                           <span className={`px-2 py-0.5 text-xs rounded-full ${isDomestic ? 'bg-amber-100 text-amber-800' : 'bg-brand-100 text-brand-700'}`}>
                             {ACCOUNT_TYPE_LABEL[a.accountType] || '收款账户'}
                           </span>
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">默认协同</span>
+                          {a.isDefault ? (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">默认协同</span>
+                          ) : canEdit ? (
+                            <button onClick={() => handleSetDefault(a.id)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-500 text-xs rounded-full hover:text-brand-600 hover:bg-brand-50">
+                              <Star size={11} /> 设为默认
+                            </button>
+                          ) : null}
                         </div>
                         <div className="mt-2 font-mono text-base font-medium text-brand-700 break-all">{a.accountNo || '—'}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {isDomestic ? a.beneficiaryBankCn || a.beneficiaryBank : a.beneficiaryBank}
+                          {isDomestic ? (a.beneficiaryBankCn || '—') : (a.beneficiaryBank || '—')}
                         </div>
                       </div>
                       {canEdit && (
                         <button
-                          onClick={() => setEditing(isEditing ? null : a.currency)}
+                          onClick={() => setEditing(isEditing ? null : a.id)}
                           className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-brand-600 hover:bg-gray-100 rounded"
                         >
                           {isEditing ? <X size={13} /> : <Pencil size={13} />}
@@ -165,23 +298,24 @@ export default function FundAccounts() {
 
                     {!isEditing ? (
                       <>
+                        {/* 外币卡片全英文标签、不出现国内「行号」；人民币卡片全中文 */}
                         <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
                           {isDomestic ? (
                             <>
                               <div>银行行号：{a.bankCode || '—'}</div>
-                              <div>信用代码：{a.taxNo || '—'}</div>
-                              <div className="col-span-2">收款主体：{a.beneficiaryCn || a.beneficiary}</div>
+                              <div>统一社会信用代码：{a.taxNo || '—'}</div>
+                              <div className="col-span-2">收款单位：{a.beneficiaryCn || '—'}</div>
                               <div className="col-span-2">注册地址：{a.companyAddress || '—'}</div>
+                              <div className="col-span-2">回款路径：{a.paymentRoute || '（未填写，选填）'}</div>
                             </>
                           ) : (
                             <>
-                              <div>SWIFT：{a.swiftCode || '—'}</div>
-                              <div>行号：{a.bankCode || '—'}</div>
-                              <div className="col-span-2">收款人：{a.beneficiary || '—'}</div>
-                              <div className="col-span-2">银行地址：{a.bankAddress || '—'}</div>
+                              <div>Swift Code: {a.swiftCode || '—'}</div>
+                              <div>Beneficiary: {a.beneficiary || '—'}</div>
+                              <div className="col-span-2">Bank Address: {a.bankAddress || '—'}</div>
+                              <div className="col-span-2">PAYMENT ROUTE: {a.paymentRoute || '—'}</div>
                             </>
                           )}
-                          <div className="col-span-2">回款路径：{a.paymentRoute || '（未填写，选填）'}</div>
                         </div>
                         <div className={`mt-3 text-xs ${miss.length ? 'text-amber-600' : 'text-green-600'}`}>
                           {miss.length ? `待补充：${miss.join('、')}` : '资料完整，可直接用于开单'}
@@ -193,34 +327,40 @@ export default function FundAccounts() {
                           <label className="block text-xs text-gray-500 mb-0.5">账户性质</label>
                           <select
                             value={a.accountType}
-                            onChange={(e) => patch(a.currency, 'accountType', e.target.value)}
+                            onChange={(e) => patch(a.id, 'accountType', e.target.value)}
                             className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs"
                           >
-                            <option value="FOREIGN">外汇账户 · 出口收汇</option>
-                            <option value="DOMESTIC">国内交易账户 · 内销回款</option>
+                            <option value="FOREIGN">外币账户 · 出口收汇（英文）</option>
+                            <option value="DOMESTIC">人民币账户 · 内销回款（中文）</option>
                           </select>
                         </div>
-                        {FIELDS.map((f) => (
+                        {fields.map((f) => (
                           <div key={f.key}>
                             <label className="block text-xs text-gray-500 mb-0.5">{f.label}</label>
                             <input
                               value={String(a[f.key] ?? '')}
-                              onChange={(e) => patch(a.currency, f.key, e.target.value)}
+                              onChange={(e) => patch(a.id, f.key, e.target.value)}
                               className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                             />
                           </div>
                         ))}
                         <div>
                           <label className="block text-xs text-gray-500 mb-0.5">
-                            回款路径（选填：中间行 / 汇款附言要求，会印到 PI 的 PAYMENT ROUTE）
+                            {isDomestic ? '回款路径（选填：汇款附言 / 到账要求，会印到单据）' : 'PAYMENT ROUTE (intermediary bank / remittance note, printed on PI)'}
                           </label>
                           <textarea
                             rows={2}
                             value={a.paymentRoute || ''}
-                            onChange={(e) => patch(a.currency, 'paymentRoute', e.target.value)}
+                            onChange={(e) => patch(a.id, 'paymentRoute', e.target.value)}
                             className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                           />
                         </div>
+                        {canEdit && (
+                          <button onClick={() => handleDelete(a.id)}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 mt-1 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50">
+                            <Trash2 size={13} /> 删除账户
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -255,7 +395,7 @@ export default function FundAccounts() {
           <span className="text-xs text-gray-500">当前为只读；账户资料仅管理员可修改。</span>
         )}
         <span className="text-xs text-gray-400">
-          每个币种一套默认账户；如需同一币种多套账户，请先提出业务场景再扩展。
+          新增 / 删除 / 设为默认后都要点「保存全部」才正式生效；删除某币种最后一套账户后，开该币种 PI 会提示补维护，不会借用其他币种账号。
         </span>
       </div>
     </div>

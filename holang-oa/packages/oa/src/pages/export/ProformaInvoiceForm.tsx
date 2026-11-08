@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, FileText, Plus, Trash2 } from 'lucide-react'
 import { usePrintPreview } from '../../components/PrintPreview'
@@ -13,7 +13,7 @@ import {
 } from '../../services/currencyStore'
 // 收款账户按币种默认协同：选 USD / EUR / CNY 自动带出各自账户与回款路径（刘总 2026-11-08）
 import {
-  initBankAccounts, getBankAccounts, missingBankFields, buildBankPrintData, type BankAccount,
+  initBankAccounts, getBankAccounts, getBankAccountForCurrency, missingBankFields, buildBankPrintData, type BankAccount,
 } from '../../services/bankAccountStore'
 
 interface PiForm {
@@ -219,9 +219,12 @@ export default function ProformaInvoiceForm() {
   const selectedCustomer = customers.find(c => c.id === form.customerId)
   // 折算只用于内部参考，不进入给客户的 PI / 打印数据；汇率取 currencyStore（系统已设计的算法）。
   const activeCurrency = getCurrencyById(form.currency)
-  // 收款账户按币种默认协同：USD / EUR / CNY 各自带出自己的账户与回款路径，不写死美元账户
-  const activeBankAccount = bankAccounts.find(a => a.currency === form.currency && a.isDefault)
-    || bankAccounts.find(a => a.currency === form.currency)
+  // 收款账户按币种默认协同：走账户真源（支持同币种多套账户 / 指定默认），不写死美元账号
+  const activeBankAccount = useMemo(
+    () => getBankAccountForCurrency(form.currency),
+    [form.currency, bankAccounts],
+  )
+  const isDomesticBank = activeBankAccount?.accountType === 'DOMESTIC'
   const bankMissing = missingBankFields(activeBankAccount)
   const cnyReference = convertToCNY(Number(form.totalAmount) || 0, form.currency)
   const itemsTotal = form.items.reduce((sum, it) => sum + (Number(it.qty) || 0) * (Number(it.price) || 0), 0)
@@ -581,36 +584,45 @@ export default function ProformaInvoiceForm() {
             </div>
           </div>
 
-          {/* 收款账户与回款路径：随币种默认协同带出，打印到 PI 的 Bank details */}
+          {/* 收款账户与回款路径：随币种默认协同带出，打印到客户单据（外币英文 / 人民币中文） */}
           <div className={`rounded-lg border px-3 py-2.5 ${bankMissing.length ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="text-xs font-medium text-gray-700">
                 收款账户及回款路径
                 {activeBankAccount && (
-                  <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${activeBankAccount.accountType === 'DOMESTIC' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-700'}`}>
-                    {activeBankAccount.accountType === 'DOMESTIC' ? '国内交易账户' : '外汇账户'}
+                  <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${isDomesticBank ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-700'}`}>
+                    {isDomesticBank ? '人民币账户 · 内销回款' : '外币账户 · 出口收汇'}
                   </span>
                 )}
-                <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在 PI 的 Bank details</span>
+                <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在客户单据</span>
               </div>
               <span className={`text-[11px] ${bankMissing.length ? 'text-amber-700' : 'text-green-700'}`}>
                 {bankMissing.length ? `待补充：${bankMissing.join('、')}` : '资料完整'}
               </span>
             </div>
             {activeBankAccount && !bankMissing.length ? (
-              <div className="mt-1.5 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-gray-600">
-                <div>开户行：{activeBankAccount.accountType === 'DOMESTIC' ? (activeBankAccount.beneficiaryBankCn || activeBankAccount.beneficiaryBank) : activeBankAccount.beneficiaryBank}</div>
-                <div>账号：{activeBankAccount.accountNo}</div>
-                <div>收款人：{activeBankAccount.accountType === 'DOMESTIC' ? (activeBankAccount.beneficiaryCn || activeBankAccount.beneficiary) : activeBankAccount.beneficiary}</div>
-                {activeBankAccount.accountType === 'DOMESTIC' ? (
-                  <div>行号：{activeBankAccount.bankCode || '—'}　信用代码：{activeBankAccount.taxNo || '—'}</div>
-                ) : (
-                  <div>SWIFT：{activeBankAccount.swiftCode || '—'}　行号：{activeBankAccount.bankCode || '—'}</div>
-                )}
-                <div className="lg:col-span-2">
-                  回款路径：{activeBankAccount.paymentRoute || '（未填写，可在「ERP·财务 → 资金账户」补充中间行 / 汇款附言要求）'}
+              isDomesticBank ? (
+                <div className="mt-1.5 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-gray-600">
+                  <div>开户行：{activeBankAccount.beneficiaryBankCn || activeBankAccount.beneficiaryBank}</div>
+                  <div>银行账号：{activeBankAccount.accountNo}</div>
+                  <div>收款单位：{activeBankAccount.beneficiaryCn || activeBankAccount.beneficiary}</div>
+                  <div>银行行号：{activeBankAccount.bankCode || '—'}　统一社会信用代码：{activeBankAccount.taxNo || '—'}</div>
+                  <div className="lg:col-span-2">
+                    回款路径：{activeBankAccount.paymentRoute || '（未填写，可在「ERP·财务 → 资金账户」补充汇款附言 / 到账要求）'}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-1.5 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-gray-600">
+                  <div>Beneficiary Bank: {activeBankAccount.beneficiaryBank}</div>
+                  <div>Account No.: {activeBankAccount.accountNo}</div>
+                  <div>Beneficiary: {activeBankAccount.beneficiary}</div>
+                  <div>Swift Code: {activeBankAccount.swiftCode || '—'}</div>
+                  <div className="lg:col-span-2">Bank Address: {activeBankAccount.bankAddress || '—'}</div>
+                  <div className="lg:col-span-2">
+                    PAYMENT ROUTE: {activeBankAccount.paymentRoute || '—'}
+                  </div>
+                </div>
+              )
             ) : (
               <div className="mt-1.5 text-[11px] text-amber-700">
                 该币种收款账户尚未维护完整，打印件会显示醒目提示、不会借用其他币种账号。请到「ERP·财务 → 资金账户」补齐后再发客户。
