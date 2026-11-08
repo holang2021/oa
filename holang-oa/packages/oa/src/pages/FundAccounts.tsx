@@ -12,15 +12,16 @@
 // ============================================================
 
 import { useState, useEffect } from 'react'
-import { Pencil, X, Save, RotateCw, Building2, Plus, Trash2, Star } from 'lucide-react'
+import { Pencil, X, Save, RotateCw, Building2, Plus, Trash2, Star, Copy, Check } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { isCurrentUserAdmin } from '../services/rbacStore'
 import { getViewMode, subscribeViewMode } from '../services/viewModeStore'
 import {
   initBankAccounts, getBankAccounts, saveBankAccounts, missingBankFields,
-  makeBankAccountId, withDefaultAccount,
+  makeBankAccountId, withDefaultAccount, buildBankCopyText,
   DEFAULT_BANK_ACCOUNTS, ACCOUNT_TYPE_LABEL, type BankAccount,
 } from '../services/bankAccountStore'
+import { copyText } from '../services/clipboard'
 
 const GROUPS = [
   {
@@ -70,6 +71,8 @@ export default function FundAccounts() {
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  // 一键复制：销售（用户身份、只读）也要能复制账号发给客户，不依赖 canEdit
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   // 新增账户（币种可自由输入，不写死三个；公共银行资料从同性质账户带入，账号必须自己填）
   const [adding, setAdding] = useState(false)
@@ -93,6 +96,23 @@ export default function FundAccounts() {
 
   const patch = (id: string, key: keyof BankAccount, value: string) =>
     setAccounts(prev => prev.map(a => (a.id === id ? { ...a, [key]: value } : a)))
+
+  /** 一键复制收款信息：资料不全时拒绝复制，避免把半截账号发给客户 */
+  const handleCopy = async (a: BankAccount) => {
+    if (missingBankFields(a).length) {
+      setMsg({ ok: false, text: '该账户资料未维护完整，为避免把错误信息发给客户，暂不能复制；请先补齐资料并保存。' })
+      return
+    }
+    const text = buildBankCopyText(a)
+    const ok = await copyText(text)
+    if (!ok) {
+      setMsg({ ok: false, text: '浏览器未允许复制，请在卡片里手动选中文字复制。' })
+      return
+    }
+    setCopiedId(a.id)
+    setMsg({ ok: true, text: `已复制 ${a.currency} 收款信息（${a.accountType === 'DOMESTIC' ? '中文' : '英文'}），可直接粘贴发给客户。` })
+    window.setTimeout(() => setCopiedId(prev => (prev === a.id ? null : prev)), 2500)
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -200,7 +220,7 @@ export default function FundAccounts() {
             {adding ? '收起新增' : '新增账户'}
           </button>
         )}
-        <span className="text-xs text-gray-400">可同币种多套账户，指定一套为「默认协同」；外币账户不显示国内行号 / 信用代码。</span>
+        <span className="text-xs text-gray-400">可同币种多套账户，指定一套为「默认协同」；点卡片右上角「复制」可一键发给客户（只读销售也能用）；外币账户不显示国内行号 / 信用代码。</span>
       </div>
 
       {adding && canEdit && (
@@ -285,15 +305,30 @@ export default function FundAccounts() {
                           {isDomestic ? (a.beneficiaryBankCn || '—') : (a.beneficiaryBank || '—')}
                         </div>
                       </div>
-                      {canEdit && (
+                      {/* 复制按钮对所有人开放：销售是「用户身份」也要能复制账号发给客户；资料不全时禁用 */}
+                      <div className="flex items-start gap-1 shrink-0">
                         <button
-                          onClick={() => setEditing(isEditing ? null : a.id)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-brand-600 hover:bg-gray-100 rounded"
+                          onClick={() => handleCopy(a)}
+                          title={miss.length ? '资料未维护完整，暂不能复制给客户' : '一键复制该账户收款信息，可直接粘贴发给客户'}
+                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded ${
+                            miss.length ? 'text-gray-300 cursor-not-allowed'
+                              : copiedId === a.id ? 'text-green-600 bg-green-50'
+                                : 'text-gray-500 hover:text-brand-600 hover:bg-gray-100'
+                          }`}
                         >
-                          {isEditing ? <X size={13} /> : <Pencil size={13} />}
-                          {isEditing ? '收起' : '编辑'}
+                          {copiedId === a.id ? <Check size={13} /> : <Copy size={13} />}
+                          {copiedId === a.id ? '已复制' : '复制'}
                         </button>
-                      )}
+                        {canEdit && (
+                          <button
+                            onClick={() => setEditing(isEditing ? null : a.id)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-brand-600 hover:bg-gray-100 rounded"
+                          >
+                            {isEditing ? <X size={13} /> : <Pencil size={13} />}
+                            {isEditing ? '收起' : '编辑'}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {!isEditing ? (

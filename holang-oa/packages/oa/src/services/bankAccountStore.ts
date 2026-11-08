@@ -259,3 +259,45 @@ export function buildBankPrintData(currency: string): Record<string, string> {
     paymentRoute: a.paymentRoute || '—',
   }
 }
+
+/**
+ * 一键复制给客户的收款信息（刘总 2026-11-08：销售要能直接复制去发客户）。
+ * 与打印件同语言口径：外币账户纯英文、人民币账户纯中文，不含内部提示与人民币参考。
+ * 人民币账户额外带注册地址（内销开票资料常用），但不混入任何英文字段。
+ */
+export function buildBankCopyText(a: BankAccount | undefined): string {
+  if (!a) return ''
+  // 选填项没填就整行不输出，避免把「回款路径：—」这种占位行原样发给客户
+  const routeLine = (label: string) => (a.paymentRoute || '').trim() ? [`${label}${a.paymentRoute.trim()}`] : []
+  if (a.accountType === 'DOMESTIC') {
+    return [
+      '收款账户信息',
+      `开户行：${a.beneficiaryBankCn || a.beneficiaryBank}`,
+      `银行行号：${a.bankCode || '—'}`,
+      `统一社会信用代码：${a.taxNo || '—'}`,
+      `收款单位：${a.beneficiaryCn || a.beneficiary}`,
+      `注册地址：${a.companyAddress || '—'}`,
+      `银行账号：${a.accountNo}`,
+      ...routeLine('回款路径：'),
+    ].join('\n')
+  }
+  return [
+    'Bank details:',
+    `Beneficiary Bank: ${a.beneficiaryBank}`,
+    `Bank Address: ${a.bankAddress || '—'}`,
+    `Swift Code: ${a.swiftCode || '—'}`,
+    `Beneficiary: ${a.beneficiary}`,
+    `Account No.: ${a.accountNo}`,
+    ...routeLine('PAYMENT ROUTE: '),
+  ].join('\n')
+}
+
+/**
+ * 按币种取默认协同账户的可复制文本。
+ * 资料未维护完整时返回空串 —— 页面据此禁用复制，绝不把半截账号发给客户。
+ */
+export function buildBankCopyTextForCurrency(currency: string): string {
+  const a = getBankAccountForCurrency(currency)
+  if (!a || missingBankFields(a).length) return ''
+  return buildBankCopyText(a)
+}

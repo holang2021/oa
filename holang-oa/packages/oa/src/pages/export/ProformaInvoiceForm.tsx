@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, FileText, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, FileText, Plus, Trash2, Copy, Check } from 'lucide-react'
 import { usePrintPreview } from '../../components/PrintPreview'
 import { useI18n } from '../../i18n/I18nContext'
 import { getCustomers } from '../../services/customerService'
@@ -13,8 +13,10 @@ import {
 } from '../../services/currencyStore'
 // 收款账户按币种默认协同：选 USD / EUR / CNY 自动带出各自账户与回款路径（刘总 2026-11-08）
 import {
-  initBankAccounts, getBankAccounts, getBankAccountForCurrency, missingBankFields, buildBankPrintData, type BankAccount,
+  initBankAccounts, getBankAccounts, getBankAccountForCurrency, missingBankFields,
+  buildBankPrintData, buildBankCopyText, type BankAccount,
 } from '../../services/bankAccountStore'
+import { copyText } from '../../services/clipboard'
 
 interface PiForm {
   piCode: string
@@ -135,6 +137,9 @@ export default function ProformaInvoiceForm() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() => getBankAccounts())
   // PI 总金额默认跟随明细合计（单一真源）；销售手工改过之后不再自动覆盖，保留可编辑权。
   const [amountManual, setAmountManual] = useState(false)
+  // 一键复制收款信息给客户（销售开 PI 时最常用；复制不受编辑权限限制）
+  const [copyHint, setCopyHint] = useState<{ ok: boolean; text: string } | null>(null)
+  const [copiedBank, setCopiedBank] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -226,6 +231,22 @@ export default function ProformaInvoiceForm() {
   )
   const isDomesticBank = activeBankAccount?.accountType === 'DOMESTIC'
   const bankMissing = missingBankFields(activeBankAccount)
+  /** 一键复制当前币种收款信息：销售可直接粘贴到邮件 / 聊天发给客户；资料不全时拒绝复制 */
+  const handleCopyBank = async () => {
+    if (!activeBankAccount || bankMissing.length) {
+      setCopyHint({ ok: false, text: '该币种收款账户未维护完整，为避免把错误信息发给客户，暂不能复制。' })
+      window.setTimeout(() => setCopyHint(null), 3500)
+      return
+    }
+    const ok = await copyText(buildBankCopyText(activeBankAccount))
+    if (!ok) {
+      setCopyHint({ ok: false, text: '浏览器未允许复制，请手动选中文字复制。' })
+      return
+    }
+    setCopiedBank(true)
+    setCopyHint({ ok: true, text: `已复制 ${form.currency} 收款信息（${isDomesticBank ? '中文' : '英文'}），可直接粘贴发给客户。` })
+    window.setTimeout(() => { setCopiedBank(false); setCopyHint(null) }, 3000)
+  }
   const cnyReference = convertToCNY(Number(form.totalAmount) || 0, form.currency)
   const itemsTotal = form.items.reduce((sum, it) => sum + (Number(it.qty) || 0) * (Number(it.price) || 0), 0)
   // 确认前可改、确认后冻结最终交易事实（LOCKED 总纲第6条）
@@ -594,12 +615,30 @@ export default function ProformaInvoiceForm() {
                     {isDomesticBank ? '人民币账户 · 内销回款' : '外币账户 · 出口收汇'}
                   </span>
                 )}
-                <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在客户单据</span>
+                <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在客户单据 · 可一键复制发给客户</span>
               </div>
-              <span className={`text-[11px] ${bankMissing.length ? 'text-amber-700' : 'text-green-700'}`}>
-                {bankMissing.length ? `待补充：${bankMissing.join('、')}` : '资料完整'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[11px] ${bankMissing.length ? 'text-amber-700' : 'text-green-700'}`}>
+                  {bankMissing.length ? `待补充：${bankMissing.join('、')}` : '资料完整'}
+                </span>
+                <button
+                  onClick={handleCopyBank}
+                  disabled={bankMissing.length > 0}
+                  title={bankMissing.length ? '资料未维护完整，暂不能复制给客户' : '一键复制该币种收款信息，可直接粘贴发给客户'}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] ${
+                    bankMissing.length ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : copiedBank ? 'border-green-300 bg-green-50 text-green-700'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400 hover:text-brand-600'
+                  }`}
+                >
+                  {copiedBank ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedBank ? '已复制' : '复制收款信息'}
+                </button>
+              </div>
             </div>
+            {copyHint && (
+              <div className={`mt-1.5 text-[11px] ${copyHint.ok ? 'text-green-700' : 'text-amber-700'}`}>{copyHint.text}</div>
+            )}
             {activeBankAccount && !bankMissing.length ? (
               isDomesticBank ? (
                 <div className="mt-1.5 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-gray-600">
