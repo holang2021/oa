@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 资金账户按币种协同</title>
+<style>
+  :root { --brand:#1a56db; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f7f8fa; --ok:#0f6e56; --amber:#854f0b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1120px; margin:0 auto; padding:32px 28px 64px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:28px; }
+  .logo { font-size:18px; font-weight:700; color:var(--brand); letter-spacing:.5px; }
+  .logo span { font-size:12px; font-weight:400; color:var(--muted); margin-left:8px; letter-spacing:0; }
+  .meta { font-size:12px; color:var(--muted); }
+  h1 { font-size:26px; margin:0 0 10px; font-weight:600; }
+  h2 { font-size:17px; margin:34px 0 14px; font-weight:600; padding-left:10px; border-left:3px solid var(--brand); }
+  h3 { font-size:14px; margin:0 0 8px; font-weight:600; }
+  p.lead { color:#374151; margin:0 0 18px; max-width:940px; }
+  .callout { background:#eef4ff; border:1px solid #c7d9fb; border-radius:10px; padding:14px 18px; }
+  .callout strong { color:var(--brand); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .tag { display:inline-block; font-size:11px; padding:2px 9px; border-radius:20px; margin-bottom:10px; }
+  .tag.before { background:#f3f4f6; color:#6b7280; }
+  .tag.after { background:#e6f6ef; color:var(--ok); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13px; }
+  th { background:#f9fafb; text-align:left; padding:10px 12px; font-weight:600; color:#374151; border-bottom:1px solid var(--line); }
+  td { padding:10px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  .mono { font-family:ui-monospace,Consolas,monospace; }
+  .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; }
+  .badge.fx { background:#e6f1fb; color:#0c447c; }
+  .badge.dom { background:#faeeda; color:#633806; }
+  .mock { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:10px; }
+  .group-title { font-size:13px; font-weight:600; color:#374151; margin:14px 0 8px; }
+  .acct { border:1px solid var(--line); border-radius:9px; padding:11px 13px; margin-bottom:8px; }
+  .acct.dom { border-color:#efc97b; background:#fffbf0; }
+  .acct .no { font-family:ui-monospace,Consolas,monospace; font-size:15px; font-weight:600; color:var(--brand); }
+  .acct .sub { font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.7; }
+  .flow { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .step { flex:1; min-width:150px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:11px 12px; font-size:12.5px; }
+  .step b { display:block; color:var(--brand); font-size:11px; margin-bottom:4px; }
+  .arrow { display:flex; align-items:center; color:#9ca3af; font-size:16px; }
+  .note { background:#fffbeb; border:1px solid #fde68a; color:#78350f; border-radius:10px; padding:13px 16px; font-size:13px; }
+  .check { color:var(--ok); font-weight:600; }
+  .foot { margin-top:36px; border-top:1px solid var(--line); padding-top:16px; font-size:12px; color:var(--muted); }
+  @media (max-width:820px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · ERP·财务</span></div>
+    <div class="meta">2026-11-08 · 资金账户 · 按币种默认协同</div>
+  </header>
+
+  <h1>资金账户：按币种给出账户与回款路径</h1>
+  <p class="lead">刘总指示「选欧元给欧元账户、美元给美元、人民币给人民币，账户默认选择协同」，随后指明账户资料应建在「ERP·财务 → 资金账户」，并反馈「RMB 国内交易账户没体现、管理员不能编辑」。本步三件事一并处理完毕。</p>
+
+  <div class="callout"><strong>一句话</strong>：账户资料建在「资金账户」页（原来是"功能开发中"），三套真实账号按币种自动协同；人民币单独作为<strong>国内交易账户</strong>成组体现；管理员现在可编辑；PI/CI 打印件不再写死美元账号。</div>
+
+  <h2>1 · 真实账户资料（唯一证据：盖章《开票资料》）</h2>
+  <table>
+    <thead><tr><th style="width:100px">币种 / 性质</th><th style="width:190px">银行账号</th><th>共用资料</th></tr></thead>
+    <tbody>
+      <tr><td class="k">USD <span class="badge fx">外汇账户</span></td><td class="mono">5129 1230 7432 201</td><td rowspan="3">
+        开户行：招商银行苏州分行营业部 / CHINA MERCHANTS BANK SUZHOU BRANCH SUZHOU CHINA<br>
+        SWIFT：CMBCCNBS275　银行行号：3083 0500 8189<br>
+        收款人：昊朗（苏州）能源科技有限公司 / Holang Tech (Suzhou) Co., Ltd<br>
+        信用代码：91320594MA1NYLU54L　地址：苏州市吴中区金丝港路51号<br>
+        银行地址：NO.36 WAN SHENG ROAD SUZHOU INDUSTRIAL PARK SUZHOU JIANGSU CHINA
+      </td></tr>
+      <tr><td class="k">EUR <span class="badge fx">外汇账户</span></td><td class="mono">5129 1230 7435 101</td></tr>
+      <tr><td class="k">CNY <span class="badge dom">国内交易账户</span></td><td class="mono">5129 1230 7410 901</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:var(--muted)">交叉验证：USD 与 Allum PI/CI 的 Bank details 一致；RMB 与供应商报价单一致；EUR 由本次盖章资料补齐。三套账号逐位核对，未编造任何数字。</p>
+
+  <h2>2 · 改前 / 改后对照</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">改前</span>
+      <h3>账户页是空壳，打印件永远印美元账户</h3>
+      <ul>
+        <li>「ERP·财务 → 资金账户」显示"功能开发中 / 暂无账户数据"。</li>
+        <li>PI / CI 模板把银行名、地址、SWIFT、收款人写成固定文字，账号也是硬编码的美元账号。</li>
+        <li><strong>选欧元开 PI，打印件照样印美元账号</strong> —— 客户按错账号汇款，是实打实的收款风险。</li>
+        <li>人民币账户没有任何独立体现，跟外汇户混为一谈。</li>
+      </ul>
+      <div class="mock" style="text-align:center;color:#9ca3af;font-size:12px;padding:28px">
+        功能开发中<br>暂无账户数据
+      </div>
+    </div>
+    <div class="card">
+      <span class="tag after">改后</span>
+      <h3>账户页可维护，按币种默认协同</h3>
+      <ul>
+        <li>资金账户页按性质分两组：外汇账户（USD/EUR）、国内交易账户（CNY）。</li>
+        <li>管理员可编辑每个账户、账户性质、回款路径；其他身份只读。</li>
+        <li>模板银行块全部改成动态字段；PI 选哪个币种就带出哪套账户，含 PAYMENT ROUTE 行。</li>
+        <li>账户资料不全时打印醒目提示，<strong>绝不借用别的币种账号</strong>。</li>
+      </ul>
+      <div class="mock">
+        <div class="group-title">外汇账户（出口收汇）· USD / EUR</div>
+        <div class="acct"><span class="no">5129 1230 7432 201</span> <span class="badge fx">外汇账户</span><div class="sub">SWIFT CMBCCNBS275 · 收款人 Holang Tech (Suzhou) Co., Ltd</div></div>
+        <div class="group-title">国内交易账户（内销回款）· CNY</div>
+        <div class="acct dom"><span class="no">5129 1230 7410 901</span> <span class="badge dom">国内交易账户</span><div class="sub">招商银行苏州分行营业部 · 行号 3083 0500 8189 · 信用代码 91320594MA1NYLU54L<br>收款主体 昊朗（苏州）能源科技有限公司 · 注册地址 苏州市吴中区金丝港路51号</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>3 · 默认协同是怎么走的</h2>
+  <div class="flow">
+    <div class="step"><b>1 · 维护</b>ERP·财务 → 资金账户，管理员维护三套账户与回款路径</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>2 · 存储</b>复用已有 field_configs 的 bank_accounts 模块，全系统一致</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>3 · 协同</b>开 PI 选 USD / EUR / CNY，自动带出对应账户，销售不用挑</div>
+    <div class="arrow">→</div>
+    <div class="step"><b>4 · 出单</b>写入 PI / CI 的 Bank details 与 PAYMENT ROUTE</div>
+  </div>
+  <div class="note" style="margin-top:14px"><strong>关键安全兜底</strong>：账户未维护完整时，打印件输出「【XXX 收款账户未维护完整…请到 ERP·财务 → 资金账户 补充】」，不会出现半截账号，更不会回退到美元账号。</div>
+
+  <h2>4 · 本轮两个反馈的修复</h2>
+  <table>
+    <thead><tr><th style="width:230px">刘总反馈</th><th>根因与处理</th></tr></thead>
+    <tbody>
+      <tr><td class="k">账户资料应建在「资金账户」</td><td>您说得对。原来我放在系统设置是错的。已把 <span class="mono">/erp/accounts</span> 从 GenericListPage 占位页换成真实的 <span class="mono">FundAccounts</span> 页，账户维护、编辑、保存都在这里；PI 表单与打印提示里的位置文案也一并改指「ERP·财务 → 资金账户」。</td></tr>
+      <tr><td class="k">RMB 国内交易账户没体现</td><td>给账户加了「外汇账户 / 国内交易账户」性质，资金账户页按性质分组，人民币单独成组并显示中文主体、中文开户行、银行行号、统一社会信用代码、注册地址；PI 表单选 CNY 时也标注「国内交易账户」并改显国内开票要素，不再跟外汇户一个模样。</td></tr>
+      <tr><td class="k">几个账户管理员都不能编辑</td><td>权限判定用错了源：系统有「管理员身份 / 用户身份」两层（viewModeStore + rbacStore），我原来只看登录用户的 role 字段，管理员身份下被误判为只读。已改为「管理员身份 / RBAC 管理员角色 / 后端 ADMIN 角色」三者任一命中即可编辑，并订阅身份切换即时刷新。后端写操作仍锁 ADMIN，实测非管理员 PUT 返回 403。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5 · 新增前 9 问自查（LOCKED 总纲）</h2>
+  <table>
+    <thead><tr><th style="width:36px">#</th><th style="width:220px">问题</th><th>回答</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>证据来自哪一层？</td><td>盖章《开票资料》（刘总本人提供，最高级）+ Allum PI/CI + 供应商报价单交叉验证；模块归属由刘总截图指定。</td></tr>
+      <tr><td>2</td><td>减了谁的什么工作？</td><td>销售开 PI 不用挑账户、不用回 Excel 抄账号；消除「选欧元印美元账号」的汇款事故。</td></tr>
+      <tr><td>3</td><td>能否复用既有机制？</td><td>能。复用 field_configs 的整模块 JSON 存储、模板 field 渲染、PI 已有 currency 下拉、现有路由与菜单权限。</td></tr>
+      <tr><td>4</td><td>新增了什么？</td><td><span class="check">未新建表 / 未新建 API / 未加 Prisma 字段</span>。新增 1 个账户真源文件、1 个页面、替换 1 条路由、放开 1 处只读权限。</td></tr>
+      <tr><td>5</td><td>按模板反推字段了吗？</td><td>否。字段来自真实单据的 Bank details 与开票资料；模板只是呈现，版本式改动不反向绑架数据结构。</td></tr>
+      <tr><td>6</td><td>影响最终交易事实吗？</td><td>账户是系统配置，不是单据事实；已确认 PI 的商品明细与金额仍按原规则冻结。历史单据重开读到最新账户这一点，列入下方待拍板。</td></tr>
+      <tr><td>7</td><td>会让销售回 Excel 吗？</td><td>不会。选币种即带出，页面可见、打印直接出。</td></tr>
+      <tr><td>8</td><td>是「以后可能 / 更规范」吗？</td><td>不是。修的是真实存在的错误账号风险，以及刘总明确指定的模块归属。</td></tr>
+      <tr><td>9</td><td>回滚与部署代价？</td><td>纯前端为主，仅 1 行后端读权限放开；内置真源兜底，删掉配置即回到默认；生产恢复后随前端构建产物部署即可。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6 · 验证结果</h2>
+  <table>
+    <thead><tr><th style="width:250px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">前端 tsc -b && vite build</td><td><span class="check">EXIT 0</span>，1685 模块；后端 tsc --noEmit EXIT 0</td></tr>
+      <tr><td class="k">账户真源验证</td><td><span class="check">54 / 54 PASS</span>：三账号逐位比对、交叉验证、按币种协同、打印件不串账号、未知币种安全兜底、模板动态化、模块归属、管理员判定</td></tr>
+      <tr><td class="k">端到端（真打后端）</td><td><span class="check">9 / 9 PASS</span>：非管理员 GET 200 / PUT 403；管理员写入读回三套账户；业务侧可读；测试数据已清理</td></tr>
+      <tr><td class="k">全量回归</td><td><span class="check">12 / 12 PASS</span>（含频次 34、金额联动 19、PI/CI/PL 三模板、登录、汇率权限等既有链路）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>7 · 待您拍板</h2>
+  <div class="note">
+    <ul style="margin:0;padding-left:18px">
+      <li><strong>CNY 打印口径</strong>：目前 PI/CI 模板统一用英文银行口径（与真实外贸单据一致）。若人民币内销单据要印中文开户行 / 行号 / 信用代码，需要单独做一套国内版式，请确认要不要做。</li>
+      <li><strong>历史单据</strong>：账户目前是实时配置。以后改了账号，重新打开旧 PI 预览会显示新账户。是否要把「开单当时的账户」随 PI 落库冻结（涉及加字段），请定。</li>
+      <li><strong>回款路径文字</strong>：字段已就位、可选填（中间行 / 汇款附言要求），现在留空打印为「—」。要不要填具体说明，需要您给标准话术。</li>
+      <li><strong>同币种多账户</strong>：现在一个币种一套默认账户；若以后有备用账户，需再扩展选择逻辑。</li>
+      <li><strong>生产</strong>：服务器仍离线；本批改动与前面累计改动仍待一次性发布。</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <strong>本步状态</strong>：已完成 —— 账户资料落在资金账户页、三币种默认协同、国内交易账户单独体现、管理员可编辑、验证全绿。<br>
+    <strong>主要文件</strong>：新增 services/bankAccountStore.ts、pages/FundAccounts.tsx；改动 App.tsx 路由、printTemplateStore.ts（PI/CI 银行块动态化）、ProformaInvoiceForm.tsx / ProformaInvoices.tsx / PrintTemplates.tsx（三处打印入口）、backend/routes/fieldConfig.routes.ts（只读放开）。<br>
+    <strong>下一步建议</strong>：请先在「ERP·财务 → 资金账户」确认管理员可编辑、人民币分组可见，再切 EUR / CNY 各开一张 PI 看打印件的 Bank details 账号是否跟着变；确认后把累计改动推 GitHub 保底。
+  </div>
+
+</div>
+</body>
+</html>

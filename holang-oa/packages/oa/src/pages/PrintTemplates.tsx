@@ -6,13 +6,41 @@ import {
   getPaperSizeLabel, getAllCategories
 } from '../services/printTemplateStore'
 import { usePrintPreview } from '../components/PrintPreview'
+import { buildBankPrintData } from '../services/bankAccountStore'
 import {
   Plus, FileText, Printer, Search, ToggleLeft, ToggleRight,
   Trash2, Copy, X, ChevronRight, LayoutTemplate, Settings
 } from 'lucide-react'
 
-// 打印预览示例数据：CI 用真实客户样本（Allum Corporation），其余用通用示例
+// 打印预览示例数据：PI/CI/PL 均用真实客户样本（Allum Corporation），且共用同一套买方/单据头数据键
 function buildSampleData(tpl: PrintTemplate): Record<string, any> {
+  if (tpl.category === 'PI') {
+    // 真实 PI 单据（PROFORMA INVOICE, Allum Corporation）三行明细 + 金额大写 + 银行信息
+    return {
+      buyerName: 'Allum Corporation',
+      buyerAddress: 'Orlando, Florida, Zipcode 32835',
+      buyerAttn: 'Alessandro Ponso',
+      buyerTel: '407 360-4114',
+      buyerEmail: 'Allum@allumcorp.com',
+      invoiceNo: 'HC2606038',
+      invoiceDate: 'Aug 20, 2026',
+      countryOfOrigin: 'CHINA',
+      currencyName: 'US Dollar',
+      items: [
+        { hsCode: '8419609090', name: 'Nitrogen Generator', qty: 1, price: '13,800.00', amount: '13,800.00' },
+        { hsCode: '', name: 'Export Packaging', qty: 1, price: '100.00', amount: '100.00' },
+        { hsCode: '', name: 'Sea freight', qty: 1, price: '428.00', amount: '428.00' },
+      ],
+      totalAmount: 'US$14,328.00',
+      amountInWords: 'FOURTEEN THOUSAND THREE HUNDRED TWENTY-EIGHT ONLY',
+      transactionMethod: 'CIF MIAMI',
+      paymentTerm: 'TT 20% PREPAYMENT, 80% BALANCE BEFORE SHIPMENT',
+      deliveryDate: '20 DAYS AFTER RECEIVING THE PREPAYMENT / THE ESTIMATED CIF SHIPPING TIME TO MIAMI IS APPROXIMATELY 40 DAYS.',
+      remarks: 'ONE COMPLETE SET OF NPA15 SPARE PARTS FREE OF CHARGE',
+      // 银行信息按样本币种动态取（Allum 样本是 USD），不再写死单一账号
+      ...buildBankPrintData('USD'),
+    }
+  }
   if (tpl.category === 'CI') {
     return {
       buyerName: 'Allum Corporation',
@@ -23,6 +51,7 @@ function buildSampleData(tpl: PrintTemplate): Record<string, any> {
       invoiceNo: 'HC2606038',
       invoiceDate: 'Sep 17, 2026',
       countryOfOrigin: 'CHINA',
+      currencyName: 'US Dollar',
       items: [
         { name: '8419609090 Nitrogen Generator', spec: '', qty: 1, price: 'US$13,800.00', amount: 'US$13,800.00' },
         { name: 'Export Packaging', spec: '', qty: 1, price: 'US$100.00', amount: 'US$100.00' },
@@ -33,7 +62,8 @@ function buildSampleData(tpl: PrintTemplate): Record<string, any> {
       paymentTerm: 'TT 20% PREPAYMENT, 80% BALANCE BEFORE SHIPMENT',
       deliveryDate: '20 DAYS AFTER RECEIVING THE PREPAYMENT',
       remarks: 'ONE COMPLETE SET OF NPA15 SPARE PARTS FREE OF CHARGE',
-      beneficiaryAccount: '512912307432201',
+      // 银行信息按样本币种动态取（Allum 样本是 USD），不再写死单一账号
+      ...buildBankPrintData('USD'),
     }
   }
   if (tpl.category === 'PL') {

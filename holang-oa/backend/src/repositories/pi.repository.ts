@@ -30,6 +30,56 @@ export interface PiFilter {
   take?: number;
 }
 
+// ============================================================
+// PI 商品明细（Commercial Items）—— 走法B：加 1 列 JSON，不新增 Model / Relation / BOM。
+// 刘总 2026-11-08 一线反馈「产品销售单价、明细没有地方能填写」；真实 Allum PI 有 3 行明细。
+// 一张 PI 的行项可能是 设备 / 外购 / 配件 / 运杂 / 安装 / 服务，不为每种建字段；
+// 每行统一表达：品名描述 name / HS Code / 数量 qty / 单位 unit / 单价 price / 金额 amount。
+// 用原生 SQL 读写 items_json，避免重新生成线上 Prisma 客户端（同 currency.service.ts 范式）。
+// ============================================================
+export interface PiItem {
+  hsCode?: string | null;
+  name: string;
+  qty?: number | null;
+  unit?: string | null;
+  price?: number | null;
+  amount?: number | null;
+}
+
+export async function savePiItems(id: string, items: PiItem[]) {
+  await prisma.$executeRaw`UPDATE pis SET items_json = ${JSON.stringify(items ?? [])} WHERE id = ${id}`;
+  return items;
+}
+
+export async function readPiItems(id: string): Promise<PiItem[]> {
+  const rows = await prisma.$queryRaw<Array<{ items_json: string | null }>>`SELECT items_json FROM pis WHERE id = ${id}`;
+  const raw = rows?.[0]?.items_json;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+/** 更新 PI 的可编辑内容（金额/币种/备注/状态）；明细单独经 savePiItems 写入 */
+export async function updatePiContent(id: string, data: {
+  amount?: number; currency?: string; notes?: string; status?: string;
+}) {
+  const patch: { amount?: number; currency?: string; notes?: string; status?: string } = {};
+  if (data.amount !== undefined) patch.amount = data.amount;
+  if (data.currency !== undefined) patch.currency = data.currency;
+  if (data.notes !== undefined) patch.notes = data.notes;
+  if (data.status !== undefined) patch.status = data.status;
+  return prisma.pi.update({
+    where: { id },
+    data: patch,
+    include: {
+      customer: { select: { id: true, companyName: true } },
+      creator: { select: { id: true, name: true } },
+    },
+  });
+}
+
 export async function createPi(data: CreatePiInput) {
   return prisma.pi.create({
     data: {

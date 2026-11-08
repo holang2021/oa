@@ -44,6 +44,7 @@ import MyFlows from './pages/MyFlows'
 import TodoTasks from './pages/TodoTasks'
 import DoneTasks from './pages/DoneTasks'
 import SystemSettings from './pages/SystemSettings'
+import FundAccounts from './pages/FundAccounts'
 import DealerReports from './pages/DealerReports'
 import Partners from './pages/Partners'
 import RbacSettings from './pages/RbacSettings'
@@ -63,7 +64,7 @@ import {
   erpBomConfig, erpWorkOrderConfig, erpScheduleConfig, erpReportingConfig, erpQualityConfig,
   erpInventoryConfig, erpInboundConfig, erpOutboundConfig, erpTransferConfig, erpStockCheckConfig,
   erpRepayPlanConfig, erpARConfig, erpAPConfig, erpInvoiceConfig,
-  erpReconciliationConfig, erpExpenseConfig, erpAccountsConfig,
+  erpReconciliationConfig, erpExpenseConfig,
   analyticsProductConfig, analyticsLeadConfig, analyticsROIConfig, analyticsCustomerConfig,
   analyticsOppConfig, analyticsQuotationConfig, analyticsContractConfig,
   analyticsCollectionConfig, analyticsFinanceConfig,
@@ -207,7 +208,8 @@ function App() {
         <Route path="/erp/invoices" element={<Guard><G config={erpInvoiceConfig} /></Guard>} />
         <Route path="/erp/reconciliation" element={<Guard><G config={erpReconciliationConfig} /></Guard>} />
         <Route path="/erp/expenses" element={<Guard><G config={erpExpenseConfig} /></Guard>} />
-        <Route path="/erp/accounts" element={<Guard><G config={erpAccountsConfig} /></Guard>} />
+        {/* 刘总 2026-11-08：账户资料建在「资金账户」页，不再用 comingSoon 占位 */}
+        <Route path="/erp/accounts" element={<Guard><FundAccounts /></Guard>} />
 
         {/* 数据分析 */}
         <Route path="/analytics/products" element={<Guard><G config={analyticsProductConfig} /></Guard>} />

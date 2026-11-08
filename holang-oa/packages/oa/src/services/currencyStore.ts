@@ -5,6 +5,19 @@
 // ============================================================
 
 import api from './api'
+import {
+  DEFAULT_RATE_UPDATE_FREQUENCY,
+  isRateUpdateFrequency,
+  shouldUpdateByFrequency,
+  nextCheckDate,
+  latestUpdateDate,
+  todayStr,
+  type RateUpdateFrequency,
+} from './currencyRateSchedule'
+
+// 频次定义与判断真源在 currencyRateSchedule.ts，这里只负责读写本机配置 + 复用 lastUpdated
+export { RATE_UPDATE_FREQUENCIES } from './currencyRateSchedule'
+export type { RateUpdateFrequency, RateFrequencyOption } from './currencyRateSchedule'
 
 export interface Currency {
   id: string          // 币种代码，如 'CNY'
@@ -111,9 +124,37 @@ export async function resetCurrencies(): Promise<void> {
 }
 
 // ============================================================
-// 汇率自动更新（外部免费 API）
+// 汇率自动更新（外部免费 API）+ 更新频次
+// 刘总 2026-11-08 口径：每月=每月 1 日、每周=每周一、每天=每天 6 点（真源见 currencyRateSchedule.ts）。
+// 不新增 Model / 表 / 字段 / API：配置存本机，判断依据复用 currencies.lastUpdated。
 // ============================================================
 const EXCHANGE_API_URL = 'https://open.er-api.com/v6/latest/CNY'
+const RATE_UPDATE_CONFIG_KEY = 'holang_rate_update_frequency_v1'
+
+/** 读取更新频次（同步，默认「仅手动」= 保持原来只靠手动按钮的行为） */
+export function getRateUpdateConfig(): RateUpdateFrequency {
+  try {
+    const raw = localStorage.getItem(RATE_UPDATE_CONFIG_KEY)
+    if (isRateUpdateFrequency(raw)) return raw
+  } catch { /* ignore */ }
+  return DEFAULT_RATE_UPDATE_FREQUENCY
+}
+
+/** 设置更新频次（选中即生效；汇率本身写回后端 currencies，全系统共用） */
+export function setRateUpdateConfig(frequency: RateUpdateFrequency): void {
+  if (!isRateUpdateFrequency(frequency)) return
+  try { localStorage.setItem(RATE_UPDATE_CONFIG_KEY, frequency) } catch { /* ignore */ }
+}
+
+/** 全系统汇率最后更新时间：取所有币种 lastUpdated 里最新的一个 */
+export function getLastRateUpdate(): string | null {
+  return latestUpdateDate(fallback().map((c) => c.lastUpdated))
+}
+
+/** 下次自动检查时点（固定日历时点，带 06:00）；仅手动时返回 null */
+export function getNextRateCheckDate(): string | null {
+  return nextCheckDate(getRateUpdateConfig(), getLastRateUpdate())
+}
 
 export interface RateFetchResult {
   success: boolean
@@ -132,7 +173,7 @@ export async function fetchLatestRates(): Promise<RateFetchResult> {
     const currencies = getActiveCurrencies()
     const updated: string[] = []
     const failed: string[] = []
-    const today = new Date().toISOString().split('T')[0]
+    const today = todayStr()
     for (const c of currencies) {
       if (c.id === 'CNY') {
         try { await updateCurrency('CNY', { rate: 1, lastUpdated: today }); updated.push('CNY') } catch { /* ignore */ }
@@ -161,12 +202,9 @@ export async function fetchLatestRates(): Promise<RateFetchResult> {
   }
 }
 
+/** 是否该自动更新：按固定日历时点（每月 1 日 / 每周一 / 每天 6 点）判断 */
 export function shouldAutoUpdate(): boolean {
-  const now = new Date()
-  const today = now.toISOString().split('T')[0]
-  if (now.getDate() !== 1) return false
-  const currencies = fallback()
-  return !currencies.some((c) => c.lastUpdated === today && c.id !== 'CNY')
+  return shouldUpdateByFrequency(getRateUpdateConfig(), getLastRateUpdate())
 }
 
 export async function autoUpdateRatesIfNeeded(): Promise<RateFetchResult | null> {

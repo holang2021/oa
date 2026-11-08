@@ -139,34 +139,73 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
   },
   {
     id: 'tpl-pi-print',
-    name: 'PI打印模板',
+    name: 'PI打印模板（形式发票）',
     category: 'PI',
     paperSize: 'A4',
     orientation: 'portrait',
     width: 210,
     height: 297,
     enabled: true,
+    // 版式参照真实客户 PI（Allum Corporation「PROFORMA INVOICE」，2026-11-05 刘总提供）。
+    // 数据键 buyerName/buyerAddress/buyerAttn/buyerEmail/invoiceNo/invoiceDate/countryOfOrigin/
+    // items/amountInWords/transactionMethod/paymentTerm/deliveryDate/remarks/beneficiaryAccount
+    // 与 CI 完全复用；PL 复用买方与单据头 → 同客户 PI/CI/PL 数据互通。
+    // currencyName 按单据实际币种输出（如 Euro / US Dollar），未传时回退模板静态文案。
+    // 客户可见 PI 不含人民币金额 / 汇率：人民币折算只做内部参考，不进打印数据（刘总 2026-11-08）。
+    // 明细表用 tableFields 自定义列（HS Code / DESCRIPTION / Qty / Unit Price / Total）。
     fields: [
-      { type: 'header', content: 'HOLANG PROFORMA INVOICE', fontSize: 18, bold: true, align: 'center' },
+      { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 14, bold: true, align: 'left' },
+      { type: 'header', content: 'Address: No. 51, Jinsigang Road, Wuzhong District, Suzhou, China', fontSize: 10, bold: false, align: 'left' },
+      { type: 'header', content: 'Tel: +86 4000512711  Email: marketing@holangchina.com', fontSize: 10, bold: false, align: 'left' },
       { type: 'spacer' },
-      { type: 'field', label: 'PI No.', key: 'piNo' },
-      { type: 'field', label: 'Date', key: 'piDate' },
-      { type: 'field', label: 'To', key: 'customerName' },
+      { type: 'header', content: 'PROFORMA INVOICE', fontSize: 20, bold: true, align: 'center' },
+      { type: 'spacer' },
+      { type: 'field', label: 'To', key: 'buyerName' },
+      { type: 'field', label: 'Address', key: 'buyerAddress' },
+      { type: 'field', label: 'CONTACT', key: 'buyerAttn' },
+      { type: 'field', label: 'Tel.', key: 'buyerTel' },
+      { type: 'field', label: 'E-mail', key: 'buyerEmail' },
+      { type: 'field', label: 'Invoice No.', key: 'invoiceNo' },
+      { type: 'field', label: 'Date', key: 'invoiceDate' },
+      { type: 'field', label: 'Country of Origin', key: 'countryOfOrigin' },
+      { type: 'header', content: 'US Dollar', key: 'currencyName', fontSize: 9, bold: false, align: 'right' },
       { type: 'spacer' },
       { type: 'table', label: 'Item Details', key: 'items', columns: [
         { type: 'text', content: 'No.', align: 'center' },
-        { type: 'text', content: 'Description', align: 'left' },
-        { type: 'text', content: 'Quantity', align: 'right' },
+        { type: 'text', content: 'HS Code', align: 'left' },
+        { type: 'text', content: 'DESCRIPTION OF PRODUCTS', align: 'left' },
+        { type: 'text', content: 'Qty (set)', align: 'right' },
         { type: 'text', content: 'Unit Price', align: 'right' },
-        { type: 'text', content: 'Amount', align: 'right' },
+        { type: 'text', content: 'Total', align: 'right' },
+      ], tableFields: [
+        { type: 'text', key: 'hsCode', align: 'left' },
+        { type: 'text', key: 'name', align: 'left' },
+        { type: 'text', key: 'qty', align: 'right' },
+        { type: 'text', key: 'price', align: 'right' },
+        { type: 'text', key: 'amount', align: 'right' },
       ]},
+      { type: 'field', label: 'TOTAL', key: 'totalAmount', align: 'right' },
+      { type: 'field', label: 'Amount in Words', key: 'amountInWords' },
       { type: 'spacer' },
-      { type: 'field', label: 'Total Amount', key: 'totalAmount', align: 'right' },
+      { type: 'field', label: 'TRANSACTION METHOD', key: 'transactionMethod' },
+      { type: 'field', label: 'PAYMENT TERM', key: 'paymentTerm' },
+      { type: 'field', label: 'DELIVERY DATE', key: 'deliveryDate' },
+      { type: 'field', label: 'REMARKS', key: 'remarks' },
       { type: 'spacer' },
-      { type: 'footer', content: '--- HOLANG All In One Management System ---', fontSize: 10, align: 'center' },
+      { type: 'header', content: 'Bank details:', fontSize: 11, bold: true, align: 'left' },
+      { type: 'field', label: 'Beneficiary Bank', key: 'beneficiaryBank' },
+      { type: 'field', label: 'Bank Address', key: 'bankAddress' },
+      { type: 'field', label: 'Swift Code', key: 'swiftCode' },
+      { type: 'field', label: 'Beneficiary', key: 'beneficiary' },
+      { type: 'field', label: 'Account No.', key: 'beneficiaryAccount' },
+      { type: 'field', label: 'PAYMENT ROUTE', key: 'paymentRoute' },
+      { type: 'spacer' },
+      { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 11, bold: false, align: 'right' },
+      { type: 'header', content: 'Authorized Signature', fontSize: 11, bold: false, align: 'right' },
+      { type: 'footer', content: '--- HOLANG PROFORMA INVOICE ---', fontSize: 10, align: 'center' },
     ],
-    createdAt: '2026-07-01',
-    updatedAt: '2026-07-01',
+    createdAt: '2026-11-05',
+    updatedAt: '2026-11-08',
   },
   {
     id: 'tpl-ci-print',
@@ -178,7 +217,7 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
     height: 297,
     enabled: true,
     // 版式参照真实客户 CI（Allum Corporation）。红色/黄色字体标记的项 = 每次开单要填的变量（见 field.key）。
-    // 固定文案（卖方抬头、银行信息、签名）用 header 写死；变量用 field 由打印数据填充。
+    // 固定文案（卖方抬头、签名）用 header；银行信息按币种动态输出（见 bankAccountStore），不写死美元账户。
     fields: [
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 14, bold: true, align: 'left' },
       { type: 'header', content: 'Address: No. 51, Jinsigang Road, Wuzhong District, Suzhou, China', fontSize: 10, bold: false, align: 'left' },
@@ -195,7 +234,7 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'Invoice No.', key: 'invoiceNo' },
       { type: 'field', label: 'Date', key: 'invoiceDate' },
       { type: 'field', label: 'Country of Origin', key: 'countryOfOrigin' },
-      { type: 'header', content: 'US Dollar', fontSize: 9, bold: false, align: 'right' },
+      { type: 'header', content: 'US Dollar', key: 'currencyName', fontSize: 9, bold: false, align: 'right' },
       { type: 'spacer' },
       // 明细表：列头与渲染器的 body 对齐（No. + name + spec + qty + price + amount = 6 列）
       { type: 'table', label: 'Item Details', key: 'items', columns: [
@@ -215,11 +254,12 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'REMARKS', key: 'remarks' },
       { type: 'spacer' },
       { type: 'header', content: 'Bank details:', fontSize: 11, bold: true, align: 'left' },
-      { type: 'header', content: 'Beneficiary Bank: China Merchants bank Suzhou branch Suzhou China', fontSize: 10, bold: false, align: 'left' },
-      { type: 'header', content: 'Bank Address: No.36 Wan Sheng road, Suzhou Industrial Park, Suzhou, Jiangsu, China', fontSize: 10, bold: false, align: 'left' },
-      { type: 'header', content: 'Swift Code: CMBCCNBS275', fontSize: 10, bold: false, align: 'left' },
-      { type: 'header', content: 'Beneficiary: Holang Tech (Suzhou) Co., Ltd', fontSize: 10, bold: false, align: 'left' },
+      { type: 'field', label: 'Beneficiary Bank', key: 'beneficiaryBank' },
+      { type: 'field', label: 'Bank Address', key: 'bankAddress' },
+      { type: 'field', label: 'Swift Code', key: 'swiftCode' },
+      { type: 'field', label: 'Beneficiary', key: 'beneficiary' },
       { type: 'field', label: 'Account No.', key: 'beneficiaryAccount' },
+      { type: 'field', label: 'PAYMENT ROUTE', key: 'paymentRoute' },
       { type: 'spacer' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 11, bold: false, align: 'right' },
       { type: 'header', content: 'Authorized Signature', fontSize: 11, bold: false, align: 'right' },
@@ -339,9 +379,23 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
 export const PRINT_TEMPLATE_STORAGE_KEY = 'holang_print_templates'
 
 export function loadPrintTemplates(): PrintTemplate[] {
+  const builtinIds = new Set(BUILTIN_TEMPLATES.map(b => b.id))
   try {
     const raw = localStorage.getItem(PRINT_TEMPLATE_STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const stored = JSON.parse(raw)
+      if (Array.isArray(stored)) {
+        // 内置模板以代码为唯一真源：新增的自动补进来，已存在的也随版本更新内容。
+        // （刘总 2026-11-08 反馈：重建后的 PI 模板仍显示旧版，根因就是缓存里旧对象没被更新。）
+        // 仅保留用户对该模板的「启用/禁用」状态；用户通过「复制」另存的自定义模板原样保留。
+        const builtins = BUILTIN_TEMPLATES.map(b => {
+          const old = stored.find((s: PrintTemplate) => s.id === b.id)
+          return old ? { ...b, enabled: old.enabled } : b
+        })
+        const custom = stored.filter((s: PrintTemplate) => !builtinIds.has(s.id))
+        return [...builtins, ...custom]
+      }
+    }
   } catch { /* ignore */ }
   return [...BUILTIN_TEMPLATES]
 }

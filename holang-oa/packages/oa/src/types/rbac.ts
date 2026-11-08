@@ -21,6 +21,7 @@ export const ALL_MENU_PERMISSIONS = [
   { route: '/export/customers', label: '客户管理（外销）', labelEn: 'Customers (Export)' },
   { route: '/export/leads', label: '线索管理（外销）', labelEn: 'Leads (Export)' },
   { route: '/export/opportunities', label: '商机管理（外销）', labelEn: 'Opportunities (Export)' },
+  { route: '/export/proforma-invoices', label: '形式发票 PI（外销）', labelEn: 'Proforma Invoice (Export)' },
   { route: '/export/orders', label: '订单管理（外销）', labelEn: 'Orders (Export)' },
   { route: '/export/collections', label: '回款管理（外销）', labelEn: 'Collections (Export)' },
   { route: '/export/whatsapp', label: 'WhatsApp', labelEn: 'WhatsApp' },

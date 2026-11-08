@@ -20,7 +20,11 @@ export function getAllTemplateTypes(): DocTemplateType[] {
     const raw = localStorage.getItem(STORAGE_KEY_TYPES)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // 老缓存若缺后来新增的默认类型（如 CI / PL），自动补齐，保留用户已有配置
+        const missing = DEFAULT_TEMPLATE_TYPES.filter(d => !parsed.some((p: DocTemplateType) => p.id === d.id))
+        return missing.length ? [...parsed, ...missing] : parsed
+      }
     }
   } catch { /* ignore */ }
   // 首次使用，写入默认类型
@@ -70,14 +74,19 @@ export function deleteTemplateType(id: string): DocTemplateType[] {
 // ============ 模板版本管理 ============
 
 export function getAllTemplates(): DocTemplate[] {
+  const defaults = initDefaultTemplates()
   try {
     const raw = localStorage.getItem(STORAGE_KEY_TEMPLATES)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // 老缓存若缺后来新增的默认模板（如 CI v1 / PL v1），自动补齐，保留用户已有版本
+        const missing = defaults.filter(d => !parsed.some((p: DocTemplate) => p.id === d.id))
+        return missing.length ? [...parsed, ...missing] : parsed
+      }
     }
   } catch { /* ignore */ }
-  return initDefaultTemplates()
+  return defaults
 }
 
 /** 初始化默认模板 */

@@ -81,16 +81,28 @@ export async function getPiById(id: string) {
 }
 
 // 创建 PI（POST /pi）
+// 商品明细行（Commercial Item）：设备/外购/配件/运杂/安装/服务统一一种行结构，
+// 不为每种建字段；与打印模板 tpl-pi-print 的 tableFields 键一一对应。
+export interface PiItem {
+  hsCode: string
+  name: string
+  qty: number
+  unit: string
+  price: number
+  amount: number
+}
+
 export interface CreatePiInput {
   piNo?: string
   customerId: string
-  quoteRef: string
+  quoteRef?: string          // 选填：报价单尚未在系统内完成时可直接建 PI（刘总 2026-11-08）
   amount?: number
   currency?: string
   issuedAt?: string
   expiresAt?: string
   notes?: string
   customerContactId?: string
+  items?: PiItem[]           // 销售在表单直接录入的商品明细（刘总 2026-11-08）
 }
 
 export async function createPi(input: CreatePiInput) {
@@ -99,9 +111,23 @@ export async function createPi(input: CreatePiInput) {
   throw new Error(res.message || 'PI 生成失败')
 }
 
-// 更新 PI 状态（PUT /pi/:id，后端仅接收 status）
-export async function updatePiStatus(id: string, status: string) {
-  const res = await api.put<any>(`/pi/${id}`, { status })
+// 更新 PI 内容（PUT /pi/:id）：状态 / 金额 / 币种 / 备注 / 商品明细。
+// 复用既有端点，不新增 API；CONFIRMED 后明细与金额由后端冻结。
+export interface UpdatePiInput {
+  status?: string
+  amount?: number
+  currency?: string
+  notes?: string
+  items?: PiItem[]
+}
+
+export async function updatePiContent(id: string, input: UpdatePiInput) {
+  const res = await api.put<any>(`/pi/${id}`, input)
   if (res.code === 0 && res.data) return res.data
   throw new Error(res.message || '更新失败')
+}
+
+// 兼容旧调用：仅改状态时仍可用
+export async function updatePiStatus(id: string, status: string) {
+  return updatePiContent(id, { status })
 }

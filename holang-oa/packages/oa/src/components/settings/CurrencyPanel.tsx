@@ -2,7 +2,7 @@
 // 币种与汇率配置面板
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Coins,
   Plus,
@@ -16,6 +16,7 @@ import {
   Check,
   RotateCw,
   ArrowUpDown,
+  Clock,
 } from 'lucide-react'
 import {
   type Currency,
@@ -29,6 +30,12 @@ import {
   fetchLatestRates,
   autoUpdateRatesIfNeeded,
   shouldAutoUpdate,
+  RATE_UPDATE_FREQUENCIES,
+  getRateUpdateConfig,
+  setRateUpdateConfig,
+  getLastRateUpdate,
+  getNextRateCheckDate,
+  type RateUpdateFrequency,
   type RateFetchResult,
 } from '../../services/currencyStore'
 
@@ -49,10 +56,28 @@ export default function CurrencyPanel() {
   })
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateResult, setUpdateResult] = useState<RateFetchResult | null>(null)
+  const [frequency, setFrequency] = useState<RateUpdateFrequency>(() => getRateUpdateConfig())
+  const [lastRateUpdate, setLastRateUpdate] = useState<string | null>(null)
+  const [nextRateCheck, setNextRateCheck] = useState<string | null>(null)
 
-  const refresh = () => setCurrencies(getAllCurrencies())
+  const refresh = () => {
+    setCurrencies(getAllCurrencies())
+    setLastRateUpdate(getLastRateUpdate())
+    setNextRateCheck(getNextRateCheckDate())
+  }
 
-  // 进入面板：从后端预热币种，成功后按需自动更新汇率
+  // 选中即生效：只改「多久检查一次」，不立刻联网改汇率，避免悄悄动报价依据
+  const handleFrequencyChange = (next: RateUpdateFrequency) => {
+    setRateUpdateConfig(next)
+    setFrequency(next)
+    setNextRateCheck(getNextRateCheckDate())
+  }
+
+  const selectedFrequency = RATE_UPDATE_FREQUENCIES.find(f => f.value === frequency)
+
+  const runningRef = useRef(false)
+
+  // 进入面板：预热币种；若当期已到期（页面没开而错过时点）则补跑一次
   useEffect(() => {
     let active = true
     ;(async () => {
@@ -60,15 +85,40 @@ export default function CurrencyPanel() {
       await initCurrencies()
       if (!active) return
       refresh()
-      if (shouldAutoUpdate()) {
+      if (shouldAutoUpdate() && !runningRef.current) {
+        runningRef.current = true
         setIsUpdating(true)
-        const result = await autoUpdateRatesIfNeeded()
-        if (active && result) { setUpdateResult(result); refresh() }
-        setIsUpdating(false)
+        try {
+          const result = await autoUpdateRatesIfNeeded()
+          if (active && result) { setUpdateResult(result); refresh() }
+        } finally {
+          runningRef.current = false
+          setIsUpdating(false)
+        }
       }
     })()
     return () => { active = false }
   }, [])
+
+  // 页面常开时按固定时点自动执行：每天 06:00 / 每周一 06:00 / 每月 1 日 06:00。
+  // 每分钟检查一次，到点即拉；每周期只跑一次（幂等依据 currencies.lastUpdated）。
+  useEffect(() => {
+    const tick = async () => {
+      if (runningRef.current || !shouldAutoUpdate()) return
+      runningRef.current = true
+      setIsUpdating(true)
+      try {
+        const result = await fetchLatestRates()
+        if (result.success) { setUpdateResult(result); refresh() }
+      } finally {
+        runningRef.current = false
+        setIsUpdating(false)
+      }
+    }
+    const id = window.setInterval(tick, 60 * 1000)
+    return () => window.clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frequency])
 
   // 手动获取最新汇率
   const handleFetchRates = async () => {
@@ -189,6 +239,56 @@ export default function CurrencyPanel() {
         <div className="text-sm text-gray-500">
           默认币种：<span className="font-medium text-brand-600">{defaultCurrency?.name || 'CNY'}</span>
           &nbsp;| 共 {currencies.length} 种，启用 {currencies.filter(c => c.isActive).length} 种
+        </div>
+      </div>
+
+      {/* 汇率更新频次：手动更新始终保留，频次决定「多久自动检查一次」 */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Clock size={15} className="text-gray-500" />
+              <h3 className="text-sm font-medium text-gray-800">汇率更新频次</h3>
+              <span className="text-xs text-gray-400">手动更新始终可用</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              按固定时点自动更新：每天 06:00 / 每周一 06:00 / 每月 1 日 06:00；页面开着到点即执行，没开则下次进入本页补跑当期。更新后的汇率写入系统，对所有人开单生效。该设置保存在当前浏览器。
+            </p>
+          </div>
+          <div className="text-right text-xs text-gray-500 space-y-1">
+            <div>
+              上次更新：<span className="font-medium text-gray-700">{lastRateUpdate || '暂无记录'}</span>
+            </div>
+            <div>
+              下次自动更新：<span className="font-medium text-gray-700">
+                {nextRateCheck || (frequency === 'MANUAL' ? '不自动检查' : '待首次更新')}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {RATE_UPDATE_FREQUENCIES.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => handleFrequencyChange(f.value)}
+              title={f.hint}
+              className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                frequency === f.value
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          {selectedFrequency?.hint}
+          {frequency !== 'MANUAL' && (
+            <span className="ml-2 text-gray-400">改完下次进入本页生效，也可立即点「获取最新汇率」。</span>
+          )}
         </div>
       </div>
 

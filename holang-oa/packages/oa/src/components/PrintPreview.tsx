@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { PrintTemplate, getTemplateById } from '../services/printTemplateStore'
 import { Printer, X, FileText } from 'lucide-react'
 
@@ -11,6 +11,8 @@ interface PrintPreviewProps {
 
 export default function PrintPreview({ templateId, data, open, onClose }: PrintPreviewProps) {
   const [template, setTemplate] = useState<PrintTemplate | null>(null)
+  const areaRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
 
   useEffect(() => {
     if (open) {
@@ -19,11 +21,30 @@ export default function PrintPreview({ templateId, data, open, onClose }: PrintP
     }
   }, [open, templateId])
 
+  // 让整页纸张完整落在预览区宽度内（刘总 2026-11-08 反馈「预览页看不全内容」）。
+  // 原来 A4 按 3.78 倍约 794px 宽，弹窗只有 672px，右侧被截断并出现横向滚动条。
+  // 现按可用宽度等比缩放整页，宽度永不溢出；纵向仍可滚动查看长页面。
+  useEffect(() => {
+    const el = areaRef.current
+    if (!open || !template || !el) return
+    const naturalW = (template.orientation === 'portrait' ? template.width : template.height) * 3.78
+    const fit = () => {
+      const avail = el.clientWidth - 48 // 预览区左右各 24px padding
+      setScale(Math.min(1, Math.max(0.25, avail / naturalW)))
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [open, template])
+
   if (!open || !template) return null
 
   const { width, height, orientation } = template
   const displayW = orientation === 'portrait' ? width : height
   const displayH = orientation === 'portrait' ? height : width
+  const naturalW = displayW * 3.78
+  const naturalH = displayH * 3.78
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank')
@@ -37,7 +58,7 @@ export default function PrintPreview({ templateId, data, open, onClose }: PrintP
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-xl w-full max-w-5xl shadow-xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
@@ -47,23 +68,27 @@ export default function PrintPreview({ templateId, data, open, onClose }: PrintP
           <div className="flex items-center gap-2">
             <button onClick={handlePrint}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
-              <Printer size={13} />打印
+              <Printer size={13} />打印 / 导出 PDF
             </button>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
           </div>
         </div>
 
-        {/* Preview area */}
-        <div className="flex-1 overflow-auto p-6 bg-gray-100 flex justify-center">
-          <div className="bg-white shadow-lg" style={{
-            width: `${displayW * 3.78}px`,
-            height: `${displayH * 3.78}px`,
-            minWidth: `${displayW * 3.78}px`,
-            minHeight: `${displayH * 3.78}px`,
-            padding: '24px',
-            boxSizing: 'border-box',
-          }}>
-            <RenderTemplateContent template={template} data={data} />
+        {/* Preview area：外层按缩放后尺寸占位，内层纸张按自然尺寸渲染再等比缩放 */}
+        <div ref={areaRef} className="flex-1 overflow-auto p-6 bg-gray-100 flex justify-center">
+          <div style={{ width: naturalW * scale, height: naturalH * scale, flexShrink: 0 }}>
+            <div className="bg-white shadow-lg" style={{
+              width: `${naturalW}px`,
+              height: `${naturalH}px`,
+              minWidth: `${naturalW}px`,
+              minHeight: `${naturalH}px`,
+              padding: '24px',
+              boxSizing: 'border-box',
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}>
+              <RenderTemplateContent template={template} data={data} />
+            </div>
           </div>
         </div>
       </div>
@@ -78,13 +103,16 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
         const val = field.key ? (data[field.key] ?? '') : ''
 
         switch (field.type) {
-          case 'header':
+          // header 支持 key：有单据数据时按实际值渲染（如 PI 币种名称），否则保留模板静态文案。
+          case 'header': {
+            const text = field.key && val !== '' && val != null ? String(val) : (field.content || '')
             return (
               <div key={idx} className={`mb-4 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
                 style={{ fontSize: `${field.fontSize || 14}px`, fontWeight: field.bold ? 'bold' : 'normal' }}>
-                {field.content}
+                {text}
               </div>
             )
+          }
           case 'field':
             return (
               <div key={idx} className={`flex items-center gap-2 mb-2 text-sm ${field.align === 'center' ? 'justify-center' : field.align === 'right' ? 'justify-end' : ''}`}>
@@ -170,8 +198,10 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
   const fieldsHTML = template.fields.map(field => {
     const val = field.key ? (data[field.key] ?? '') : ''
     switch (field.type) {
-      case 'header':
-        return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || 14}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:16px;">${field.content}</div>`
+      case 'header': {
+        const text = field.key && val !== '' && val != null ? String(val) : (field.content || '')
+        return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || 14}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:16px;">${text}</div>`
+      }
       case 'field':
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}"><span style="color:#999;font-size:11px;">${field.label}:</span><span style="font-weight:500;">${String(val)}</span></div>`
       case 'table': {
@@ -205,7 +235,10 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
 <style>
 @page { size: ${w}mm ${h}mm; margin: 10mm; }
 body { margin: 0; padding: 0; font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; }
-.print-page { width: ${w}mm; height: ${h}mm; padding: 10mm; box-sizing: border-box; display: flex; flex-direction: column; }
+/* @page 已留 10mm 页边距，可打印区 = ${w - 20} × ${h - 20}mm；
+   纸张容器改用 100% 自适应宽度（原固定 ${w}mm 会超出可打印区导致右侧被裁），
+   高度用 min-height 让内容多时自然分页而不被截断。 */
+.print-page { width: 100%; min-height: ${h - 20}mm; padding: 0; box-sizing: border-box; display: flex; flex-direction: column; }
 </style></head>
 <body><div class="print-page">${fieldsHTML}</div></body></html>`
 }

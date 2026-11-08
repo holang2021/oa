@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PI 商品明细可录入（2026-11-08 新增）</title>
+<style>
+  :root { --brand:#1a56db; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f5f7fb; --warn:#b91c1c; --ok:#15803d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; line-height:1.6; }
+  .wrap { max-width:1120px; margin:0 auto; padding:32px 24px 56px; }
+  h1 { font-size:24px; margin:0 0 6px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:22px; }
+  .verdict { background:#fff; border-left:4px solid var(--brand); border-radius:8px; padding:16px 20px; margin-bottom:22px; box-shadow:0 1px 3px rgba(0,0,0,.05); font-size:15px; }
+  .sec { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .sec h2 { font-size:16px; margin:0 0 4px; }
+  .sec .lead { font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .tag { display:inline-block; font-size:12px; padding:2px 9px; border-radius:20px; margin-bottom:12px; }
+  .tag.bad { background:#fef2f2; color:var(--warn); }
+  .tag.good { background:#f0fdf4; color:var(--ok); }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th, td { border:1px solid var(--line); padding:7px 9px; text-align:left; }
+  th { background:#f8fafc; color:#475569; font-weight:600; font-size:11px; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .inp { display:block; width:100%; border:1px solid #d1d5db; border-radius:5px; padding:5px 7px; font-size:12px; background:#fff; color:var(--ink); }
+  .tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .btn { border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:6px; padding:5px 11px; font-size:12px; }
+  .btn.primary { border-color:var(--brand); color:#fff; background:var(--brand); }
+  .sum { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; font-size:12px; }
+  .sum b { font-size:14px; }
+  .hint { font-size:11px; color:var(--muted); }
+  .placeholder { background:#fef2f2; color:#991b1b; padding:9px 11px; border-radius:6px; font-size:12px; }
+  .flow { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .node { flex:1 1 165px; min-width:155px; border:1px solid #bfdbfe; background:#eff6ff; border-radius:8px; padding:11px 13px; font-size:12px; }
+  .node b { display:block; font-size:13px; color:var(--brand); margin-bottom:3px; }
+  .arrow { display:flex; align-items:center; color:#94a3b8; font-size:18px; }
+  .checks { display:grid; grid-template-columns:repeat(2,1fr); gap:6px 20px; font-size:13px; margin-top:8px; }
+  .checks div::before { content:"✓ "; color:var(--ok); font-weight:700; }
+  .q { font-size:12px; color:#374151; margin:4px 0; }
+  .q b { color:var(--brand); }
+  .printhead { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:12px; }
+  .printhead img { height:28px; }
+  .printttl { font-size:17px; font-weight:700; letter-spacing:1px; text-align:center; margin:10px 0 14px; }
+  .foot { margin-top:22px; font-size:12px; color:var(--muted); border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PI 商品明细 · 销售现在可以直接填了</h1>
+  <div class="sub">2026-11-08 · 刘总一线反馈：「产品销售单价、明细没有地方能填写」</div>
+
+  <div class="verdict">
+    原来 PI 只有<b>一个总金额框</b>，明细只能从「已接受的报价单」带出；报价单没在系统里做完时，销售就只能回 Excel 手工做单——这违反了「不让销售回 Word/Excel/微信重做」的硬约束。<br>
+    现在 PI 表单里新增<b>一张可增删的商品明细表</b>：HS Code、品名、数量、单位、单价都能直接填，金额自动算，合计可一键带出 PI 金额，明细会随单据保存，导出 PDF 直接印到单据上。
+  </div>
+
+  <div class="sec">
+    <h2>改前：填不了，打印件是占位文字</h2>
+    <span class="tag bad">截图里红框指的那块</span>
+    <div class="lead">表单只有「币种 / 金额 / 人民币参考 / 交货期」四个框，没有单价和明细。</div>
+    <div class="placeholder">打印预览 Item Details：（未关联报价单，商品明细待补）</div>
+  </div>
+
+  <div class="sec">
+    <h2>改后：商品明细（Commercial Items）</h2>
+    <span class="tag good">设备 / 外购 / 配件 / 运杂 / 安装 / 服务 都可直接加行</span>
+    <div class="tools">
+      <button class="btn">从报价单带入</button>
+      <button class="btn">＋ 新增一行</button>
+      <span class="hint">带入只做初始化，之后仍可自由改，不会强制同步、不会锁死</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th style="width:38px">No.</th><th style="width:120px">HS Code</th><th>DESCRIPTION OF PRODUCTS *</th><th style="width:80px" class="num">Qty</th><th style="width:70px">单位</th><th style="width:110px" class="num">Unit Price</th><th style="width:110px" class="num">Total</th><th style="width:38px"></th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num">1</td><td><span class="inp">8419609090</span></td><td><span class="inp">Nitrogen Generator</span></td><td><span class="inp" style="text-align:right">1</span></td><td><span class="inp">set</span></td><td><span class="inp" style="text-align:right">13800.00</span></td><td class="num"><b>13,800.00</b></td><td style="text-align:center;color:#94a3b8">🗑</td></tr>
+        <tr><td class="num">2</td><td><span class="inp">&nbsp;</span></td><td><span class="inp">Export Packaging</span></td><td><span class="inp" style="text-align:right">1</span></td><td><span class="inp">&nbsp;</span></td><td><span class="inp" style="text-align:right">100.00</span></td><td class="num"><b>100.00</b></td><td style="text-align:center;color:#94a3b8">🗑</td></tr>
+        <tr><td class="num">3</td><td><span class="inp">&nbsp;</span></td><td><span class="inp">Sea freight</span></td><td><span class="inp" style="text-align:right">1</span></td><td><span class="inp">&nbsp;</span></td><td><span class="inp" style="text-align:right">428.00</span></td><td class="num"><b>428.00</b></td><td style="text-align:center;color:#94a3b8">🗑</td></tr>
+      </tbody>
+    </table>
+    <div class="sum">
+      <span>明细合计：<b>USD 14,328.00</b></span>
+      <button class="btn primary">采用为 PI 金额</button>
+      <span class="hint">金额仍可手工改；若与合计不一致会给出提示，不强行覆盖。</span>
+    </div>
+    <div class="hint" style="margin-top:8px">状态为「已确认」时，明细与金额会冻结，避免最终交易事实被改动；要改先把状态改回草稿。</div>
+  </div>
+
+  <div class="sec">
+    <h2>点「导出 PDF（预览）」后，明细直接印到 PI 上</h2>
+    <div class="lead">下面是打印件里 Item Details 的节选，用的就是上面填的三行，不用再抄一遍。</div>
+    <div class="printhead">
+      <img src="HOLANG_Logo_Official.png" alt="HOLANG">
+      <div><b>Holang Tech (Suzhou) Co.,Ltd</b><br><span class="hint">Address: No. 51, Jinsigang Road, Wuzhong District, Suzhou, China</span></div>
+    </div>
+    <div class="printttl">PROFORMA INVOICE</div>
+    <table>
+      <thead><tr><th>No.</th><th>HS Code</th><th>DESCRIPTION OF PRODUCTS</th><th>Qty (set)</th><th>Unit Price</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>8419609090</td><td>Nitrogen Generator</td><td class="num">1 set</td><td class="num">13,800.00</td><td class="num">13,800.00</td></tr>
+        <tr><td>2</td><td></td><td>Export Packaging</td><td class="num">1</td><td class="num">100.00</td><td class="num">100.00</td></tr>
+        <tr><td>3</td><td></td><td>Sea freight</td><td class="num">1</td><td class="num">428.00</td><td class="num">428.00</td></tr>
+        <tr><td colspan="5" style="text-align:right"><b>TOTAL</b></td><td class="num"><b>USD 14,328.00</b></td></tr>
+      </tbody>
+    </table>
+    <div class="hint">打印件仍不含人民币金额与汇率（上一轮已确认）。</div>
+  </div>
+
+  <div class="sec">
+    <h2>填完会不会丢？——不会，已做完整闭环</h2>
+    <div class="flow">
+      <div class="node"><b>表单里填</b>销售直接录 HS Code / 品名 / 数量 / 单位 / 单价</div>
+      <div class="arrow">→</div>
+      <div class="node"><b>随 PI 一起存</b>明细落到 PI 记录，不依赖报价单是否存在</div>
+      <div class="arrow">→</div>
+      <div class="node"><b>重开编辑页还在</b>可继续改，确认后冻结</div>
+      <div class="arrow">→</div>
+      <div class="node"><b>打印 / 导出 PDF</b>直接印到 Item Details，不再显示占位文字</div>
+    </div>
+    <h2 style="margin-top:18px">设计自查（按系统固定总纲「新增字段必答 9 问」）</h2>
+    <div class="q"><b>真实流程 / 真实单据？</b> 有——您给的 Allum PI 就是 3 行明细，含 HS Code、数量、单价、金额。</div>
+    <div class="q"><b>刘总确认过？</b> 有——本条反馈即明确诉求。<b>生产数据？</b> PI 表 0 行（未录，不是不存在业务）。</div>
+    <div class="q"><b>当前代码支持吗？</b> 不支持，原表只有总金额。<b>会让销售回 Excel 吗？</b> 不加就会，加才符合硬约束。</div>
+    <div class="q"><b>是「以后可能 / 为 AI / 更规范」吗？</b> 不是，是一线当场要用。</div>
+    <div class="q"><b>最小结构？</b> 不为设备/配件/运杂/服务各建一张表，只给 PI 加 <b>1 个 JSON 列</b>存行项；不建 BOM、不新建 API（复用既有 PUT /pi/:id）。</div>
+  </div>
+
+  <div class="sec">
+    <h2>本轮验证</h2>
+    <div class="checks">
+      <div>前端 tsc + Vite 构建通过</div>
+      <div>后端 tsc --noEmit 通过</div>
+      <div>明细列幂等部署器：首次加列、二次跳过</div>
+      <div>端到端 8/8 PASS（建 / 读 / 改 / 冻结 / 清理）</div>
+      <div>单价、HS Code、单位重开后保真</div>
+      <div>已确认后改明细被拒（HTTP 409）</div>
+      <div>PI/CI/PL 打印模板复核仍 PASS</div>
+      <div>未新增 Prisma Model / Relation / API</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    本轮改动：ProformaInvoiceForm.tsx、piService.ts（前端）、pi.controller.ts / pi.service.ts / pi.repository.ts（后端）、
+    setup_pi_items.sql、_deploy_pi_items.py。<br>
+    请注意：明细列已在<b>本地预览库</b>生效；生产服务器仍离线，恢复后需按既有 hotfix 增量纪律执行同一部署脚本。<br>
+    下一步待办：PI 列表页目前仍是演示数据（保存后跳回列表看不到刚建的 PI）、金额英文大写自动生成、CI/PL 同样加明细区、本批改动尚未推 GitHub。
+  </div>
+</div>
+</body>
+</html>
