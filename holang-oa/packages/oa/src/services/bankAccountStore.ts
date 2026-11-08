@@ -1,19 +1,24 @@
 // ============================================================
-// 收款账户与回款路径（按币种协同）
+// 收款账户与回款路径（按币种协同）+ 公司联系资料
 // 刘总 2026-11-08：选欧元给欧元账户、选美元给美元账户、选人民币给人民币账户，默认自动协同带出。
 // 刘总 2026-11-08 续（资金账户页截图）：外币账户全英文口径（红框指出外币卡混进中文「行号」）、
 //   人民币账户（内销回款）全中文即可；账户要能新增、能删除。
+// 刘总 2026-11-08 续（第三轮）：外币账户缺少公司地址及电话、邮箱等信息。
 //
-// 真源与证据（LOCKED 总纲「证据优先级」，绝不编造账号）：
+// 真源与证据（LOCKED 总纲「证据优先级」，绝不编造账号 / 联系方式）：
 //  USD ← "PI for Allum Corporation.xls" / "CI for Allum Corporation.xls" 的 Bank details 区 R29-R34
 //  CNY ← "126_昊朗（苏州）能源科技有限公司_报价单(1).xlsx" A3/C3/A6/C6/K6/M6（供应商=我方）
-//        主体与注册地址和英文单据一致，交叉验证通过
 //  EUR ← 盖章《开票资料》5129 1230 7435 101 (EUR)
-//  三套账号共用同一开户行 / SWIFT / 行号 / 收款主体；资料维护入口按刘总指定放在
-//  「ERP·财务 → 资金账户」，不放系统设置。
+//  公司中英文地址 / 电话 ← 盖章《开票资料》原件逐字抄录：
+//    地址：苏州市吴中区金丝港路 51 号 / No. 51 Jinsigang Road, Wuzhong District, Suzhou Jiangsu, China
+//    电话：+86 400 0512 711（真实 PI/CI 页头写作 +86 4000512711，同一号码）
+//  对外邮箱 ← 真实 Allum PI/CI 单据页头（刘总 2026-11-05 提供、模板按其重建）：
+//    marketing@holangchina.com。盖章《开票资料》未列邮箱，故以出口单据页头为准。
+//    PI/CI 打印模板页头本来就有公司名 / 地址 / 电话 / 邮箱，因此银行块不重复添加，
+//    公司资料只用于「资金账户」页卡片与销售一键复制文本，避免同一张单据出现两遍。
 //
-// 存储：复用已有后端 /field-configs 的「每模块整存 JSON」机制（module = bank_accounts），
-//       不新建表 / 不新建 API / 不加 Prisma 字段（走法B）。
+// 存储：复用已有后端 /field-configs 的「每模块整存 JSON」机制
+//       （module = bank_accounts / company_profile），不新建表 / 不新建 API / 不加 Prisma 字段（走法B）。
 // ============================================================
 
 import api from './api'
@@ -37,8 +42,18 @@ export interface BankAccount {
   updatedAt?: string
 }
 
+/** 公司联系资料：一次维护，外币 / 人民币账户共用（外币用英文地址与标签，内销用中文） */
+export interface CompanyProfile {
+  addressCn: string
+  addressEn: string
+  tel: string
+  email: string
+}
+
 export const BANK_ACCOUNT_MODULE = 'bank_accounts'
+export const COMPANY_PROFILE_MODULE = 'company_profile'
 const STORAGE_KEY = 'holang_bank_accounts_v1'
+const PROFILE_STORAGE_KEY = 'holang_company_profile_v1'
 
 // 盖章《开票资料》（刘总 2026-11-08 提供）= 最高优先证据，三个币种账号全齐。
 // 与 PI/CI for Allum（USD 512912307432201）、供应商报价单（RMB 512912307410901）交叉验证一致。
@@ -54,6 +69,14 @@ const COMMON_BANK = {
   companyAddress: '苏州市吴中区金丝港路51号',
 }
 
+/** 盖章《开票资料》原件真值 + 真实 PI/CI 单据页头的对外邮箱 */
+export const DEFAULT_COMPANY_PROFILE: CompanyProfile = {
+  addressCn: '苏州市吴中区金丝港路 51 号',
+  addressEn: 'No. 51 Jinsigang Road, Wuzhong District, Suzhou Jiangsu, China',
+  tel: '+86 400 0512 711',
+  email: 'marketing@holangchina.com',
+}
+
 /** 账户性质标签：外币户走出口收汇（英文口径），人民币户走内销回款（中文口径） */
 export const ACCOUNT_TYPE_LABEL: Record<string, string> = {
   FOREIGN: '外币账户 · 出口收汇',
@@ -66,7 +89,7 @@ export const DEFAULT_BANK_ACCOUNTS: BankAccount[] = [
   { id: 'bank-cny', ...COMMON_BANK, currency: 'CNY', accountNo: '512912307410901', accountType: 'DOMESTIC', paymentRoute: '', isDefault: true },
 ]
 
-/** 打印件银行块的动态标签键：PI/CI 模板 6 行 field 用 labelKey 指向这里 */
+/** 打印件银行块的动态标签键：PI/CI 模板 field 用 labelKey 指向这里 */
 export const BANK_LABEL_KEYS = {
   title: 'bankDetailsTitle',
   lines: ['bankLabel1', 'bankLabel2', 'bankLabel3', 'bankLabel4', 'bankLabel5', 'bankLabel6'],
@@ -99,6 +122,7 @@ export function normalizeBankAccount(s: any, index = 0): BankAccount {
 }
 
 let cache: BankAccount[] | null = null
+let profileCache: CompanyProfile | null = null
 
 function readLocal(): BankAccount[] | null {
   try {
@@ -111,6 +135,40 @@ function readLocal(): BankAccount[] | null {
 function writeLocal(list: BankAccount[]) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch { /* ignore */ }
 }
+function writeLocalProfile(p: CompanyProfile) {
+  try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(p)) } catch { /* ignore */ }
+}
+
+/** 同步读取公司联系资料（打印 / 复制都要用，必须是同步函数） */
+export function getCompanyProfile(): CompanyProfile {
+  if (profileCache) return profileCache
+  let p: CompanyProfile = { ...DEFAULT_COMPANY_PROFILE }
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY)
+    if (raw) p = { ...DEFAULT_COMPANY_PROFILE, ...JSON.parse(raw) }
+  } catch { /* ignore */ }
+  profileCache = p
+  return p
+}
+
+/** 页面编辑时即时更新本地真源（保存前只在当前浏览器生效，点「保存全部」后才写后端） */
+export function setCompanyProfile(p: CompanyProfile) {
+  profileCache = { ...DEFAULT_COMPANY_PROFILE, ...p }
+  writeLocalProfile(profileCache)
+}
+
+/** 公司联系资料固定三行（空值不删行，由渲染 / 复制处决定省略，保证标签槽位不错位） */
+export function companyContactLines(isDomestic: boolean): { label: string; value: string }[] {
+  const p = getCompanyProfile()
+  const l = isDomestic
+    ? { address: '公司地址', tel: '电话', email: '邮箱' }
+    : { address: 'Company Address', tel: 'Tel', email: 'Email' }
+  return [
+    { label: l.address, value: isDomestic ? p.addressCn : p.addressEn },
+    { label: l.tel, value: p.tel },
+    { label: l.email, value: p.email },
+  ]
+}
 
 /**
  * 尊重管理员的增删：后端有配置就以后端为准，不再把内置三套账户强行合并回来，
@@ -120,7 +178,7 @@ function normalizeList(stored: any[]): BankAccount[] {
   return stored.map(normalizeBankAccount)
 }
 
-/** 从后端加载账户配置（销售开 PI 也要能读；写仍仅管理员） */
+/** 从后端加载账户配置 + 公司联系资料（销售开 PI 也要能读；写仍仅管理员） */
 export async function initBankAccounts(): Promise<BankAccount[]> {
   try {
     const res = await api.get<Record<string, any[]>>('/field-configs')
@@ -128,10 +186,17 @@ export async function initBankAccounts(): Promise<BankAccount[]> {
       const stored = res.data[BANK_ACCOUNT_MODULE]
       cache = Array.isArray(stored) ? normalizeList(stored) : DEFAULT_BANK_ACCOUNTS.map(a => ({ ...a }))
       writeLocal(cache)
+      const storedProfile = res.data[COMPANY_PROFILE_MODULE]
+      const profile: CompanyProfile = Array.isArray(storedProfile) && storedProfile[0]
+        ? { ...DEFAULT_COMPANY_PROFILE, ...storedProfile[0] }
+        : { ...DEFAULT_COMPANY_PROFILE }
+      profileCache = profile
+      writeLocalProfile(profile)
       return cache
     }
   } catch { /* 后端不可用时用本机缓存或内置真源 */ }
   cache = readLocal() || DEFAULT_BANK_ACCOUNTS.map(a => ({ ...a }))
+  getCompanyProfile()
   return cache
 }
 
@@ -156,8 +221,8 @@ export function withDefaultAccount(list: BankAccount[], id: string): BankAccount
   return list.map(a => a.currency === target.currency ? { ...a, isDefault: a.id === id } : a)
 }
 
-/** 管理员维护：整模块写回后端 field_configs */
-export async function saveBankAccounts(list: BankAccount[]): Promise<void> {
+/** 管理员维护：账户 + 公司联系资料一次「保存全部」写回后端 field_configs（两个 module） */
+export async function saveBankAccounts(list: BankAccount[], profile?: CompanyProfile): Promise<void> {
   const now = new Date().toISOString()
   const payload = list.map((a) => ({
     ...normalizeBankAccount(a),
@@ -168,12 +233,21 @@ export async function saveBankAccounts(list: BankAccount[]): Promise<void> {
   if (res.code !== 0) throw new Error(res.message || '保存失败')
   cache = payload
   writeLocal(payload)
+  if (profile) {
+    profileCache = { ...DEFAULT_COMPANY_PROFILE, ...profile }
+    writeLocalProfile(profileCache)
+  }
+  const pRes = await api.put<{ code: number; message?: string }>(
+    `/field-configs/${COMPANY_PROFILE_MODULE}`, { fields: [getCompanyProfile()] },
+  )
+  if (pRes.code !== 0) throw new Error(pRes.message || '公司联系资料保存失败')
 }
 
 /**
  * 缺哪些关键资料：按账户性质分开查。
  * 外币账户按出口单据要英文开户行 / 英文收款人 / SWIFT；
  * 人民币账户按内销开票资料要中文开户行 / 中文收款主体 / 银行行号，不要求 SWIFT。
+ * 公司地址 / 电话 / 邮箱属公司级资料，不参与账户完整性判定（邮箱未确认时也不阻断开单）。
  */
 export function missingBankFields(a: BankAccount | undefined): string[] {
   if (!a) return ['该币种收款账户']
@@ -201,8 +275,8 @@ export function isBankAccountComplete(a: BankAccount | undefined): boolean {
  * 账户未维护完整时绝不回退到别的币种账号（原来选 EUR 会印美元账号），
  * 而是输出醒目的待维护提示，避免把错误收款信息发给客户。
  *
- * 语言口径（刘总 2026-11-08）：外币账户打印件全英文，人民币账户（内销回款）全中文。
- * 模板 6 行 field 共用 key，靠 bankDetailsTitle / bankLabel1..6 动态切换标签。
+ * 语言口径（刘总 2026-11-08）：外币账户全英文、人民币账户全中文；
+ * 银行块后接 3 行公司联系资料（地址 / 电话 / 邮箱），同样按语言切标签，空值由模板 optional 跳过。
  */
 export function buildBankPrintData(currency: string): Record<string, string> {
   const code = String(currency || '').toUpperCase()
@@ -224,11 +298,21 @@ export function buildBankPrintData(currency: string): Record<string, string> {
   }
   BANK_LABEL_KEYS.lines.forEach((k, i) => { base[k] = labels.lines[i] })
 
+  // 公司联系资料作为打印数据的完整字段一并返回。
+  // 内置 PI/CI 模板页头（按真实 Allum 单据重建）本来就有公司名 / 地址 / 电话 / 邮箱，
+  // 故银行块不再重复渲染这些行，避免同一张单据出现两遍；字段保留给自定义模板等入口。
+  const [cAddr, cTel, cMail] = companyContactLines(isDomestic)
+  const contact: Record<string, string> = {
+    lblCompanyAddress: cAddr.label, companyAddress: cAddr.value,
+    lblCompanyTel: cTel.label, companyTel: cTel.value,
+    lblCompanyEmail: cMail.label, companyEmail: cMail.value,
+  }
+
   const miss = missingBankFields(a)
   if (!a || miss.length) {
     const hint = `【${code} 收款账户未维护完整：缺 ${miss.join('、')}；请到「ERP·财务 → 资金账户」补充后再发客户】`
     return {
-      ...base,
+      ...base, ...contact,
       beneficiaryBank: hint,
       bankAddress: '—',
       swiftCode: '—',
@@ -240,7 +324,7 @@ export function buildBankPrintData(currency: string): Record<string, string> {
 
   if (isDomestic) {
     return {
-      ...base,
+      ...base, ...contact,
       beneficiaryBank: a.beneficiaryBankCn || a.beneficiaryBank,
       bankAddress: a.bankCode || '—',
       swiftCode: a.taxNo || '—',
@@ -250,7 +334,7 @@ export function buildBankPrintData(currency: string): Record<string, string> {
     }
   }
   return {
-    ...base,
+    ...base, ...contact,
     beneficiaryBank: a.beneficiaryBank,
     bankAddress: a.bankAddress || '—',
     swiftCode: a.swiftCode || '—',
@@ -263,13 +347,19 @@ export function buildBankPrintData(currency: string): Record<string, string> {
 /**
  * 一键复制给客户的收款信息（刘总 2026-11-08：销售要能直接复制去发客户）。
  * 与打印件同语言口径：外币账户纯英文、人民币账户纯中文，不含内部提示与人民币参考。
- * 人民币账户额外带注册地址（内销开票资料常用），但不混入任何英文字段。
+ * 银行信息后空一行接公司联系资料（地址 / 电话 / 邮箱），空值整行省略。
  */
 export function buildBankCopyText(a: BankAccount | undefined): string {
   if (!a) return ''
+  const isDomestic = a.accountType === 'DOMESTIC'
   // 选填项没填就整行不输出，避免把「回款路径：—」这种占位行原样发给客户
   const routeLine = (label: string) => (a.paymentRoute || '').trim() ? [`${label}${a.paymentRoute.trim()}`] : []
-  if (a.accountType === 'DOMESTIC') {
+  const contactLines = companyContactLines(isDomestic)
+    .filter(x => String(x.value || '').trim())
+    .map(x => `${x.label}${isDomestic ? '：' : ': '}${x.value.trim()}`)
+  const tail = contactLines.length ? ['', ...contactLines] : []
+
+  if (isDomestic) {
     return [
       '收款账户信息',
       `开户行：${a.beneficiaryBankCn || a.beneficiaryBank}`,
@@ -279,6 +369,7 @@ export function buildBankCopyText(a: BankAccount | undefined): string {
       `注册地址：${a.companyAddress || '—'}`,
       `银行账号：${a.accountNo}`,
       ...routeLine('回款路径：'),
+      ...tail,
     ].join('\n')
   }
   return [
@@ -289,6 +380,7 @@ export function buildBankCopyText(a: BankAccount | undefined): string {
     `Beneficiary: ${a.beneficiary}`,
     `Account No.: ${a.accountNo}`,
     ...routeLine('PAYMENT ROUTE: '),
+    ...tail,
   ].join('\n')
 }
 

@@ -615,7 +615,7 @@ export default function ProformaInvoiceForm() {
                     {isDomesticBank ? '人民币账户 · 内销回款' : '外币账户 · 出口收汇'}
                   </span>
                 )}
-                <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在客户单据 · 可一键复制发给客户</span>
+                <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在客户单据 · 含公司地址与电话 · 可一键复制发给客户</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-[11px] ${bankMissing.length ? 'text-amber-700' : 'text-green-700'}`}>

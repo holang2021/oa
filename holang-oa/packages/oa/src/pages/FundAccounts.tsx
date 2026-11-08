@@ -19,6 +19,7 @@ import { getViewMode, subscribeViewMode } from '../services/viewModeStore'
 import {
   initBankAccounts, getBankAccounts, saveBankAccounts, missingBankFields,
   makeBankAccountId, withDefaultAccount, buildBankCopyText,
+  getCompanyProfile, setCompanyProfile, companyContactLines, DEFAULT_COMPANY_PROFILE, type CompanyProfile,
   DEFAULT_BANK_ACCOUNTS, ACCOUNT_TYPE_LABEL, type BankAccount,
 } from '../services/bankAccountStore'
 import { copyText } from '../services/clipboard'
@@ -68,6 +69,8 @@ export default function FundAccounts() {
     || String(user?.role || '').toUpperCase() === 'ADMIN'
 
   const [accounts, setAccounts] = useState<BankAccount[]>(() => getBankAccounts())
+  // 公司联系资料：地址 / 电话来自盖章《开票资料》，邮箱待刘总确认；一次维护三套账户共用
+  const [profile, setProfile] = useState<CompanyProfile>(() => getCompanyProfile())
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -84,7 +87,7 @@ export default function FundAccounts() {
     let alive = true
     ;(async () => {
       await initBankAccounts()
-      if (alive) setAccounts(getBankAccounts())
+      if (alive) { setAccounts(getBankAccounts()); setProfile(getCompanyProfile()) }
     })()
     return () => { alive = false }
   }, [])
@@ -96,6 +99,13 @@ export default function FundAccounts() {
 
   const patch = (id: string, key: keyof BankAccount, value: string) =>
     setAccounts(prev => prev.map(a => (a.id === id ? { ...a, [key]: value } : a)))
+
+  // 公司联系资料改动即时反映到卡片 / 复制 / 打印预览；点「保存全部」才写后端
+  const patchProfile = (key: keyof CompanyProfile, value: string) => {
+    const next = { ...profile, [key]: value }
+    setProfile(next)
+    setCompanyProfile(next)
+  }
 
   /** 一键复制收款信息：资料不全时拒绝复制，避免把半截账号发给客户 */
   const handleCopy = async (a: BankAccount) => {
@@ -118,9 +128,10 @@ export default function FundAccounts() {
     setSaving(true)
     setMsg(null)
     try {
-      await saveBankAccounts(accounts)
+      // 账户与公司联系资料一次保存：两个 module 走同一个已有配置接口
+      await saveBankAccounts(accounts, profile)
       setEditing(null)
-      setMsg({ ok: true, text: '已保存。开 PI 时会按币种自动带出默认协同账户，并打印到客户单据。' })
+      setMsg({ ok: true, text: '已保存。开 PI 时会按币种自动带出默认协同账户，并把公司地址 / 电话 / 邮箱打印到客户单据、一键复制文本。' })
     } catch (e: any) {
       setMsg({ ok: false, text: e?.message || '保存失败（账户资料仅管理员可修改）' })
     } finally {
@@ -130,8 +141,9 @@ export default function FundAccounts() {
 
   const handleReset = () => {
     setAccounts(DEFAULT_BANK_ACCOUNTS.map(a => ({ ...a })))
+    setProfile({ ...DEFAULT_COMPANY_PROFILE })
     setEditing(null)
-    setMsg({ ok: true, text: '已恢复内置《开票资料》三套账户，点「保存全部」后生效。' })
+    setMsg({ ok: true, text: '已恢复内置《开票资料》三套账户与公司联系资料，点「保存全部」后生效。' })
   }
 
   /** 新增账户：主键用 id，允许同币种多套；该币种原本没有账户时自动设为默认协同 */
@@ -208,6 +220,55 @@ export default function FundAccounts() {
           <button onClick={() => setMsg(null)} className="absolute top-2 right-2 opacity-50 hover:opacity-100"><X size={14} /></button>
         </div>
       )}
+
+      {/* 公司联系信息：盖章《开票资料》真值，一次维护，外币 / 人民币账户共用（刘总 2026-11-08 第三轮） */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700">公司联系信息</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              外币账户用英文地址与英文标签、人民币账户用中文地址与中文标签；打印件与一键复制都会自动带上。一次维护，全部账户共用。
+            </p>
+          </div>
+          <span className="text-xs text-gray-400">证据：盖章《开票资料》</span>
+        </div>
+        {canEdit ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+            <div className="lg:col-span-2">
+              <label className="block text-xs text-gray-500 mb-0.5">英文公司地址（出口单据 / 外币账户）</label>
+              <input value={profile.addressEn} onChange={e => patchProfile('addressEn', e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-0.5">中文公司地址（内销 / 人民币账户）</label>
+              <input value={profile.addressCn} onChange={e => patchProfile('addressCn', e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-0.5">电话</label>
+              <input value={profile.tel} onChange={e => patchProfile('tel', e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs" />
+            </div>
+            <div className="lg:col-span-2">
+              <label className="block text-xs text-gray-500 mb-0.5">邮箱（选填）</label>
+              <input value={profile.email} onChange={e => patchProfile('email', e.target.value)}
+                placeholder="盖章资料未列，待确认；留空则不打印、不复制"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 mt-3 text-xs text-gray-600">
+            <div className="lg:col-span-2">英文地址：{profile.addressEn || '—'}</div>
+            <div>中文地址：{profile.addressCn || '—'}</div>
+            <div>电话：{profile.tel || '—'}</div>
+            <div>邮箱：{profile.email || '待确认'}</div>
+          </div>
+        )}
+        <div className="mt-3 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          公司地址与电话来自盖章《开票资料》，对外邮箱来自真实 PI/CI 单据页头（marketing@holangchina.com）。
+          内置 PI/CI 打印模板页头本来就有公司名 / 地址 / 电话 / 邮箱，银行块不重复；此处维护的资料用于「资金账户」卡片与销售一键复制文本。
+        </div>
+      </div>
 
       {/* 工具条：新增账户 */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -351,6 +412,14 @@ export default function FundAccounts() {
                               <div className="col-span-2">PAYMENT ROUTE: {a.paymentRoute || '—'}</div>
                             </>
                           )}
+                          {/* 公司联系资料：按账户性质显示对应语言；邮箱等待确认字段为空时整行不显示 */}
+                          {companyContactLines(isDomestic).filter(x => x.value.trim()).length > 0 && (
+                            <div className="col-span-2 mt-1 pt-1 border-t border-dashed border-gray-200">
+                              {companyContactLines(isDomestic).filter(x => x.value.trim()).map(x => (
+                                <div key={x.label}>{x.label}{isDomestic ? '：' : ': '}{x.value}</div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div className={`mt-3 text-xs ${miss.length ? 'text-amber-600' : 'text-green-600'}`}>
                           {miss.length ? `待补充：${miss.join('、')}` : '资料完整，可直接用于开单'}
@@ -430,7 +499,7 @@ export default function FundAccounts() {
           <span className="text-xs text-gray-500">当前为只读；账户资料仅管理员可修改。</span>
         )}
         <span className="text-xs text-gray-400">
-          新增 / 删除 / 设为默认后都要点「保存全部」才正式生效；删除某币种最后一套账户后，开该币种 PI 会提示补维护，不会借用其他币种账号。
+          新增 / 删除 / 设为默认，以及上方「公司联系信息」，都要点「保存全部」才正式写入系统；删除某币种最后一套账户后，开该币种 PI 会提示补维护，不会借用其他币种账号。
         </span>
       </div>
     </div>
