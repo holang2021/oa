@@ -486,7 +486,10 @@ export default function ProformaInvoiceForm() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* 顶部两栏改为不等高（items-start 关掉 Grid 默认 stretch），避免右卡把左卡拉出大片空白。
+          买方抬头另起整行 4 列铺开，输入框不再挤在 1/3 窄列里（刘总 11-09「这太空了」/「框线太小」）。
+          只调整本页排版，不动 index.css 全局样式（UI Foundation 仍处 Candidate）。 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* 基本信息 */}
         <div className="card lg:col-span-2 space-y-[16px]">
           <h3 className="font-medium text-sm">基本信息</h3>
@@ -543,35 +546,6 @@ export default function ProformaInvoiceForm() {
               <div>客户：{selectedCustomer.companyName || selectedCustomer.name}</div>
             </div>
           )}
-          {/* 买方抬头：打印件左上方 To / Address / CONTACT / Tel. / E-mail 就取这里。
-              选客户时从客户资料初始化，之后销售可自由改，随 PI 的 notes 一起保存（刘总 11-09「在哪填」）。
-              不新建表 / 列 / 接口，复用既有 notes 键值机制（走法B）。 */}
-          <div className="rounded-[8px] border border-gray-200 bg-gray-50 px-[12px] py-[8px]">
-            <div className="text-[13px] font-medium text-gray-700">买方抬头（打印在客户单据左上方）</div>
-            <div className="text-[13px] text-gray-400 mb-[8px]">选客户会自动带出；带出后可直接改，改动只属于这张 PI，不会改客户资料。</div>
-            <div className="space-y-[8px]">
-              <div>
-                <label className={FIELD_LABEL}>Address 地址</label>
-                <input value={form.buyerAddress} disabled={isFrozen} onChange={e => update('buyerAddress', e.target.value)}
-                  placeholder="如 Orlando, Florida, Zipcode 32835" className={FIELD_INPUT} />
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>CONTACT 联系人</label>
-                <input value={form.buyerAttn} disabled={isFrozen} onChange={e => update('buyerAttn', e.target.value)}
-                  placeholder="如 Alessandro Ponso" className={FIELD_INPUT} />
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>Tel. 电话</label>
-                <input value={form.buyerTel} disabled={isFrozen} onChange={e => update('buyerTel', e.target.value)}
-                  placeholder="如 407 360-4114" className={FIELD_INPUT} />
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>E-mail 邮箱</label>
-                <input value={form.buyerEmail} disabled={isFrozen} onChange={e => update('buyerEmail', e.target.value)}
-                  placeholder="如 Allum@allumcorp.com" className={FIELD_INPUT} />
-              </div>
-            </div>
-          </div>
           <div>
             <label className={FIELD_LABEL}>关联报价单（须 ACCEPTED）<span className="text-gray-400">· 选填</span></label>
             <select value={form.quotationId} onChange={e => update('quotationId', e.target.value)} className={FIELD_INPUT}>
@@ -584,6 +558,39 @@ export default function ProformaInvoiceForm() {
               <div className="text-[13px] text-amber-600 mt-1">该外销客户暂无「已接受」报价单，可留空直接建 PI，后续再补关联</div>
             )}
             <div className="text-[13px] text-gray-400 mt-1">关联后可点下方「从报价单带入」初始化明细，带入后仍可自由改</div>
+          </div>
+        </div>
+
+        {/* 买方抬头：打印件左上方 To / Address / CONTACT / Tel. / E-mail 就取这里。
+            选客户时从客户资料初始化，之后销售可自由改，随 PI 的 notes 一起保存（刘总 11-09「在哪填」）。
+            不新建表 / 列 / 接口，复用既有 notes 键值机制（走法B）。
+            独立整行 + 4 列横排：既消除左卡被撑出的空白，也让输入框不再挤在 1/3 窄列。 */}
+        <div className="card lg:col-span-3 space-y-[16px]">
+          <div className="flex items-center gap-[16px] flex-wrap">
+            <h3 className="font-medium text-sm">买方抬头 · 客户信息（打印在客户单据左上方）</h3>
+            <span className="text-[13px] text-gray-400">选客户自动带出；带出后可直接改，改动只属于这张 PI，不会改客户资料</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
+            <div>
+              <label className={FIELD_LABEL}>Address 地址</label>
+              <input value={form.buyerAddress} disabled={isFrozen} onChange={e => update('buyerAddress', e.target.value)}
+                placeholder="如 Orlando, Florida, Zipcode 32835" className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>CONTACT 联系人</label>
+              <input value={form.buyerAttn} disabled={isFrozen} onChange={e => update('buyerAttn', e.target.value)}
+                placeholder="如 Alessandro Ponso" className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Tel. 电话</label>
+              <input value={form.buyerTel} disabled={isFrozen} onChange={e => update('buyerTel', e.target.value)}
+                placeholder="如 407 360-4114" className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>E-mail 邮箱</label>
+              <input value={form.buyerEmail} disabled={isFrozen} onChange={e => update('buyerEmail', e.target.value)}
+                placeholder="如 Allum@allumcorp.com" className={FIELD_INPUT} />
+            </div>
           </div>
         </div>
 

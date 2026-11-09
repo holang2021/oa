@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · PI 表单顶部「这太空了」改前 / 改后对照</title>
+<style>
+  :root { --brand:#1a56db; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6; --ok:#059669; --danger:#dc2626; --amber:#b45309; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1240px; margin:0 auto; padding:30px 26px 64px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:22px; }
+  .logo { font-size:18px; font-weight:700; color:var(--brand); letter-spacing:.5px; }
+  .logo span { font-size:12px; font-weight:400; color:var(--muted); margin-left:8px; letter-spacing:0; }
+  .meta { font-size:12px; color:var(--muted); }
+  h1 { font-size:24px; margin:0 0 8px; font-weight:600; }
+  h2 { font-size:17px; margin:28px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--brand); }
+  p.lead { color:#374151; margin:0 0 14px; max-width:980px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; border-radius:9px; padding:10px 15px; margin:0 0 16px; font-size:13.5px; color:#7c2d12; }
+  .callout { background:#eef4ff; border:1px solid #c7d9fb; border-radius:10px; padding:12px 17px; margin-bottom:16px; }
+  .callout strong { color:var(--brand); }
+  .tag { display:inline-block; font-size:11px; padding:2px 10px; border-radius:20px; margin-bottom:10px; font-weight:600; }
+  .tag.before { background:#fee2e2; color:var(--danger); }
+  .tag.after { background:#d1fae5; color:var(--ok); }
+  .tag.note { background:#fef3c7; color:var(--amber); }
+
+  /* —— 表单模拟：只画骨架，尺寸按 OA UI Foundation token —— */
+  .page { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:14px; }
+  .grid3 { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+  .grid3.start { align-items:start; }
+  .grid3.stretch { align-items:stretch; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px; }
+  .card h3 { font-size:14px; font-weight:600; margin:0 0 16px; }
+  .full { grid-column:1 / -1; }
+  .f2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .f4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .f1 { display:grid; grid-template-columns:1fr; gap:8px; }
+  label { display:block; min-height:40px; font-size:13px; line-height:20px; color:var(--muted); }
+  .inp { height:40px; border:1px solid #d1d5db; border-radius:6px; background:#fff; padding:0 10px; font-size:14px; color:#374151; display:flex; align-items:center; }
+  .inp.ph { color:#9ca3af; }
+  .inp.dis { background:#f9fafb; color:#9ca3af; }
+  .hint { font-size:13px; color:#9ca3af; margin-top:4px; }
+  .req { color:var(--danger); }
+  /* 改前：被拉伸出来的空白 */
+  .void { margin-top:16px; border:2px dashed #f87171; background:repeating-linear-gradient(45deg,#fff,#fff 9px,#fef2f2 9px,#fef2f2 18px); border-radius:6px; min-height:180px; display:flex; align-items:center; justify-content:center; color:#b91c1c; font-size:13px; font-weight:600; text-align:center; }
+  .tight { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 12px; }
+  .banner { background:#f9fafb; border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-size:13px; color:#374151; }
+  table.cmp { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:13.5px; }
+  table.cmp th, table.cmp td { border-bottom:1px solid var(--line); padding:9px 13px; text-align:left; vertical-align:top; }
+  table.cmp th { background:#f9fafb; font-weight:600; }
+  table.cmp tr:last-child td { border-bottom:0; }
+  .ok { color:var(--ok); font-weight:600; }
+  .no { color:var(--danger); font-weight:600; }
+  ul { margin:6px 0 0 0; padding-left:20px; } li { margin:3px 0; }
+  code { background:#f3f4f6; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  footer { margin-top:30px; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">HOLANG OA <span>销售 CRM · 外销 PI 表单</span></div>
+    <div class="meta">2026-11-09 · 版面增量 · 仅改本页，不动全局样式</div>
+  </header>
+
+  <h1>PI 表单顶部「这太空了」—— 改前 / 改后</h1>
+  <p class="lead">只调版式，<strong>不改任何字段、不改保存逻辑、不改打印内容</strong>。下列两幅是同一张 PI 顶部区域的真实骨架示意。</p>
+
+  <div class="quote">
+    <strong>为什么会空：</strong>上轮为打印件左上方补了「买方抬头」4 个输入框，全塞进右侧 1/3 窄列里，右卡被撑得很高；页面用的是 CSS Grid，默认会把左边「基本信息」卡也拉到一样高 → 左卡下半就出现一大片空框。同时那 4 个输入框挤在窄列里，也偏窄。
+  </div>
+
+  <h2>改前（当前线上版本）</h2>
+  <div class="page">
+    <span class="tag before">BEFORE · 大片空白</span>
+    <div class="grid3 stretch">
+      <div class="card">
+        <h3>基本信息</h3>
+        <div class="f2">
+          <div><label>PI 编号（保存后自动生成）</label><div class="inp dis">自动生成</div></div>
+          <div><label>PI 日期 <span class="req">*</span></label><div class="inp">2026-11-09</div></div>
+          <div><label>有效期（天）</label><div class="inp">30</div></div>
+          <div><label>状态</label><div class="inp">草稿</div></div>
+        </div>
+        <div class="void">← 红框这一片就是被右侧撑出来的空白<br>（卡片里没有内容，却占着整块高度）</div>
+      </div>
+      <div class="card">
+        <h3>客户信息</h3>
+        <div><label>客户（外销）<span class="req">*</span></label><div class="inp">Allum Corporation</div></div>
+        <div class="tight" style="margin-top:16px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">买方抬头（打印在客户单据左上方）</div>
+          <div class="hint" style="margin:0 0 8px">选客户会自动带出；带出后可直接改…</div>
+          <div class="f1">
+            <div><label>Address 地址</label><div class="inp ph">Orlando, Florida…</div></div>
+            <div><label>CONTACT 联系人</label><div class="inp ph">Alessandro Ponso</div></div>
+            <div><label>Tel. 电话</label><div class="inp ph">407 360-4114</div></div>
+            <div><label>E-mail 邮箱</label><div class="inp ph">Allum@allumcorp.com</div></div>
+          </div>
+        </div>
+        <div style="margin-top:16px"><label>关联报价单 <span style="color:#9ca3af">· 选填</span></label><div class="inp">不关联（直接建 PI）</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>改后（本步落地）</h2>
+  <div class="page">
+    <span class="tag after">AFTER · 无空白，输入框变宽</span>
+    <div class="grid3 start">
+      <div class="card">
+        <h3>基本信息</h3>
+        <div class="f2">
+          <div><label>PI 编号（保存后自动生成）</label><div class="inp dis">自动生成</div></div>
+          <div><label>PI 日期 <span class="req">*</span></label><div class="inp">2026-11-09</div></div>
+          <div><label>有效期（天）</label><div class="inp">30</div></div>
+          <div><label>状态</label><div class="inp">草稿</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>客户信息</h3>
+        <div><label>客户（外销）<span class="req">*</span></label><div class="inp">Allum Corporation</div></div>
+        <div style="margin-top:16px"><label>关联报价单 <span style="color:#9ca3af">· 选填</span></label><div class="inp">不关联（直接建 PI）</div></div>
+        <div class="hint">关联后可点「从报价单带入」初始化明细</div>
+      </div>
+      <div class="card full">
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+          <h3 style="margin:0">买方抬头 · 客户信息（打印在客户单据左上方）</h3>
+          <span class="hint" style="margin:0">选客户自动带出；带出后可直接改，改动只属于这张 PI，不会改客户资料</span>
+        </div>
+        <div class="f4">
+          <div><label>Address 地址</label><div class="inp ph">Orlando, Florida…</div></div>
+          <div><label>CONTACT 联系人</label><div class="inp ph">Alessandro Ponso</div></div>
+          <div><label>Tel. 电话</label><div class="inp ph">407 360-4114</div></div>
+          <div><label>E-mail 邮箱</label><div class="inp ph">Allum@allumcorp.com</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="banner" style="margin-top:16px">↓ 下方照旧是「商品明细（Commercial Items）」整行表格，未改动</div>
+  </div>
+
+  <h2>具体改了什么</h2>
+  <table class="cmp">
+    <tr><th style="width:210px">项</th><th>改前</th><th>改后</th></tr>
+    <tr><td>顶部网格对齐</td><td>默认 <code>align-items: stretch</code>，两卡强制等高</td><td class="ok"><code>items-start</code>，各卡按自身内容高度，不再互相拉扯</td></tr>
+    <tr><td>买方抬头位置</td><td>嵌在右侧 1/3 窄列的灰底小框里，4 个输入框竖排</td><td class="ok">独立 <code>lg:col-span-3</code> 整行卡片，4 列横排</td></tr>
+    <tr><td>输入框宽度</td><td class="no">约 1/3 页宽，偏窄</td><td class="ok">约 1/4 整行宽，且随屏宽自适应（1 / 2 / 4 列）</td></tr>
+    <tr><td>说明文字</td><td>标题 + 说明两行堆叠</td><td class="ok">标题与说明同一行 flex，更紧凑</td></tr>
+    <tr><td>间距 / 字号 / 控件高</td><td colspan="2">全部沿用既有 token：<code>gap-4 = 16px</code>、<code>FIELD_LABEL 40px / 13px</code>、<code>FIELD_INPUT 40px</code>、<code>radius 8px</code>。<strong>没有自拍数值</strong></td></tr>
+    <tr><td>全局样式</td><td colspan="2"><code>src/index.css</code> 一行未动 —— UI Foundation 仍是 Candidate，不做全站重构</td></tr>
+  </table>
+
+  <h2>功能零回归（这次只搬位置，不搬逻辑）</h2>
+  <div class="callout">
+    <strong>照旧可用：</strong>
+    <ul>
+      <li>选客户自动带出 Address / CONTACT / Tel. / E-mail，带出后仍可自由改，只属于这张 PI，不改客户资料</li>
+      <li>四项随 <code>notes</code> 保存与回填；不新建表、不新建列、不新建接口（走法 B）</li>
+      <li>打印件左上方 To / Address / CONTACT / Tel. / E-mail 仍取这四项</li>
+      <li>付款条款 / 交易条件 / 交货期三项必填与保存拦截</li>
+      <li>总金额由商品明细自动派生、人民币折算仅内部参考、单位默认 pcs 可改、明细列顺序</li>
+      <li>已确认 PI 冻结态下四个输入框仍禁用</li>
+    </ul>
+  </div>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li>前端 <code>npm run build</code>（<code>tsc -b</code> + Vite，1687 modules）<span class="ok">通过</span></li>
+    <li>后端 <code>npx tsc --noEmit</code> <span class="ok">通过</span></li>
+    <li>新增 <code>verify_pi_compact_top.mjs</code>：31 项 <span class="ok">全通过</span></li>
+    <li>全量回归 22 个验证脚本（含 6 组端到端）<span class="ok">全部通过，0 失败</span></li>
+  </ul>
+
+  <footer>HOLANG OA · system-build 分支 · 对照页仅作版面确认，业务真源仍是 <code>ProformaInvoiceForm.tsx</code>。</footer>
+</div>
+</body>
+</html>
