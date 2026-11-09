@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 买方抬头资料在哪填</title>
+<style>
+  :root { --primary:#1a56db; --primary-light:#e8f0fe; --bg:#f3f4f6; --border:#e5e7eb;
+    --border-dark:#d1d5db; --text:#111827; --secondary:#6b7280; --muted:#9ca3af;
+    --success:#059669; --danger:#dc2626; --r-sm:6px; --r-md:8px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1040px; margin:0 auto; padding:32px 28px 70px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--primary); }
+  .logo span { font-size:13px; font-weight:400; color:var(--muted); margin-left:8px; }
+  .meta { font-size:13px; color:var(--muted); }
+  h1 { font-size:24px; font-weight:600; margin:0 0 10px; }
+  h2 { font-size:18px; margin:30px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--primary); }
+  p.lead { color:#374151; margin:0 0 16px; max-width:960px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; padding:10px 15px; margin:0 0 14px; font-size:13px; color:#7c2d12; border-radius:var(--r-sm); }
+  .callout { background:var(--primary-light); border:1px solid #c7d9fb; border-radius:var(--r-md); padding:12px 16px; margin-bottom:14px; }
+  .callout strong { color:var(--primary); }
+  .card { background:#fff; border:1px solid var(--border); border-radius:var(--r-md); padding:16px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .tag { display:inline-block; font-size:12px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:var(--bg); color:var(--secondary); }
+  .tag.after { background:#d1fae5; color:var(--success); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; font-size:14px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:var(--secondary); border-bottom:2px solid var(--border); font-size:13px; }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:var(--bg); border-radius:4px; padding:1px 5px; font-size:13px; }
+  .ok { color:var(--success); font-weight:600; } .bad { color:var(--danger); font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:var(--r-md); padding:12px 16px; font-size:13px; }
+  .foot { margin-top:32px; border-top:1px solid var(--border); padding-top:14px; font-size:13px; color:var(--muted); }
+
+  /* 表单 / 打印示意 */
+  .panel { background:#fff; border:1px solid var(--border); border-radius:var(--r-md); padding:14px; }
+  .lbl { display:block; min-height:40px; font-size:13px; line-height:20px; color:var(--secondary); }
+  .inp { width:100%; height:40px; padding:0 12px; font-size:14px; border:1px solid var(--border-dark); border-radius:var(--r-sm); background:#fff; color:var(--text); }
+  .inp::placeholder { color:var(--muted); }
+  .buyer-box { border:1px solid var(--border); border-radius:var(--r-md); background:#f9fafb; padding:12px; margin-top:12px; }
+  .buyer-box .hd { font-size:13px; font-weight:600; margin-bottom:4px; }
+  .buyer-box .tip { font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .field { margin-bottom:8px; }
+  .print-left { font-size:13px; line-height:1.9; }
+  .print-left .k { color:var(--secondary); }
+  .print-left .empty { color:var(--danger); }
+  .flow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; }
+  .flow .box { background:#fff; border:1px solid var(--border-dark); border-radius:var(--r-sm); padding:8px 14px; }
+  .flow .arrow { color:var(--primary); font-weight:700; }
+  @media (max-width:860px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 买方抬头资料</span></div>
+    <div class="meta">2026-11-09 · 在哪填 / 怎么带出</div>
+  </header>
+
+  <h1>买方那几行空的，现在有地方填了</h1>
+  <div class="quote">刘总原话：「这些内容客户信息那里没有带过来，我在哪里可以修改填写？」</div>
+  <p class="lead">查下来是<strong>两件事叠在一起</strong>：① PI 表单的「客户信息」区原本只有"选客户"和"关联报价单"两个下拉，<strong>压根没有买方地址/联系人/电话/邮箱的输入框</strong>，所以销售没有任何地方能填；② 代码是从客户资料取 <code>contactName / contactPhone / contactEmail</code>，而这三个值来自客户的 <code>contacts[0]</code>——客户没建联系人（或列表接口没带联系人）就全是空。<strong>所以就算客户资料维护了，也不一定带得出来，更没有补填的口子。</strong></p>
+  <div class="callout"><strong>一句话</strong>：现在 PI 表单右侧「客户信息」卡片里新增「买方抬头」四个输入框；选客户会自动带出，带出后随便改，改动只属于这张 PI、随单据保存，打印件左上方直接取这里的值。</div>
+
+  <h2>1 · 改前 / 改后</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">改前</span>
+      <div class="panel">
+        <div class="field"><label class="lbl">客户（外销）*</label><div class="inp">上海某机械设备有限公司 ▾</div></div>
+        <div class="field"><label class="lbl">关联报价单 · 选填</label><div class="inp">不关联（直接建 PI）▾</div></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:8px">↑ 只有这两个下拉，没有买方资料的任何录入入口</div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">打印件左上方（预览）</div>
+        <div class="print-left">
+          <div><span class="k">To:</span> 上海某机械设备有限公司</div>
+          <div><span class="k">Address:</span> <span class="empty">（空）</span></div>
+          <div><span class="k">CONTACT:</span> <span class="empty">（空）</span></div>
+          <div><span class="k">Tel.:</span> <span class="empty">（空）</span></div>
+          <div><span class="k">E-mail:</span> <span class="empty">（空）</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <span class="tag after">改后</span>
+      <div class="panel">
+        <div class="field"><label class="lbl">客户（外销）*</label><div class="inp">上海某机械设备有限公司 ▾</div></div>
+        <div class="buyer-box">
+          <div class="hd">买方抬头（打印在客户单据左上方）</div>
+          <div class="tip">选客户会自动带出；带出后可直接改，改动只属于这张 PI，不会改客户资料。</div>
+          <div class="field"><label class="lbl">Address 地址</label><input class="inp" value="Orlando, Florida, Zipcode 32835"></div>
+          <div class="field"><label class="lbl">CONTACT 联系人</label><input class="inp" value="Alessandro Ponso"></div>
+          <div class="field"><label class="lbl">Tel. 电话</label><input class="inp" value="407 360-4114"></div>
+          <div class="field"><label class="lbl">E-mail 邮箱</label><input class="inp" value="Allum@allumcorp.com"></div>
+        </div>
+        <div class="field" style="margin-top:12px"><label class="lbl">关联报价单 · 选填</label><div class="inp">不关联（直接建 PI）▾</div></div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">打印件左上方（预览）</div>
+        <div class="print-left">
+          <div><span class="k">To:</span> 上海某机械设备有限公司</div>
+          <div><span class="k">Address:</span> Orlando, Florida, Zipcode 32835</div>
+          <div><span class="k">CONTACT:</span> Alessandro Ponso</div>
+          <div><span class="k">Tel.:</span> 407 360-4114</div>
+          <div><span class="k">E-mail:</span> Allum@allumcorp.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>2 · 数据怎么走（不新建表 / 列 / 接口）</h2>
+  <div class="card">
+    <div class="flow">
+      <span class="box">选客户</span><span class="arrow">→</span>
+      <span class="box">从客户资料初始化 4 项</span><span class="arrow">→</span>
+      <span class="box"><strong>销售可自由改</strong></span><span class="arrow">→</span>
+      <span class="box">随 PI 的 <code>notes</code> 保存 / 重开回填</span><span class="arrow">→</span>
+      <span class="box">导出 PDF 左上方</span>
+    </div>
+    <p style="font-size:13px;color:var(--secondary);margin:12px 0 0">客户资料<strong>只做初始化来源</strong>，带出后不永久引用、不强制同步、不回写（LOCKED 总纲第 5 条）；确认后的 PI 这四个输入框也会冻结。地址兼容 <code>address + addressDetail</code>，联系人兼容客户映射字段与 <code>contacts[0]</code>，电话可用 <code>companyPhone</code> 兜底。</p>
+  </div>
+
+  <h2>3 · 与 UI 设计基线的关系</h2>
+  <table class="t">
+    <thead><tr><th style="width:220px">项目</th><th style="width:170px">取值</th><th>出处</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Label 高度 / 字号</td><td>40px / 13px</td><td><code>component.inputHeightComplex</code> / <code>fontSize.aux</code></td></tr>
+      <tr><td class="k">输入框</td><td>40px / 14px</td><td><code>component.inputHeightComplex</code> / <code>fontSize.body</code></td></tr>
+      <tr><td class="k">区块内间距 / 圆角</td><td>8px / 12px / 8px</td><td><code>space.2</code> / <code>space.3</code> / <code>radius.md</code></td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;color:var(--muted);margin:9px 0 0">仍只改 PI 表单页一个文件，全局 <code>index.css</code> 不动（UI 基线 Candidate 期纪律）。</p>
+
+  <div class="note" style="margin-top:14px"><strong>一个已知边界</strong>：PI 列表页的「导出 PDF（预览）」目前仍读演示数据 <code>mockData</code>，买方信息以<strong>编辑页</strong>为准；等列表接真实 PI API 时同步带上。这是既有技术债，本次没扩大范围。</div>
+
+  <h2>4 · 验证结果</h2>
+  <table class="t">
+    <thead><tr><th style="width:340px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">新增真源验证 verify_pi_buyer_fields</td><td class="ok">PASS — 19 / 19（含 notes 保存→重开往返实跑）</td></tr>
+      <tr><td class="k">原有 notes 条款往返验证</td><td class="ok">PASS — 18 / 18（未被新前缀破坏）</td></tr>
+      <tr><td class="k">全量回归（20 个脚本，含 6 组端到端）</td><td class="ok">全部 PASS，无回归</td></tr>
+      <tr><td class="k">前端构建 / 后端类型检查</td><td class="ok">均 EXIT 0</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5 · 下一步做什么</h2>
+  <div class="card">
+    <ul>
+      <li><strong>推荐</strong>：Ctrl + F5 强刷 → 打开 PI → 选客户看四项是否带出 → 手改一项 → 保存重开确认还在 → 导出 PDF 看左上方。</li>
+      <li>另一个问题「UI 对打印模板的字体字号有没有定义」已单独出诊断与两版 A4 样张，见 <code>PI-Print-FontSize-Options.html</code>；<strong>字号尚未改代码</strong>，等您点头。</li>
+    </ul>
+  </div>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为改前 / 改后对照，不是生产页面。</div>
+
+</div>
+</body>
+</html>

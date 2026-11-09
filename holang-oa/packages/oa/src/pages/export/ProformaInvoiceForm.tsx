@@ -22,6 +22,13 @@ interface PiForm {
   piCode: string
   customerId: string
   customerName: string
+  // 买方抬头资料（打印件 To / Address / CONTACT / Tel. / E-mail）：
+  // 选客户时从客户资料初始化，之后销售可在本单据直接改，随 PI 的 notes 一起保存。
+  // 不强制同步回客户资料、不永久引用（LOCKED 总纲第 5 条）。
+  buyerAddress: string
+  buyerAttn: string
+  buyerTel: string
+  buyerEmail: string
   quotationId: string
   piDate: string
   validityDays: number
@@ -76,6 +83,10 @@ const emptyForm = (): PiForm => ({
   piCode: '',
   customerId: '',
   customerName: '',
+  buyerAddress: '',
+  buyerAttn: '',
+  buyerTel: '',
+  buyerEmail: '',
   quotationId: '',
   piDate: new Date().toISOString().split('T')[0],
   validityDays: 30,
@@ -119,6 +130,10 @@ const NOTE_PREFIX = {
   paymentTerms: '付款条款: ',
   deliveryTerms: '交货条款: ',
   deliveryDate: '交货期: ',
+  buyerAddress: '买方地址: ',
+  buyerAttn: '买方联系人: ',
+  buyerTel: '买方电话: ',
+  buyerEmail: '买方邮箱: ',
 } as const
 
 function parseNotes(raw?: string | null) {
@@ -135,6 +150,10 @@ function parseNotes(raw?: string | null) {
     paymentTerms: pick(NOTE_PREFIX.paymentTerms),
     deliveryTerms: pick(NOTE_PREFIX.deliveryTerms),
     deliveryDate: pick(NOTE_PREFIX.deliveryDate),
+    buyerAddress: pick(NOTE_PREFIX.buyerAddress),
+    buyerAttn: pick(NOTE_PREFIX.buyerAttn),
+    buyerTel: pick(NOTE_PREFIX.buyerTel),
+    buyerEmail: pick(NOTE_PREFIX.buyerEmail),
     notes: free,
   }
 }
@@ -142,10 +161,16 @@ function parseNotes(raw?: string | null) {
 // 返回空串而不是 undefined：编辑时清空条款/备注也要能写回库，否则后端会把「没传」当成「不修改」。
 function buildNotes(f: PiForm): string {
   const parts: string[] = []
-  if (f.paymentTerms.trim()) parts.push(NOTE_PREFIX.paymentTerms + f.paymentTerms.trim())
-  if (f.deliveryTerms.trim()) parts.push(NOTE_PREFIX.deliveryTerms + f.deliveryTerms.trim())
-  if (f.deliveryDate.trim()) parts.push(NOTE_PREFIX.deliveryDate + f.deliveryDate.trim())
-  if (f.notes.trim()) parts.push(f.notes.trim())
+  // (v || '') 兼容老单据 / 尚未带新字段的对象，避免 undefined.trim() 抛错
+  if ((f.paymentTerms || '').trim()) parts.push(NOTE_PREFIX.paymentTerms + f.paymentTerms.trim())
+  if ((f.deliveryTerms || '').trim()) parts.push(NOTE_PREFIX.deliveryTerms + f.deliveryTerms.trim())
+  if ((f.deliveryDate || '').trim()) parts.push(NOTE_PREFIX.deliveryDate + f.deliveryDate.trim())
+  if ((f.buyerAddress || '').trim()) parts.push(NOTE_PREFIX.buyerAddress + f.buyerAddress.trim())
+  if ((f.buyerAttn || '').trim()) parts.push(NOTE_PREFIX.buyerAttn + f.buyerAttn.trim())
+  if ((f.buyerTel || '').trim()) parts.push(NOTE_PREFIX.buyerTel + f.buyerTel.trim())
+  if ((f.buyerEmail || '').trim()) parts.push(NOTE_PREFIX.buyerEmail + f.buyerEmail.trim())
+  const free = (f.notes || '').trim()
+  if (free) parts.push(free)
   return parts.join('\n')
 }
 
@@ -208,6 +233,10 @@ export default function ProformaInvoiceForm() {
               piCode: pi.piNo || '',
               customerId: pi.customerId || '',
               customerName: '',
+              buyerAddress: parsed.buyerAddress,
+              buyerAttn: parsed.buyerAttn,
+              buyerTel: parsed.buyerTel,
+              buyerEmail: parsed.buyerEmail,
               quotationId: pi.quoteRef || '',
               piDate: (pi.issuedAt || '').slice(0, 10) || new Date().toISOString().split('T')[0],
               validityDays: 30,
@@ -354,11 +383,13 @@ export default function ProformaInvoiceForm() {
         amount: money(it.amount),
       }))
     return {
+      // 买方抬头取自本单据可编辑字段（选客户时初始化、之后可自由改、随 PI 保存）。
+      // 不再直接从客户对象取：客户资料可能没维护联系人，且列表接口未必带 contacts。
       buyerName: c.name || form.customerName || '',
-      buyerAddress: c.address || '',
-      buyerAttn: c.contactName || '',
-      buyerTel: c.contactPhone || '',
-      buyerEmail: c.contactEmail || '',
+      buyerAddress: form.buyerAddress,
+      buyerAttn: form.buyerAttn,
+      buyerTel: form.buyerTel,
+      buyerEmail: form.buyerEmail,
       invoiceNo: form.piCode || '',
       invoiceDate: form.piDate || '',
       countryOfOrigin: 'CHINA',
@@ -478,7 +509,21 @@ export default function ProformaInvoiceForm() {
           <h3 className="font-medium text-sm">客户信息</h3>
           <div>
             <label className={FIELD_LABEL}>客户（外销）<span className="text-red-500">*</span></label>
-            <select value={form.customerId} onChange={e => { update('customerId', e.target.value); update('quotationId', '') }} className={FIELD_INPUT}>
+            <select value={form.customerId} onChange={e => {
+              const cid = e.target.value
+              const c: any = customers.find(x => x.id === cid) || {}
+              setForm(prev => ({
+                ...prev,
+                customerId: cid,
+                quotationId: '',
+                // 客户资料只做初始化来源：带出后仍可自由改、不永久引用、不强制同步（LOCKED 总纲第5条）。
+                // 兼容 Customer 映射字段与 Prisma 原始 contacts[] / companyPhone。
+                buyerAddress: [c.address, c.addressDetail].filter(Boolean).join(' ').trim(),
+                buyerAttn: c.contactName || c.contacts?.[0]?.name || '',
+                buyerTel: c.contactPhone || c.contacts?.[0]?.phone || c.companyPhone || '',
+                buyerEmail: c.contactEmail || c.contacts?.[0]?.email || '',
+              }))
+            }} className={FIELD_INPUT}>
               <option value="">请选择客户</option>
               {customers.filter(c => (c.salesType || '').toUpperCase() === 'EXTERNAL').map(c => (
                 <option key={c.id} value={c.id}>{c.companyName || c.name}</option>
@@ -490,6 +535,35 @@ export default function ProformaInvoiceForm() {
               <div>客户：{selectedCustomer.companyName || selectedCustomer.name}</div>
             </div>
           )}
+          {/* 买方抬头：打印件左上方 To / Address / CONTACT / Tel. / E-mail 就取这里。
+              选客户时从客户资料初始化，之后销售可自由改，随 PI 的 notes 一起保存（刘总 11-09「在哪填」）。
+              不新建表 / 列 / 接口，复用既有 notes 键值机制（走法B）。 */}
+          <div className="rounded-[8px] border border-gray-200 bg-gray-50 px-[12px] py-[8px]">
+            <div className="text-[13px] font-medium text-gray-700">买方抬头（打印在客户单据左上方）</div>
+            <div className="text-[13px] text-gray-400 mb-[8px]">选客户会自动带出；带出后可直接改，改动只属于这张 PI，不会改客户资料。</div>
+            <div className="space-y-[8px]">
+              <div>
+                <label className={FIELD_LABEL}>Address 地址</label>
+                <input value={form.buyerAddress} disabled={isFrozen} onChange={e => update('buyerAddress', e.target.value)}
+                  placeholder="如 Orlando, Florida, Zipcode 32835" className={FIELD_INPUT} />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>CONTACT 联系人</label>
+                <input value={form.buyerAttn} disabled={isFrozen} onChange={e => update('buyerAttn', e.target.value)}
+                  placeholder="如 Alessandro Ponso" className={FIELD_INPUT} />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Tel. 电话</label>
+                <input value={form.buyerTel} disabled={isFrozen} onChange={e => update('buyerTel', e.target.value)}
+                  placeholder="如 407 360-4114" className={FIELD_INPUT} />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>E-mail 邮箱</label>
+                <input value={form.buyerEmail} disabled={isFrozen} onChange={e => update('buyerEmail', e.target.value)}
+                  placeholder="如 Allum@allumcorp.com" className={FIELD_INPUT} />
+              </div>
+            </div>
+          </div>
           <div>
             <label className={FIELD_LABEL}>关联报价单（须 ACCEPTED）<span className="text-gray-400">· 选填</span></label>
             <select value={form.quotationId} onChange={e => update('quotationId', e.target.value)} className={FIELD_INPUT}>
