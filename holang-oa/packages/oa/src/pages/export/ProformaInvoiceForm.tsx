@@ -601,10 +601,19 @@ export default function ProformaInvoiceForm() {
               </tbody>
             </table>
           </div>
-          {/* 合计区独立成条，不再与表格行贴在一起（原截图里说明文字被压住） */}
-          {/* 唯一金额展示：总金额由明细自动派生，不再有第二个可填的「PI 总金额」框（刘总 11-09） */}
+          {/* 唯一金额展示：总金额由明细自动派生，不再有第二个可填的「PI 总金额」框（刘总 11-09）。
+              人民币折算紧挨总额展示，方便销售一眼判断自己这单大概值多少人民币（刘总 11-09）：
+              走 currencyStore 系统汇率，仅内部参考，绝不进打印数据 / 客户可见 PI。 */}
           <div className="flex items-center gap-[16px] flex-wrap rounded-[8px] border border-gray-200 bg-gray-50 px-[16px] py-[12px] text-[13px]">
             <span className="text-gray-500">PI 总金额（按商品明细自动算出）：<span className="ml-[8px] text-[14px] font-semibold text-gray-900 tabular-nums">{form.currency} {money(itemsTotal)}</span></span>
+            <span className="inline-flex items-center gap-[8px] rounded-[6px] border border-gray-300 bg-white px-[12px] py-[4px]"
+              title="按系统汇率折算，仅供内部参考，不输出到给客户的 PI / PDF">
+              <span className="text-gray-500">{form.currency === 'CNY' ? '人民币金额' : '折合人民币'}</span>
+              {activeCurrency
+                ? <span className="text-[16px] font-semibold text-brand-600 tabular-nums">¥{money(cnyReference)}</span>
+                : <span className="text-amber-600">汇率未配置</span>}
+              <span className="text-gray-400">· 内部参考</span>
+            </span>
             <span className="text-gray-400 ml-auto">改单价或数量，金额自动更新；保存与导出 PDF 都用这个数。</span>
           </div>
         </div>
@@ -695,14 +704,13 @@ export default function ProformaInvoiceForm() {
             )}
           </div>
 
-          {/* 刘总 2026-11-08：人民币参考不出现在给客户的 PI 上。内部仅留一行小字说明折算与汇率来源，
-              汇率取自系统设置（后端 currencies 表 + 自动/手动更新），不再写死 7.27 / 7.85。 */}
-          <div className="text-[13px] text-gray-500 bg-gray-50 border border-gray-100 rounded px-3 py-2 leading-5">
-            内部参考（<span className="font-medium">不输出到给客户的 PI / PDF</span>）：按系统汇率约折合
-            ¥{cnyReference.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}；
+          {/* 刘总 2026-11-08：人民币参考不出现在给客户的 PI 上。金额已提到上方合计条醒目展示，
+              这里只留汇率来源与更新时间说明；汇率取自系统设置，不再写死固定数值。 */}
+          <div className="text-[13px] text-gray-500 bg-gray-50 border border-gray-100 rounded-[8px] px-[12px] py-[8px] leading-5">
+            内部参考（<span className="font-medium">不输出到给客户的 PI / PDF</span>）：
             {activeCurrency
-              ? `采用 1 ${form.currency} = ${activeCurrency.rate} CNY${activeCurrency.lastUpdated ? `（更新于 ${activeCurrency.lastUpdated}）` : '（汇率未记录更新时间）'}，可在「系统设置 → 币种与汇率」维护。`
-              : '该币种未在「系统设置 → 币种与汇率」中启用，折算按原金额显示。'}
+              ? `上方人民币折算采用 1 ${form.currency} = ${activeCurrency.rate} CNY${activeCurrency.lastUpdated ? `（更新于 ${activeCurrency.lastUpdated}）` : '（汇率未记录更新时间）'}，可在「系统设置 → 币种与汇率」维护；折算金额不会出现在客户单据上。`
+              : '该币种未在「系统设置 → 币种与汇率」启用，暂无法折算人民币；请先在系统设置维护汇率。'}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-[16px]">
             <div>

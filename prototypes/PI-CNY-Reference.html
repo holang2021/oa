@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 总价折合人民币（内部参考）放到总金额旁边</title>
+<style>
+  :root { --primary:#1a56db; --primary-light:#e8f0fe; --bg:#f3f4f6; --surface:#fff;
+    --border:#e5e7eb; --border-dark:#d1d5db; --text:#111827; --secondary:#6b7280;
+    --muted:#9ca3af; --success:#059669; --warning:#d97706; --r-sm:6px; --r-md:8px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1040px; margin:0 auto; padding:32px 28px 70px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--primary); }
+  .logo span { font-size:13px; font-weight:400; color:var(--muted); margin-left:8px; }
+  .meta { font-size:13px; color:var(--muted); }
+  h1 { font-size:24px; font-weight:600; margin:0 0 10px; }
+  h2 { font-size:18px; margin:32px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--primary); }
+  p.lead { color:#374151; margin:0 0 16px; max-width:960px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; padding:10px 15px; margin:0 0 14px; font-size:13px; color:#7c2d12; border-radius:var(--r-sm); }
+  .callout { background:var(--primary-light); border:1px solid #c7d9fb; border-radius:var(--r-md); padding:12px 16px; margin-bottom:14px; }
+  .callout strong { color:var(--primary); }
+  .card { background:#fff; border:1px solid var(--border); border-radius:var(--r-md); padding:16px; }
+  .tag { display:inline-block; font-size:12px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:var(--bg); color:var(--secondary); }
+  .tag.after { background:#d1fae5; color:var(--success); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; font-size:14px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:var(--secondary); border-bottom:2px solid var(--border); font-size:13px; }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:var(--bg); border-radius:4px; padding:1px 5px; font-size:13px; }
+  .ok { color:var(--success); font-weight:600; } .bad { color:#dc2626; font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:var(--r-md); padding:12px 16px; font-size:13px; }
+  .foot { margin-top:34px; border-top:1px solid var(--border); padding-top:14px; font-size:13px; color:var(--muted); }
+
+  /* 合计条示意 */
+  .sumbar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; background:#f9fafb;
+    border:1px solid var(--border); border-radius:var(--r-md); padding:12px 16px; font-size:13px; }
+  .sumbar b { font-size:14px; font-variant-numeric:tabular-nums; }
+  .sumbar .hint { margin-left:auto; color:var(--muted); }
+  .cny-chip { display:inline-flex; align-items:center; gap:8px; background:#fff;
+    border:1px solid var(--border-dark); border-radius:var(--r-sm); padding:4px 12px; }
+  .cny-chip .amount { font-size:16px; font-weight:600; color:var(--primary); font-variant-numeric:tabular-nums; }
+  .cny-chip .muted { color:var(--muted); }
+  .buried { margin-top:12px; font-size:12px; color:var(--muted); background:#fff;
+    border:1px dashed var(--border-dark); border-radius:var(--r-sm); padding:8px 12px; }
+  .buried .mark { color:var(--warning); }
+  .client { margin-top:12px; border:1px solid var(--border); border-radius:var(--r-sm); background:#fff; padding:10px 14px; font-size:13px; color:var(--secondary); }
+  .client b { color:var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 人民币折算</span></div>
+    <div class="meta">2026-11-09 · 内部参考，不进客户单据</div>
+  </header>
+
+  <h1>把总价折成人民币，放到总金额旁边</h1>
+  <div class="quote">刘总原话：「有时候销售会好奇自己能拿多少奖金，那得看一下这个价格折算成人民币大概是多少钱。找一个合适的位置，把这个总价折算成人民币的金额显示出来」</div>
+  <p class="lead">先查了现状：<strong>折算逻辑其实早就有</strong>——<code>convertToCNY()</code> 走「系统设置 → 币种与汇率」的真汇率，金额也算出来了。问题是它只作为一行灰色小字，埋在「金额与贸易条款」卡片最底下、夹在收款账户和付款条款之间，销售基本看不到。所以这次<strong>不是加计算，是把这个数提到总金额旁边、做成一眼能看到的金额</strong>。</p>
+  <div class="callout"><strong>一句话</strong>：填完明细看到总额的那一条，现在并排显示「折合人民币 ¥2,461.92 · 内部参考」；客户拿到的 PI / PDF 里一个字都不会出现。</div>
+
+  <h2>1 · 改前 / 改后（合计条）</h2>
+  <div class="card">
+    <span class="tag before">改前</span>
+    <div class="sumbar">
+      <span>PI 总金额（按商品明细自动算出）：<b>USD 368.00</b></span>
+      <span class="hint">改单价或数量，金额自动更新；保存与导出 PDF 都用这个数。</span>
+    </div>
+    <div class="buried">
+      ↓ 折到很下面、卡片底部才有这么一行小字，销售很难注意到：<br>
+      内部参考（不输出到给客户的 PI / PDF）：按系统汇率约折合 <span class="mark">¥2,461.92</span>；采用 1 USD = 6.6908 CNY……
+    </div>
+    <ul>
+      <li>折算金额和总金额<span class="bad">不在同一个地方</span>，要往下翻才看得到</li>
+      <li>灰色 13px 小字混在一大段汇率说明里，视觉上像"备注"不像"金额"</li>
+      <li>销售想知道这单值多少人民币，得自己找、甚至自己拿计算器乘</li>
+    </ul>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <span class="tag after">改后</span>
+    <div class="sumbar">
+      <span>PI 总金额（按商品明细自动算出）：<b>USD 368.00</b></span>
+      <span class="cny-chip">
+        <span>折合人民币</span><span class="amount">¥2,461.92</span><span class="muted">· 内部参考</span>
+      </span>
+      <span class="hint">改单价或数量，金额自动更新；保存与导出 PDF 都用这个数。</span>
+    </div>
+    <div class="buried" style="border-style:solid;color:var(--secondary)">
+      卡片底部仍保留一行说明，但只讲<strong>汇率来源与更新时间</strong>，不再重复那个金额：<br>
+      内部参考（不输出到给客户的 PI / PDF）：上方人民币折算采用 1 USD = 6.6908 CNY（更新于 …），可在「系统设置 → 币种与汇率」维护；折算金额不会出现在客户单据上。
+    </div>
+    <ul>
+      <li><span class="ok">总额与人民币折算并排</span>，同一眼就能看完</li>
+      <li>白底卡片 + 主色 16px 数字，像"金额"而不是"备注"</li>
+      <li>明确带「· 内部参考」，销售不会误以为这是要报给客户的数</li>
+      <li>改数量/单价、切币种、汇率更新，两个数一起变</li>
+    </ul>
+  </div>
+
+  <h2>2 · 为什么选这个位置</h2>
+  <table class="t">
+    <thead><tr><th style="width:230px">候选位置</th><th>判断</th></tr></thead>
+    <tbody>
+      <tr><td class="k">商品明细下方合计条 ✅</td><td class="ok">采纳</td></tr>
+      <tr><td>「金额与贸易条款」再加第 4 列</td><td>上一轮刚把 4 列收敛成 3 列修对齐，加回去会重犯</td></tr>
+      <tr><td>收款账户区上方</td><td>那里是给客户的银行资料，混入内部折算金额口径不对</td></tr>
+      <tr><td>页面顶部 / 标题旁</td><td>金额还没算出来时显示空值，反而干扰</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;color:var(--muted);margin:9px 0 0">合计条本来就是"这单多少钱"的唯一展示位，把折算挂在旁边最自然；不新增列、不破坏刚修好的三列对齐，也不用改数据模型。</p>
+
+  <h2>3 · 边界（这次特别守住的几条）</h2>
+  <div class="client">
+    <b>客户拿到的 PI / PDF：</b>只有 <code>USD 368.00</code> 和打印件 TOTAL，<b>不含人民币、不含汇率</b>。折算只存在于 OA 内部表单界面（之前刘总已明确「人民币参考不显示在 PI」）。
+  </div>
+  <table class="t" style="margin-top:12px">
+    <thead><tr><th style="width:230px">情况</th><th>显示</th></tr></thead>
+    <tbody>
+      <tr><td class="k">正常外币（USD / EUR …）</td><td>「折合人民币 ¥2,461.92 · 内部参考」，按系统汇率实时算</td></tr>
+      <tr><td class="k">币种就是 CNY</td><td>标签改「人民币金额」，不写"折合"（没有折算发生）</td></tr>
+      <tr><td class="k">该币种未配置汇率</td><td>显示「汇率未配置」，<strong>不拿原金额冒充人民币</strong></td></tr>
+      <tr><td class="k">改明细 / 切币种 / 汇率更新</td><td>两个金额一起自动变，无需手点重算</td></tr>
+      <tr><td class="k">列表页</td><td>原本就有「人民币金额（内部参考）」列，本次未改</td></tr>
+    </tbody>
+  </table>
+  <div class="note" style="margin-top:12px"><strong>没有做的事</strong>：没有加"奖金/提成"计算（刘总说的是"折算成人民币大概是多少钱"，再往下推断提成比例属于另一件事）；没有把人民币写进打印数据；没有新建表、字段或接口；汇率仍取 <code>currencyStore</code> 系统真源，不写死数值。</div>
+
+  <h2>4 · 视觉仍按 UI 设计 token</h2>
+  <table class="t">
+    <thead><tr><th style="width:230px">项目</th><th style="width:170px">取值</th><th>出处</th></tr></thead>
+    <tbody>
+      <tr><td class="k">卡片圆角 / 容器圆角</td><td>6px / 8px</td><td><code>radius.sm</code> / <code>radius.md</code></td></tr>
+      <tr><td class="k">卡片内间距</td><td>12px / 4px / 8px</td><td><code>space.3</code> / <code>space.1</code> / <code>space.2</code></td></tr>
+      <tr><td class="k">金额 / 标签字号</td><td>16px / 13px</td><td><code>fontSize.subTitle</code> / <code>fontSize.aux</code></td></tr>
+      <tr><td class="k">金额颜色</td><td>#1a56db</td><td><code>--color-primary</code>（唯一品牌主色）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5 · 验证结果</h2>
+  <table class="t">
+    <thead><tr><th style="width:340px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">汇率与打印边界 verify_pi_fx</td><td class="ok">PASS — 26 / 26（新增 7 条）</td></tr>
+      <tr><td class="k">UI 布局约束 verify_pi_form_layout</td><td class="ok">PASS — 36 / 36（新增 2 条）</td></tr>
+      <tr><td class="k">打印 HTML 无人民币 / 汇率字样</td><td class="ok">PASS</td></tr>
+      <tr><td class="k">全量回归（19 个脚本，含 6 组端到端）</td><td class="ok">全部 PASS，无回归</td></tr>
+      <tr><td class="k">前端构建 / 后端类型检查</td><td class="ok">均 EXIT 0</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6 · 下一步做什么</h2>
+  <div class="card">
+    <ul>
+      <li><strong>推荐</strong>：Ctrl + F5 强刷 → 打开一张 PI，在商品明细改数量或单价，看合计条里两个金额是否一起变；再切到 EUR / CNY 看折算和标签是否正确。</li>
+      <li>导出一次 PDF 确认客户单据上确实没有人民币字样。</li>
+      <li>若以后要按销售额算奖金 / 提成，那是另一件事，等您给规则再做；本次只做折算展示。</li>
+    </ul>
+  </div>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为改前 / 改后对照，不是生产页面。</div>
+
+</div>
+</body>
+</html>
