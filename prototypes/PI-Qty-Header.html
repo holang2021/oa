@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 打印件数量列头 Qty (set) → Qty</title>
+<style>
+  :root { --brand:#1a56db; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6; --ok:#059669; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 28px 60px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--brand); letter-spacing:.5px; }
+  .logo span { font-size:12px; font-weight:400; color:var(--muted); margin-left:8px; letter-spacing:0; }
+  .meta { font-size:12px; color:var(--muted); }
+  h1 { font-size:25px; margin:0 0 10px; font-weight:600; }
+  h2 { font-size:17px; margin:30px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--brand); }
+  h3 { font-size:14px; margin:0 0 8px; font-weight:600; }
+  p.lead { color:#374151; margin:0 0 16px; max-width:920px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; border-radius:9px; padding:10px 15px; margin:0 0 14px; font-size:13.5px; color:#7c2d12; }
+  .callout { background:#eef4ff; border:1px solid #c7d9fb; border-radius:10px; padding:12px 17px; margin-bottom:14px; }
+  .callout strong { color:var(--brand); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .tag { display:inline-block; font-size:11px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:#f3f4f6; color:#6b7280; }
+  .tag.after { background:#d1fae5; color:var(--ok); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:#374151; border-bottom:1px solid var(--line); }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:#f3f4f6; border-radius:4px; padding:1px 5px; font-size:12px; }
+  .check { color:var(--ok); font-weight:600; }
+  .bad { color:#dc2626; font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:10px; padding:13px 16px; font-size:13px; }
+  .foot { margin-top:32px; border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--muted); }
+  table.sheet { width:100%; border-collapse:collapse; font-size:10.5px; margin-top:8px; }
+  table.sheet th, table.sheet td { border:1px solid #111827; padding:6px 5px; text-align:center; }
+  table.sheet th { font-weight:700; background:#fff; }
+  th.old { background:#fee2e2; color:#b91c1c; }
+  th.new { background:#d1fae5; color:#065f46; }
+  @media (max-width:820px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 打印件列头</span></div>
+    <div class="meta">2026-11-09 · Qty (set) → Qty（刘总拍板）</div>
+  </header>
+
+  <h1>数量列头去掉写死的 (set)，改成中性的 Qty</h1>
+  <div class="quote">刘总原话：「打印件列头 Qty (set) 改成 Qty」</div>
+  <p class="lead">上一轮商品明细单位默认改成 <code>pcs</code> 后，打印件列头却还写着 <code>Qty (set)</code>，客户会看到「抬头说套、行内说件」自相矛盾。现在把列头改成不带单位的 <code>Qty</code>：<strong>单位由每一行数量自己带</strong>（<code>1 pcs</code> / <code>1 set</code> / <code>2 kg</code>），各行可以不同，客户不会看错。</p>
+  <div class="callout"><strong>一句话</strong>：PI / CI / PL 三张单据一起改，口径统一；列数、其余列头、字体字号、页边距全都没动。</div>
+
+  <h2>1 · 改前 / 改后</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">改前</span>
+      <table class="sheet">
+        <thead><tr><th>Item No.</th><th>HS Code</th><th>DESCRIPTION</th><th class="old">Qty (set)</th><th>Unit Price ($)</th><th>Total ($)</th></tr></thead>
+        <tbody>
+          <tr><td>NPA15</td><td>8419609090</td><td>Nitrogen Generator</td><td>1 pcs</td><td>13,800.00</td><td>13,800.00</td></tr>
+          <tr><td>2</td><td></td><td>Export Packaging</td><td>3 pcs</td><td>100.00</td><td>300.00</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>列头写死 <span class="bad">(set)</span>，行内却是 <code>pcs</code></li>
+        <li>同一张单据两种单位说法，客户容易误会</li>
+        <li>换单位时列头改不了（写死在模板里）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag after">改后</span>
+      <table class="sheet">
+        <thead><tr><th>Item No.</th><th>HS Code</th><th>DESCRIPTION</th><th class="new">Qty</th><th>Unit Price ($)</th><th>Total ($)</th></tr></thead>
+        <tbody>
+          <tr><td>NPA15</td><td>8419609090</td><td>Nitrogen Generator</td><td>1 pcs</td><td>13,800.00</td><td>13,800.00</td></tr>
+          <tr><td>2</td><td></td><td>Export Packaging</td><td>3 pcs</td><td>100.00</td><td>300.00</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li><span class="check">列头中性 Qty</span>，单位看行内</li>
+        <li>一行一个单位，设备写 <code>set</code>、配件写 <code>pcs</code> 都行</li>
+        <li>单位信息一点没丢，只是不再写死在抬头</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2 · 三张单据一起改</h2>
+  <table class="t">
+    <thead><tr><th style="width:230px">打印模板</th><th style="width:180px">改前</th><th>改后</th></tr></thead>
+    <tbody>
+      <tr><td class="k">PI 形式发票</td><td><code>Qty (set)</code></td><td class="check"><code>Qty</code></td></tr>
+      <tr><td class="k">CI 商业发票</td><td><code>Qty (set)</code></td><td class="check"><code>Qty</code></td></tr>
+      <tr><td class="k">PL 装箱单</td><td><code>Qty (set)</code></td><td class="check"><code>Qty</code></td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12.5px;color:var(--muted);margin:9px 0 0">三张单据本来就共享同一客户、同一批货的数据，列头口径统一后，销售不用记哪张不一样。CI 里表格外那行 <code>US Dollar</code> 仍按上次约定保留，本次未动。</p>
+
+  <h2>3 · 没动的东西</h2>
+  <table class="t">
+    <thead><tr><th style="width:250px">项目</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td class="k">列数 / 其余列头</td><td>PI 仍 6 列，Item No. / HS Code / DESCRIPTION / Unit Price ($) / Total ($) 不变</td></tr>
+      <tr><td class="k">单位默认值</td><td>商品明细仍默认 <code>pcs</code>、可自由改</td></tr>
+      <tr><td class="k">金额符号</td><td>仍在 Unit Price ($) / Total ($) 两个列头，随币种变</td></tr>
+      <tr><td class="k">页边距 / 页眉页脚</td><td>仍为左右 20mm、上下 14mm，导出 PDF 无浏览器页眉页脚</td></tr>
+      <tr><td class="k">字体字号 / 框线</td><td>仍走 OA 设计 token，粗黑框不变</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top:14px"><strong>一个观察（本次未改）</strong>：PI 的行内数量会写成 <code>1 pcs</code>，CI / PL 目前的样本数据里数量是纯数字（如 <code>1</code>），列头改成 Qty 后这两张单上就看不到单位字样了。如果也要像 PI 一样在数量里带上单位，说一句我就补，改动很小。</div>
+
+  <h2>4 · 验证结果</h2>
+  <table class="t">
+    <thead><tr><th style="width:330px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">新增真源验证 verify_qty_header</td><td class="check">PASS（三模板对象 + 实跑打印 HTML）</td></tr>
+      <tr><td class="k">单位默认值验证 verify_pi_unit_default</td><td class="check">PASS — 断言已同步为新列头口径</td></tr>
+      <tr><td class="k">前端构建 / 后端类型检查</td><td class="check">均 EXIT 0</td></tr>
+      <tr><td class="k">全量回归（含 6 组端到端）</td><td class="check">全部 PASS，无回归</td></tr>
+    </tbody>
+  </table>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为改前 / 改后对照，不是生产页面。要看到新列头需重新导出一次 PDF；页面若仍是旧版，请按 Ctrl + F5（或 Ctrl + Shift + R）强制刷新。</div>
+
+</div>
+</body>
+</html>
