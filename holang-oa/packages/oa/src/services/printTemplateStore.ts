@@ -22,7 +22,13 @@ export interface PrintField {
   left?: PrintField[]        // twoColumn：左栏（买方信息）
   right?: PrintField[]       // twoColumn：右栏（单据号 / 日期 / 原产地）
   bordered?: boolean         // table：真实单据粗黑框表头
-  showRowNumber?: boolean    // table：false = 不加序号列（真实单据以 HS Code 起头）
+  currencyHeader?: {        // table：与表格框线对齐的币种子表头（跨金额列，显示所选币种）
+    key: string
+    content?: string
+    colspan: number
+    align?: 'left' | 'center' | 'right'
+  }
+  showRowNumber?: boolean    // table：false = 不加序号列（真实单据以产品编号起头）
   hideLabel?: boolean        // field：只输出值（大写金额 / 备注）
 }
 
@@ -185,9 +191,11 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
         { type: 'field', label: 'Date', key: 'invoiceDate' },
         { type: 'field', label: 'Country of Origin', key: 'countryOfOrigin' },
       ]},
-      { type: 'header', content: 'US Dollar', key: 'currencyName', fontSize: PRINT_FONT_SIZES.small, bold: false, align: 'right' },
-      // 明细表：真实单据 5 列 + 最左新增「产品编号 Item No.」（刘总 11-09），粗黑框、表头加粗
-      { type: 'table', label: 'Item Details', key: 'items', bordered: true, showRowNumber: false, columns: [
+      // 明细表：真实单据 5 列 + 最左新增「产品编号 Item No.」（刘总 11-09），粗黑框、表头加粗；
+      // 币种子表头与表格框线对齐跨金额列，显示所选币种符号 + 名称（刘总 11-09）
+      { type: 'table', label: 'Item Details', key: 'items', bordered: true, showRowNumber: false,
+        currencyHeader: { key: 'currencyName', content: 'US Dollar', colspan: 2, align: 'center' },
+        columns: [
         { type: 'text', content: 'Item No.', align: 'center' },
         { type: 'text', content: 'HS Code', align: 'left' },
         { type: 'text', content: 'DESCRIPTION OF PRODUCTS', align: 'center' },
