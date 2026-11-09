@@ -84,6 +84,7 @@ export async function getPiById(id: string) {
 // 商品明细行（Commercial Item）：设备/外购/配件/运杂/安装/服务统一一种行结构，
 // 不为每种建字段；与打印模板 tpl-pi-print 的 tableFields 键一一对应。
 export interface PiItem {
+  productCode?: string  // 产品编号（型号/料号），打印在最左列 Item No.；未填时显示行号
   hsCode: string
   name: string
   qty: number

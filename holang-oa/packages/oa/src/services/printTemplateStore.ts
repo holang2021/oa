@@ -186,14 +186,16 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
         { type: 'field', label: 'Country of Origin', key: 'countryOfOrigin' },
       ]},
       { type: 'header', content: 'US Dollar', key: 'currencyName', fontSize: PRINT_FONT_SIZES.small, bold: false, align: 'right' },
-      // 明细表：真实单据 5 列（HS Code 起头、无序号列），粗黑框、表头加粗
+      // 明细表：真实单据 5 列 + 最左新增「产品编号 Item No.」（刘总 11-09），粗黑框、表头加粗
       { type: 'table', label: 'Item Details', key: 'items', bordered: true, showRowNumber: false, columns: [
+        { type: 'text', content: 'Item No.', align: 'center' },
         { type: 'text', content: 'HS Code', align: 'left' },
         { type: 'text', content: 'DESCRIPTION OF PRODUCTS', align: 'center' },
         { type: 'text', content: 'Qty (set)', align: 'center' },
         { type: 'text', content: 'Unit Price', align: 'right' },
         { type: 'text', content: 'Total', align: 'right' },
       ], tableFields: [
+        { type: 'text', key: 'productCode', align: 'center' },
         { type: 'text', key: 'hsCode', align: 'left' },
         { type: 'text', key: 'name', align: 'center' },
         { type: 'text', key: 'qty', align: 'center' },

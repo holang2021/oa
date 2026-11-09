@@ -12,6 +12,7 @@ import * as piService from '../services/pi.service';
 // 商品明细行（Commercial Item）：一张 PI 可含设备/外购/配件/运杂/安装/服务，
 // 不为每种建结构；每行统一表达 品名描述 / HS Code / 数量 / 单位 / 单价 / 金额（LOCKED 总纲第7条）。
 const piItemSchema = z.object({
+  productCode: z.string().optional().default(''),  // 产品编号（型号/料号），打印在最左列 Item No.
   hsCode: z.string().optional().default(''),
   name: z.string().optional().default(''),
   qty: z.number().min(0).optional().default(0),
@@ -22,10 +23,11 @@ const piItemSchema = z.object({
 
 // zod 的 .default() 会让推断出的输入类型字段全为可选；显式归一化为业务层需要的完整行项，
 // 同时兜底空值，避免脏数据写进 items_json。
-type RawPiItem = { hsCode?: string; name?: string; qty?: number; unit?: string; price?: number; amount?: number };
+type RawPiItem = { productCode?: string; hsCode?: string; name?: string; qty?: number; unit?: string; price?: number; amount?: number };
 function normalizeItems(items: RawPiItem[] | undefined) {
   if (items === undefined) return undefined;
   return items.map(it => ({
+    productCode: it.productCode ?? '',
     hsCode: it.hsCode ?? '',
     name: it.name ?? '',
     qty: it.qty ?? 0,

@@ -38,6 +38,7 @@ export interface PiFilter {
 // 用原生 SQL 读写 items_json，避免重新生成线上 Prisma 客户端（同 currency.service.ts 范式）。
 // ============================================================
 export interface PiItem {
+  productCode?: string | null;  // 产品编号（型号/料号）
   hsCode?: string | null;
   name: string;
   qty?: number | null;

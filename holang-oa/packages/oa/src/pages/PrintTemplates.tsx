@@ -27,9 +27,9 @@ function buildSampleData(tpl: PrintTemplate): Record<string, any> {
       countryOfOrigin: 'CHINA',
       currencyName: 'US Dollar',
       items: [
-        { hsCode: '8419609090', name: 'Nitrogen Generator', qty: 1, price: '13,800.00', amount: '13,800.00' },
-        { hsCode: '', name: 'Export Packaging', qty: 1, price: '100.00', amount: '100.00' },
-        { hsCode: '', name: 'Sea freight', qty: 1, price: '428.00', amount: '428.00' },
+        { productCode: 'NPA15', hsCode: '8419609090', name: 'Nitrogen Generator', qty: 1, price: '13,800.00', amount: '13,800.00' },
+        { productCode: '2', hsCode: '', name: 'Export Packaging', qty: 1, price: '100.00', amount: '100.00' },
+        { productCode: '3', hsCode: '', name: 'Sea freight', qty: 1, price: '428.00', amount: '428.00' },
       ],
       totalAmount: 'US$14,328.00',
       amountInWords: 'FOURTEEN THOUSAND THREE HUNDRED TWENTY-EIGHT ONLY',

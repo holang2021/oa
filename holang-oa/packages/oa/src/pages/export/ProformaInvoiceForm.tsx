@@ -38,7 +38,7 @@ interface PiForm {
 
 // 商品明细空行：真实 PI 单据的一行可以是设备 / 外购 / 配件 / 运杂 / 安装 / 服务，
 // 不为每种建结构（LOCKED 总纲第7条 Commercial Item 第一性）。
-const emptyItem = (): PiItem => ({ hsCode: '', name: '', qty: 1, unit: '', price: 0, amount: 0 })
+const emptyItem = (): PiItem => ({ productCode: '', hsCode: '', name: '', qty: 1, unit: '', price: 0, amount: 0 })
 // 与真实 Allum PI 单据一致的千分位两位小数写法，如 13,800.00
 const money = (n: number) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -163,6 +163,7 @@ export default function ProformaInvoiceForm() {
             const parsed = parseNotes(pi.notes)
             const loadedItems: PiItem[] = Array.isArray(pi.items) && pi.items.length
               ? pi.items.map((it: any) => ({
+                  productCode: it.productCode || '',
                   hsCode: it.hsCode || '',
                   name: it.name || '',
                   qty: Number(it.qty ?? 1) || 1,
@@ -281,6 +282,7 @@ export default function ProformaInvoiceForm() {
       const qty = Number(it.quantity ?? 1) || 1
       const price = Number(it.unitPrice ?? 0) || 0
       return {
+        productCode: it.productCode || it.product?.model || '',
         hsCode: it.hsCode || it.product?.model || '',
         name: it.product?.name || it.productName || it.description || '',
         qty, unit: '', price,
@@ -315,7 +317,9 @@ export default function ProformaInvoiceForm() {
     const c: any = selectedCustomer || {}
     const printableItems = form.items
       .filter(it => (it.name || '').trim() !== '' || Number(it.price) > 0)
-      .map(it => ({
+      .map((it, idx) => ({
+        // 产品编号：销售填了型号/料号就显示它，没填则退化为行号 1、2、3（Item No.）
+        productCode: (it.productCode || '').trim() || String(idx + 1),
         hsCode: it.hsCode || '',
         name: it.name || '',
         qty: it.unit ? `${it.qty} ${it.unit}` : String(it.qty),
@@ -498,6 +502,7 @@ export default function ProformaInvoiceForm() {
               <thead>
                 <tr className="text-left text-xs text-gray-500 border-b">
                   <th className="py-2 w-10">No.</th>
+                  <th className="w-28">产品编号</th>
                   <th className="w-32">HS Code</th>
                   <th>DESCRIPTION OF PRODUCTS <span className="text-red-500">*</span></th>
                   <th className="w-24 text-right">Qty</th>
@@ -511,6 +516,11 @@ export default function ProformaInvoiceForm() {
                 {form.items.map((it, idx) => (
                   <tr key={idx} className="border-b">
                     <td className="py-1 text-center text-xs text-gray-400">{idx + 1}</td>
+                    <td className="py-1 pr-2">
+                      <input value={it.productCode || ''} disabled={isFrozen}
+                        onChange={e => updateItem(idx, 'productCode', e.target.value)}
+                        placeholder="型号 / 料号，留空用行号" className="input text-xs w-full" />
+                    </td>
                     <td className="py-1 pr-2">
                       <input value={it.hsCode} disabled={isFrozen} onChange={e => updateItem(idx, 'hsCode', e.target.value)}
                         placeholder="8419609090" className="input text-xs w-full" />
