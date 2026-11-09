@@ -38,7 +38,9 @@ interface PiForm {
 
 // 商品明细空行：真实 PI 单据的一行可以是设备 / 外购 / 配件 / 运杂 / 安装 / 服务，
 // 不为每种建结构（LOCKED 总纲第7条 Commercial Item 第一性）。
-const emptyItem = (): PiItem => ({ productCode: '', hsCode: '', name: '', qty: 1, unit: '', price: 0, amount: 0 })
+// 单位默认 pcs（刘总 11-09）：只是新行的初始值，输入框仍可自由改，不写死、不锁字段、不建枚举。
+const DEFAULT_PI_UNIT = 'pcs'
+const emptyItem = (): PiItem => ({ productCode: '', hsCode: '', name: '', qty: 1, unit: DEFAULT_PI_UNIT, price: 0, amount: 0 })
 // 与真实 Allum PI 单据一致的千分位两位小数写法，如 13,800.00
 const money = (n: number) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -285,7 +287,7 @@ export default function ProformaInvoiceForm() {
         productCode: it.productCode || it.product?.model || '',
         hsCode: it.hsCode || it.product?.model || '',
         name: it.product?.name || it.productName || it.description || '',
-        qty, unit: '', price,
+        qty, unit: it.unit || DEFAULT_PI_UNIT, price,
         amount: Number((qty * price).toFixed(2)),
       }
     })
@@ -502,6 +504,10 @@ export default function ProformaInvoiceForm() {
             </div>
           )}
           <div className="overflow-x-auto">
+            {/* 常用单位快捷选项：只是建议，input 仍可自由输入（保留修改的权力） */}
+            <datalist id="pi-unit-options">
+              {['pcs', 'set', 'kg', 'm', '台', '套', '件', '项'].map(u => <option key={u} value={u} />)}
+            </datalist>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-500 border-b">
@@ -510,7 +516,7 @@ export default function ProformaInvoiceForm() {
                   <th className="w-32">HS Code</th>
                   <th>DESCRIPTION OF PRODUCTS <span className="text-red-500">*</span></th>
                   <th className="w-24 text-right">Qty</th>
-                  <th className="w-20">单位</th>
+                  <th className="w-20" title="默认 pcs，可自由修改">单位</th>
                   <th className="w-32 text-right">Unit Price</th>
                   <th className="w-32 text-right">Total</th>
                   <th className="w-12" />
@@ -539,7 +545,7 @@ export default function ProformaInvoiceForm() {
                     </td>
                     <td className="py-1 pr-2">
                       <input value={it.unit} disabled={isFrozen} onChange={e => updateItem(idx, 'unit', e.target.value)}
-                        placeholder="set" className="input text-xs w-full" />
+                        list="pi-unit-options" placeholder={DEFAULT_PI_UNIT} className="input text-xs w-full" />
                     </td>
                     <td className="py-1 pr-2">
                       <input type="number" min="0" step="any" value={it.price || ''} disabled={isFrozen}

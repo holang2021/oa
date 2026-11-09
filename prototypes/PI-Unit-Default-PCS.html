@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 商品明细单位默认 pcs（可修改）</title>
+<style>
+  :root { --brand:#1a56db; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6; --ok:#059669; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 28px 60px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--brand); letter-spacing:.5px; }
+  .logo span { font-size:12px; font-weight:400; color:var(--muted); margin-left:8px; letter-spacing:0; }
+  .meta { font-size:12px; color:var(--muted); }
+  h1 { font-size:25px; margin:0 0 10px; font-weight:600; }
+  h2 { font-size:17px; margin:30px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--brand); }
+  h3 { font-size:14px; margin:0 0 8px; font-weight:600; }
+  p.lead { color:#374151; margin:0 0 16px; max-width:940px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; border-radius:9px; padding:10px 15px; margin:0 0 14px; font-size:13.5px; color:#7c2d12; }
+  .callout { background:#eef4ff; border:1px solid #c7d9fb; border-radius:10px; padding:12px 17px; margin-bottom:14px; }
+  .callout strong { color:var(--brand); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .tag { display:inline-block; font-size:11px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:#f3f4f6; color:#6b7280; }
+  .tag.after { background:#d1fae5; color:var(--ok); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:#374151; border-bottom:1px solid var(--line); }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:#f3f4f6; border-radius:4px; padding:1px 5px; font-size:12px; }
+  .check { color:var(--ok); font-weight:600; }
+  .bad { color:#dc2626; font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:10px; padding:13px 16px; font-size:13px; }
+  .foot { margin-top:32px; border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--muted); }
+  /* 表单示意 */
+  .formbox { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:10px; }
+  table.grid { width:100%; border-collapse:collapse; font-size:11.5px; }
+  table.grid th { text-align:left; font-size:11px; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line); background:#fff; }
+  table.grid td { padding:7px 8px; border-bottom:1px solid #f1f3f5; }
+  .cell { display:inline-block; border:1px solid #d1d5db; border-radius:5px; padding:3px 8px; min-width:64px; color:#374151; background:#fff; }
+  .cell.empty { color:#c0c4cc; border-style:dashed; }
+  .cell.hl { border-color:var(--ok); background:#ecfdf5; color:#065f46; font-weight:600; }
+  .cell.edit { border-color:var(--brand); background:#eef4ff; }
+  .unit-tip { font-size:10px; color:var(--muted); display:block; margin-top:3px; }
+  @media (max-width:820px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 商品明细</span></div>
+    <div class="meta">2026-11-09 · 单位默认 pcs，保留修改权</div>
+  </header>
+
+  <h1>商品明细「单位」默认填 pcs，随时能改</h1>
+  <div class="quote">刘总原话：「单位默认为pcs，保留修改的权力」</div>
+  <p class="lead">新建 PI 时第一行、点「新增一行」加的行、以及从报价单带进来的行，单位都<strong>自动填好 <code>pcs</code></strong>，销售不用每次手打。但它只是个<strong>初始值</strong>：单位框仍是普通输入框，卖成套设备可改成 <code>set</code>、按重量可改 <code>kg</code>，也能填中文，系统不锁、不建枚举、不写死。</p>
+  <div class="callout"><strong>一句话</strong>：少填一次，但一样都没少权限。只有 PI <strong>确认后</strong>才冻结不能改（这本来就是系统的冻结规则），草稿状态随时改。</div>
+
+  <h2>1 · 改前 / 改后</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">改前</span>
+      <div class="formbox">
+        <table class="grid">
+          <thead><tr><th>No.</th><th>DESCRIPTION</th><th>Qty</th><th>单位</th><th>Unit Price</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Nitrogen Generator</td><td>1</td><td><span class="cell empty">（空）</span></td><td>0.00</td></tr>
+            <tr><td>2</td><td>Export Packaging</td><td>1</td><td><span class="cell empty">（空）</span></td><td>0.00</td></tr>
+            <tr><td>3</td><td>Sea freight</td><td>1</td><td><span class="cell empty">（空）</span></td><td>0.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>新建行的单位是空的，每行都得手填</li>
+        <li>从报价单带入时单位被清空，又要重填一遍</li>
+        <li>漏填了，打印件数量就只剩 <code>1</code>，没有单位</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag after">改后</span>
+      <div class="formbox">
+        <table class="grid">
+          <thead><tr><th>No.</th><th>DESCRIPTION</th><th>Qty</th><th>单位 <span class="unit-tip">默认 pcs，可自由修改</span></th><th>Unit Price</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Nitrogen Generator</td><td>1</td><td><span class="cell hl">pcs</span></td><td>0.00</td></tr>
+            <tr><td>2</td><td>Export Packaging</td><td>1</td><td><span class="cell hl">pcs</span></td><td>0.00</td></tr>
+            <tr><td>3</td><td>Sea freight</td><td>1</td><td><span class="cell edit">set</span><span class="unit-tip">↑ 手改成 set，照样保存</span></td><td>0.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><span class="check">新行自动 pcs</span>，不用手填</li>
+        <li>输入框仍可随便改，改成什么就存什么</li>
+        <li>点单位框会给出常用单位建议（pcs / set / kg / m / 台 / 套 / 件 / 项），<strong>只是建议，不是下拉锁死</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2 · 三个入口都带默认值</h2>
+  <table class="t">
+    <thead><tr><th style="width:250px">怎么产生这一行</th><th style="width:220px">单位初始值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td class="k">新建 PI 的第一行</td><td class="check">pcs</td><td>打开新建页就有</td></tr>
+      <tr><td class="k">点「新增一行」</td><td class="check">pcs</td><td>加几行都是 pcs</td></tr>
+      <tr><td class="k">从报价单带入</td><td class="check">报价单单位优先</td><td>报价单行项本来写了单位就用它；没写才兜底 pcs</td></tr>
+      <tr><td class="k">打开已保存的旧 PI</td><td>保持原样</td><td class="check">不偷偷改历史单据</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3 · 「保留修改的权力」具体怎么保障</h2>
+  <table class="t">
+    <thead><tr><th style="width:250px">担心的事</th><th>实际做法</th></tr></thead>
+    <tbody>
+      <tr><td class="k">会不会变成写死、改不了？</td><td>仍是普通文本输入框，有 <code>onChange</code>，没有 <code>readOnly</code>，没有固定值</td></tr>
+      <tr><td class="k">会不会变成只能选的下拉？</td><td>不会。用「建议列表」给常用单位，仍可直接打字输入任意单位（中英文都行）</td></tr>
+      <tr><td class="k">什么时候不能改？</td><td>只有 PI <strong>已确认</strong>后禁用（全表单统一冻结规则）；草稿状态随时改</td></tr>
+      <tr><td class="k">改了能存下来吗？</td><td>能。端到端实测：<code>pcs</code> 与 <code>set</code> 存后重开都原样读回</td></tr>
+      <tr><td class="k">会不会为「单位」新建表 / 字段？</td><td>不会。仍复用 <code>items_json</code> 一个字段，零迁移、零新接口</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top:14px"><strong>有一处请您留意</strong>：打印件明细表的列头目前仍写着 <code>Qty (set)</code>（这是照您给的真实 Allum 单据复刻的版式）。现在单位默认变成 <code>pcs</code>，打印出来会是「列头 Qty (set) + 数量里写 1 pcs」，两处说法不一致。<strong>本次我没擅自改版式</strong>，如果单位以后普遍是 pcs，建议把列头改成不带单位的 <code>Qty</code>，或直接 <code>Qty (pcs)</code>——您说一句我就改。</div>
+
+  <h2>4 · 验证结果</h2>
+  <table class="t">
+    <thead><tr><th style="width:320px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">前端构建 / 后端类型检查</td><td class="check">均 EXIT 0（6.50s）</td></tr>
+      <tr><td class="k">新增真源验证 verify_pi_unit_default</td><td class="check">PASS — 21 / 21（实际执行 emptyItem() 取到 pcs）</td></tr>
+      <tr><td class="k">商品明细端到端（含 pcs 存后读回）</td><td class="check">PASS — 10 / 10</td></tr>
+      <tr><td class="k">全量回归（16 个脚本，含 6 组端到端）</td><td class="check">全部 PASS，无回归</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5 · 还请您拍板的一件小事</h2>
+  <div class="card">
+    <h3>打印件列头 <code>Qty (set)</code> 要不要改？</h3>
+    <p style="font-size:13px;margin:0">我建议改成 <code>Qty</code>（不带单位），因为每一行数量里已经写了 <code>1 pcs</code> / <code>1 set</code>，列头再写死一个 <code>(set)</code> 反而会跟行内单位打架；这样一行一个单位、各行可以不同，最不容易让客户看错。<strong>但这是改打印版式，涉及「严格按真实单据」那条要求，所以等您点头再动。</strong></p>
+  </div>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为改前 / 改后对照，不是生产页面。若浏览器里看到的仍是旧版，请按 Ctrl + F5（或 Ctrl + Shift + R）强制刷新。</div>
+
+</div>
+</body>
+</html>
