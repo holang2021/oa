@@ -25,11 +25,12 @@ function buildSampleData(tpl: PrintTemplate): Record<string, any> {
       invoiceNo: 'HC2606038',
       invoiceDate: 'Aug 20, 2026',
       countryOfOrigin: 'CHINA',
-      currencyName: '$ US Dollar',
+      // 币种符号注入列头 Unit Price ($) / Total ($)；表格内金额为纯数字
+      currencySymbol: '$',
       items: [
-        { productCode: 'NPA15', hsCode: '8419609090', name: 'Nitrogen Generator', qty: 1, price: '$13,800.00', amount: '$13,800.00' },
-        { productCode: '2', hsCode: '', name: 'Export Packaging', qty: 1, price: '$100.00', amount: '$100.00' },
-        { productCode: '3', hsCode: '', name: 'Sea freight', qty: 1, price: '$428.00', amount: '$428.00' },
+        { productCode: 'NPA15', hsCode: '8419609090', name: 'Nitrogen Generator', qty: 1, price: '13,800.00', amount: '13,800.00' },
+        { productCode: '2', hsCode: '', name: 'Export Packaging', qty: 1, price: '100.00', amount: '100.00' },
+        { productCode: '3', hsCode: '', name: 'Sea freight', qty: 1, price: '428.00', amount: '428.00' },
       ],
       totalAmount: '$14,328.00',
       amountInWords: 'FOURTEEN THOUSAND THREE HUNDRED TWENTY-EIGHT ONLY',

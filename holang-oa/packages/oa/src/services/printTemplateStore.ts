@@ -22,12 +22,7 @@ export interface PrintField {
   left?: PrintField[]        // twoColumn：左栏（买方信息）
   right?: PrintField[]       // twoColumn：右栏（单据号 / 日期 / 原产地）
   bordered?: boolean         // table：真实单据粗黑框表头
-  currencyHeader?: {        // table：与表格框线对齐的币种子表头（跨金额列，显示所选币种）
-    key: string
-    content?: string
-    colspan: number
-    align?: 'left' | 'center' | 'right'
-  }
+  // 列头/静态文案支持 {key} 占位符，由打印数据替换（如 Unit Price ({currencySymbol})，币种符号不写死）
   showRowNumber?: boolean    // table：false = 不加序号列（真实单据以产品编号起头）
   hideLabel?: boolean        // field：只输出值（大写金额 / 备注）
   optional?: boolean         // field：值为空时整行不渲染（回款路径留空即删除，刘总 11-09）
@@ -167,7 +162,8 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
     // 数据键 buyerName/buyerAddress/buyerAttn/buyerEmail/invoiceNo/invoiceDate/countryOfOrigin/
     // items/amountInWords/transactionMethod/paymentTerm/deliveryDate/remarks/beneficiaryAccount
     // 与 CI 完全复用；PL 复用买方与单据头 → 同客户 PI/CI/PL 数据互通。
-    // currencyName 按单据实际币种输出（如 Euro / US Dollar），未传时回退模板静态文案。
+    // 币种由列头 {currencySymbol} 占位符注入（刘总 11-09），打印件不再单独输出 US Dollar 名称行；
+    // currencyName 仅供列表页 / CI 模板复用，不进 PI 可见版面。
     // 客户可见 PI 不含人民币金额 / 汇率：人民币折算只做内部参考，不进打印数据（刘总 2026-11-08）。
     // 明细表用 tableFields 自定义列（HS Code / DESCRIPTION / Qty / Unit Price / Total）。
     fields: [
@@ -192,17 +188,17 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
         { type: 'field', label: 'Date', key: 'invoiceDate' },
         { type: 'field', label: 'Country of Origin', key: 'countryOfOrigin' },
       ]},
-      // 明细表：真实单据 5 列 + 最左新增「产品编号 Item No.」（刘总 11-09），粗黑框、表头加粗；
-      // 币种子表头与表格框线对齐跨金额列，显示所选币种符号 + 名称（刘总 11-09）
+      // 明细表：真实单据 5 列 + 最左新增「产品编号 Item No.」（刘总 11-09），粗黑框、表头加粗。
+      // 币种符号直接写进 Unit Price / Total 两个列头（刘总 11-09：删掉单独的 US Dollar 行，改为 Unit Price ($) / Total ($)）；
+      // {currencySymbol} 由打印数据按所选币种注入，符号取 currencyStore 真源、不写死。
       { type: 'table', label: 'Item Details', key: 'items', bordered: true, showRowNumber: false,
-        currencyHeader: { key: 'currencyName', content: 'US Dollar', colspan: 2, align: 'center' },
         columns: [
         { type: 'text', content: 'Item No.', align: 'center' },
         { type: 'text', content: 'HS Code', align: 'left' },
         { type: 'text', content: 'DESCRIPTION OF PRODUCTS', align: 'center' },
         { type: 'text', content: 'Qty (set)', align: 'center' },
-        { type: 'text', content: 'Unit Price', align: 'right' },
-        { type: 'text', content: 'Total', align: 'right' },
+        { type: 'text', content: 'Unit Price ({currencySymbol})', align: 'right' },
+        { type: 'text', content: 'Total ({currencySymbol})', align: 'right' },
       ], tableFields: [
         { type: 'text', key: 'productCode', align: 'center' },
         { type: 'text', key: 'hsCode', align: 'left' },

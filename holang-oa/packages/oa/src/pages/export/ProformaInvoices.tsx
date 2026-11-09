@@ -41,6 +41,7 @@ export default function ProformaInvoices() {
   // 列表页 PDF：同样先出预览页（预览页内点「打印」即可另存 PDF）
   const handlePreviewPdf = (pi: ProformaInvoice) => {
     const c = customers.find(x => x.id === pi.customerId)
+    const cur = getCurrencyById(pi.currency)
     openPreview('tpl-pi-print', {
       buyerName: c?.name || pi.customerName || '',
       buyerAddress: c?.address || '',
@@ -50,9 +51,10 @@ export default function ProformaInvoices() {
       invoiceNo: pi.piCode,
       invoiceDate: pi.piDate,
       countryOfOrigin: 'CHINA',
-      currencyName: getCurrencyById(pi.currency)?.nameEn || pi.currency,
+      currencySymbol: cur?.symbol || '',
+      currencyName: cur?.nameEn || pi.currency,
       items: [{ hsCode: '', name: '（明细请进入编辑页关联报价单后带出）', qty: '', price: '', amount: pi.totalAmount.toFixed(2) }],
-      totalAmount: `${pi.currency} ${pi.totalAmount.toFixed(2)}`,
+      totalAmount: `${cur?.symbol || ''}${pi.totalAmount.toFixed(2)}`,
       amountInWords: '',
       transactionMethod: pi.deliveryTerms || '',
       paymentTerm: pi.paymentTerms || '',

@@ -315,7 +315,8 @@ export default function ProformaInvoiceForm() {
   // 买方/单据头数据键与 CI/PL 模板一致，同一客户信息不重复录入（刘总 PI/CI/PL 互通原则）。
   const buildPiPrintData = (): Record<string, any> => {
     const c: any = selectedCustomer || {}
-    // 币种符号取系统汇率真源（$ / € / ¥ / £），表格单价 / 总价 / TOTAL 统一带符号
+    // 币种符号取系统汇率真源（$ / € / ¥ / £）：只出现在 Unit Price / Total 两个列头与 TOTAL 行，
+    // 表格内金额回到纯数字，不再重复带符号（刘总 11-09：删掉 US Dollar 行，改成 Unit Price ($) / Total ($)）
     const currencySymbol = activeCurrency?.symbol || ''
     const printableItems = form.items
       .filter(it => (it.name || '').trim() !== '' || Number(it.price) > 0)
@@ -325,8 +326,8 @@ export default function ProformaInvoiceForm() {
         hsCode: it.hsCode || '',
         name: it.name || '',
         qty: it.unit ? `${it.qty} ${it.unit}` : String(it.qty),
-        price: `${currencySymbol}${money(it.price)}`,
-        amount: `${currencySymbol}${money(it.amount)}`,
+        price: money(it.price),
+        amount: money(it.amount),
       }))
     return {
       buyerName: c.name || form.customerName || '',
@@ -337,7 +338,8 @@ export default function ProformaInvoiceForm() {
       invoiceNo: form.piCode || '',
       invoiceDate: form.piDate || '',
       countryOfOrigin: 'CHINA',
-      // 币种子表头显示「符号 + 名称」（如 $ US Dollar），与表格框线对齐
+      // 列头占位符 {currencySymbol} 用这个符号注入；PI 打印件不再单独输出 US Dollar 名称行
+      currencySymbol,
       currencyName: `${currencySymbol} ${activeCurrency?.nameEn || form.currency}`.trim(),
       // 无明细时输出空表（渲染器给一行空单元格）；内部操作提示不进客户可见的打印数据
       items: printableItems,
