@@ -415,6 +415,14 @@ export default function ProformaInvoiceForm() {
     if (!form.customerId) { alert('请选择客户'); return }
     // 报价单改为选填：有些报价单尚未在系统内完成，允许先建 PI，后续再补关联（刘总 2026-11-08）
     if (!form.totalAmount || form.totalAmount <= 0) { alert('请填写商品明细（数量与单价），PI 总金额会自动算出'); return }
+    // 三项都会印到客户单据的对应行（PAYMENT TERM / TRANSACTION METHOD / DELIVERY DATE），
+    // 刘总 11-09「都是必填」：缺任一项阻止保存，避免客户单据出现空行。仍是可自由输入的文本，不强选下拉。
+    const missing = [
+      !(form.paymentTerms || '').trim() && '付款条款（PAYMENT TERM）',
+      !(form.deliveryTerms || '').trim() && '交易条件（TRANSACTION METHOD）',
+      !(form.deliveryDate || '').trim() && '交货期（DELIVERY DATE）',
+    ].filter(Boolean) as string[]
+    if (missing.length) { alert(`请填写：${missing.join('、')}`); return }
     setSaving(true)
     try {
       const issuedAt = form.piDate ? new Date(form.piDate).toISOString() : undefined
@@ -713,7 +721,7 @@ export default function ProformaInvoiceForm() {
                 disabled className={FIELD_INPUT} />
             </div>
             <div>
-              <label className={FIELD_LABEL}>交货期 <span className="text-gray-400">· 选填</span></label>
+              <label className={FIELD_LABEL} title="对应打印件 DELIVERY DATE，可自由描述天数，必填">交货期 <span className="text-red-500">*</span></label>
               {/* 刘总 2026-11-08：交货期是「多少天」的相对描述，不是固定日历日期，不能用 date 框把自己写死。
                   真实 PI 单据该行就是一句话，datalist 只给常用写法建议，不限制输入。 */}
               <input list="pi-delivery-date" value={form.deliveryDate}
@@ -790,7 +798,7 @@ export default function ProformaInvoiceForm() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-[16px]">
             <div>
-              <label className={FIELD_LABEL}>付款条款 <span className="text-gray-400">（可自由填写）</span></label>
+              <label className={FIELD_LABEL} title="对应打印件 PAYMENT TERM，可自由输入，必填">付款条款 <span className="text-red-500">*</span></label>
               {/* 刘总 2026-11-08：付款条件保留可编辑权力；datalist 仅提供常用值快捷建议，不限制输入 */}
               <input list="pi-payment-terms" value={form.paymentTerms}
                 onChange={e => update('paymentTerms', e.target.value)}
@@ -801,7 +809,7 @@ export default function ProformaInvoiceForm() {
               </datalist>
             </div>
             <div>
-              <label className={FIELD_LABEL}>交易条件（Incoterms） <span className="text-gray-400">· 可自由填写</span></label>
+              <label className={FIELD_LABEL} title="对应打印件 TRANSACTION METHOD，可自由输入，必填">交易条件（Incoterms） <span className="text-red-500">*</span></label>
               {/* 真实 PI 单据为 TRANSACTION METHOD（如 CIF MIAMI），允许自由填写完整交易条件 */}
               <input list="pi-delivery-terms" value={form.deliveryTerms}
                 onChange={e => update('deliveryTerms', e.target.value)}
