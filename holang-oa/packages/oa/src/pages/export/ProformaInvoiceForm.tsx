@@ -607,13 +607,15 @@ export default function ProformaInvoiceForm() {
               {['pcs', 'set', 'kg', 'm', '台', '套', '件', '项'].map(u => <option key={u} value={u} />)}
             </datalist>
             {/* 列宽以 token space-2(8px) 为基数：40 / 80 / 112 均为 8 的倍数；DESCRIPTION 吃掉剩余宽度。
-                表头 40px、行 44px、表格字号 14px 全部取 oa-design-tokens.json → component / fontSize。 */}
+                表头 40px、行 44px、表格字号 14px 全部取 oa-design-tokens.json → component / fontSize。
+                列顺序（刘总 11-09）：No. / HS Code / DESCRIPTION / 产品编号 / Qty / 单位 / Unit Price / Total / 删除，
+                colgroup、thead、tbody 三处必须同步调整，否则表头与数据错列。 */}
             <table className="w-full table-fixed text-[14px]" style={{ minWidth: 960 }}>
               <colgroup>
                 <col style={{ width: 40 }} />
                 <col style={{ width: 112 }} />
-                <col style={{ width: 112 }} />
                 <col />
+                <col style={{ width: 112 }} />
                 <col style={{ width: 80 }} />
                 <col style={{ width: 80 }} />
                 <col style={{ width: 112 }} />
@@ -623,9 +625,9 @@ export default function ProformaInvoiceForm() {
               <thead className="bg-gray-50">
                 <tr className="h-[40px] border-b-2 border-gray-200 text-[13px] font-medium text-gray-500">
                   <th className="px-[8px] text-center">No.</th>
-                  <th className="px-[8px] text-left">产品编号</th>
                   <th className="px-[8px] text-left">HS Code</th>
                   <th className="px-[8px] text-left">DESCRIPTION OF PRODUCTS <span className="text-red-500">*</span></th>
+                  <th className="px-[8px] text-left" title="型号 / 料号，留空用行号">产品编号</th>
                   <th className="px-[8px] text-right">Qty</th>
                   <th className="px-[8px] text-left" title="默认 pcs，可自由修改">单位</th>
                   <th className="px-[8px] text-right">Unit Price</th>
@@ -638,17 +640,17 @@ export default function ProformaInvoiceForm() {
                   <tr key={idx} className="h-[44px] border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
                     <td className="px-[8px] text-center text-[13px] text-gray-400 align-middle">{idx + 1}</td>
                     <td className="px-[8px] py-[4px] align-middle">
-                      <input value={it.productCode || ''} disabled={isFrozen}
-                        onChange={e => updateItem(idx, 'productCode', e.target.value)}
-                        placeholder="型号 / 料号" title="型号 / 料号，留空用行号" className={CELL_INPUT} />
-                    </td>
-                    <td className="px-[8px] py-[4px] align-middle">
                       <input value={it.hsCode} disabled={isFrozen} onChange={e => updateItem(idx, 'hsCode', e.target.value)}
                         placeholder="8419609090" className={CELL_INPUT} />
                     </td>
                     <td className="px-[8px] py-[4px] align-middle">
                       <input value={it.name} disabled={isFrozen} onChange={e => updateItem(idx, 'name', e.target.value)}
                         placeholder="如 Nitrogen Generator / Export Packaging / Sea freight" className={CELL_INPUT} />
+                    </td>
+                    <td className="px-[8px] py-[4px] align-middle">
+                      <input value={it.productCode || ''} disabled={isFrozen}
+                        onChange={e => updateItem(idx, 'productCode', e.target.value)}
+                        placeholder="型号 / 料号" title="型号 / 料号，留空用行号" className={CELL_INPUT} />
                     </td>
                     <td className="px-[8px] py-[4px] align-middle">
                       <input type="number" min="0" step="any" value={it.qty || ''} disabled={isFrozen}
