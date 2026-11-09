@@ -128,6 +128,8 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
             )
           }
           case 'field': {
+            // 回款路径等选填行：空值整行删除，不印「PAYMENT ROUTE: —」这种占位
+            if (field.optional && (val === '' || val == null)) return null
             const { label, colon } = fieldLabel(field, data)
             return (
               <div key={idx}
@@ -271,6 +273,7 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
         return `<div style="text-align:${field.align || 'left'};font-size:${field.fontSize || PRINT_FONT_SIZES.body}px;font-weight:${field.bold ? 'bold' : 'normal'};margin-bottom:8px;line-height:1.4;">${text}</div>`
       }
       case 'field': {
+        if (field.optional && (val === '' || val == null)) return ''
         const { label, colon } = fieldLabel(field, data)
         const labelHTML = field.hideLabel ? '' : `<span style="color:${PRINT_COLORS.secondary};font-size:${PRINT_FONT_SIZES.label}px;">${label}${colon}</span>`
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:${PRINT_FONT_SIZES.body}px;line-height:1.4;${field.align === 'center' ? 'justify-content:center;' : field.align === 'right' ? 'justify-content:flex-end;' : ''}">${labelHTML}<span style="font-weight:500;">${String(val)}</span></div>`

@@ -30,6 +30,7 @@ export interface PrintField {
   }
   showRowNumber?: boolean    // table：false = 不加序号列（真实单据以产品编号起头）
   hideLabel?: boolean        // field：只输出值（大写金额 / 备注）
+  optional?: boolean         // field：值为空时整行不渲染（回款路径留空即删除，刘总 11-09）
 }
 
 export interface PrintTemplate {
@@ -224,7 +225,7 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'Swift Code', labelKey: 'bankLabel3', key: 'swiftCode' },
       { type: 'field', label: 'Beneficiary', labelKey: 'bankLabel4', key: 'beneficiary' },
       { type: 'field', label: 'Account No.', labelKey: 'bankLabel5', key: 'beneficiaryAccount' },
-      { type: 'field', label: 'PAYMENT ROUTE', labelKey: 'bankLabel6', key: 'paymentRoute' },
+      { type: 'field', label: 'PAYMENT ROUTE', labelKey: 'bankLabel6', key: 'paymentRoute', optional: true },
       { type: 'spacer' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: PRINT_FONT_SIZES.body, bold: true, align: 'right' },
       { type: 'header', content: 'Authorized Signature', fontSize: PRINT_FONT_SIZES.small, bold: false, align: 'right' },
@@ -284,7 +285,7 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'Swift Code', labelKey: 'bankLabel3', key: 'swiftCode' },
       { type: 'field', label: 'Beneficiary', labelKey: 'bankLabel4', key: 'beneficiary' },
       { type: 'field', label: 'Account No.', labelKey: 'bankLabel5', key: 'beneficiaryAccount' },
-      { type: 'field', label: 'PAYMENT ROUTE', labelKey: 'bankLabel6', key: 'paymentRoute' },
+      { type: 'field', label: 'PAYMENT ROUTE', labelKey: 'bankLabel6', key: 'paymentRoute', optional: true },
       { type: 'spacer' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 11, bold: false, align: 'right' },
       { type: 'header', content: 'Authorized Signature', fontSize: 11, bold: false, align: 'right' },

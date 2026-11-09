@@ -5,7 +5,9 @@
 //
 // 刘总 2026-11-08 第二轮截图意见（本版落地）：
 //  1) 外币卡片混进了中文「行号」→ 外币账户一律英文口径，国内专属字段不显示；
-//  2) 内销回款只中文即可 → 人民币账户（卡片 / 编辑表单 / 打印银行块）全中文，不出现英文；
+//  2) 内销回款只中文即可 → 人民币账户（卡片 / 编辑表单 / 复制）全中文，不出现英文；
+//  3) 刘总 2026-11-09：PI 是外销单据，选人民币应带「人民币外币账户」而不是普通国内账户，
+//     回款路径等都按外币账户口径 → 新增账户性质 CNY_FOREIGN（人民币外币账户 · 出口收汇）。
 //  3) 没有新增账户、删除账户 → 支持新增任意币种账户、删除、同币种多套并指定默认协同。
 //
 // 数据真源：盖章《开票资料》；存储复用后端 /field-configs 的 bank_accounts 模块（无新表 / 新 API）。
@@ -27,7 +29,7 @@ import { copyText } from '../services/clipboard'
 const GROUPS = [
   {
     key: 'FOREIGN', title: '外币账户（出口收汇）',
-    desc: 'USD / EUR · 全英文口径，打印在出口单据的 Bank details',
+    desc: 'USD / EUR / 人民币外币账户 · 全英文口径，打印在出口单据的 Bank details',
     match: (a: BankAccount) => a.accountType !== 'DOMESTIC',
   },
   {
@@ -209,7 +211,8 @@ export default function FundAccounts() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-900 leading-6">
         <strong>按币种默认协同</strong>：开 PI 选择币种时，系统自动带出该币种的默认账户及回款路径，
         并打印到客户单据；销售不用手工挑，也不会出现「选欧元却印美元账号」。
-        <strong>外币账户全英文、人民币账户全中文</strong>（刘总 2026-11-08 口径）；资料来源为盖章《开票资料》，此处修改后对全系统开单生效。
+        <strong>外币账户 / 人民币外币账户全英文、人民币账户（内销）全中文</strong>（刘总 2026-11-08 / 11-09 口径）；
+        <strong>开 PI 选 CNY 时默认带「人民币外币账户」</strong>，不会掉到国内中文账户。资料来源为盖章《开票资料》，此处修改后对全系统开单生效。
       </div>
 
       {msg && (
@@ -281,7 +284,7 @@ export default function FundAccounts() {
             {adding ? '收起新增' : '新增账户'}
           </button>
         )}
-        <span className="text-xs text-gray-400">可同币种多套账户，指定一套为「默认协同」；点卡片右上角「复制」可一键发给客户（只读销售也能用）；外币账户不显示国内行号 / 信用代码。</span>
+        <span className="text-xs text-gray-400">可同币种多套账户，指定一套为「默认协同」；点卡片右上角「复制」可一键发给客户（只读销售也能用）；外币账户 / 人民币外币账户不显示国内行号 / 信用代码；回款路径留空时整行不显示。</span>
       </div>
 
       {adding && canEdit && (
@@ -293,6 +296,7 @@ export default function FundAccounts() {
               <select value={newType} onChange={e => setNewType(e.target.value as 'FOREIGN' | 'DOMESTIC')}
                 className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm">
                 <option value="FOREIGN">外币账户 · 出口收汇（英文）</option>
+                <option value="CNY_FOREIGN">人民币外币账户 · 出口收汇（英文）</option>
                 <option value="DOMESTIC">人民币账户 · 内销回款（中文）</option>
               </select>
             </div>
@@ -402,14 +406,14 @@ export default function FundAccounts() {
                               <div>统一社会信用代码：{a.taxNo || '—'}</div>
                               <div className="col-span-2">收款单位：{a.beneficiaryCn || '—'}</div>
                               <div className="col-span-2">注册地址：{a.companyAddress || '—'}</div>
-                              <div className="col-span-2">回款路径：{a.paymentRoute || '（未填写，选填）'}</div>
+                              {!!a.paymentRoute?.trim() && <div className="col-span-2">回款路径：{a.paymentRoute}</div>}
                             </>
                           ) : (
                             <>
                               <div>Swift Code: {a.swiftCode || '—'}</div>
                               <div>Beneficiary: {a.beneficiary || '—'}</div>
                               <div className="col-span-2">Bank Address: {a.bankAddress || '—'}</div>
-                              <div className="col-span-2">PAYMENT ROUTE: {a.paymentRoute || '—'}</div>
+                              {!!a.paymentRoute?.trim() && <div className="col-span-2">PAYMENT ROUTE: {a.paymentRoute}</div>}
                             </>
                           )}
                           {/* 公司联系资料：按账户性质显示对应语言；邮箱等待确认字段为空时整行不显示 */}
@@ -435,7 +439,8 @@ export default function FundAccounts() {
                             className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs"
                           >
                             <option value="FOREIGN">外币账户 · 出口收汇（英文）</option>
-                            <option value="DOMESTIC">人民币账户 · 内销回款（中文）</option>
+                            <option value="CNY_FOREIGN">人民币外币账户 · 出口收汇（英文）</option>
+                <option value="DOMESTIC">人民币账户 · 内销回款（中文）</option>
                           </select>
                         </div>
                         {fields.map((f) => (
