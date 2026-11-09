@@ -4,6 +4,16 @@ import { PRINT_FONT_FAMILY, PRINT_FONT_SIZES, PRINT_COLORS } from '../services/p
 import { Printer, X, FileText } from 'lucide-react'
 
 /**
+ * 打印页边距（刘总 11-09 截图）：两侧留白由 10mm 放宽到 20mm、上下 14mm。
+ * @page margin 必须为 0 —— 浏览器的页眉页脚（日期 / "打印" / about:blank / 页码）
+ * 只画在 @page 的 margin 区域里，margin=0 它们就没有位置、不会印进导出的 PDF。
+ * 留白改由 .print-page 的 padding 自己控制；React 预览按 1mm=3.78px 同步，保证所见即所得。
+ */
+const PRINT_MARGIN_X_MM = 20
+const PRINT_MARGIN_Y_MM = 14
+const MM_TO_PX = 3.78
+
+/**
  * 列头/静态文案里的 {key} 占位符 → 取打印数据同名字段。
  * 用途：PI 表格列头 Unit Price ({currencySymbol}) / Total ({currencySymbol}) 随所选币种变化，
  * 币种符号取 currencyStore 真源，不在模板里写死 $（刘总 11-09）。
@@ -95,7 +105,7 @@ export default function PrintPreview({ templateId, data, open, onClose }: PrintP
               height: `${naturalH}px`,
               minWidth: `${naturalW}px`,
               minHeight: `${naturalH}px`,
-              padding: '24px',
+              padding: `${PRINT_MARGIN_Y_MM * MM_TO_PX}px ${PRINT_MARGIN_X_MM * MM_TO_PX}px`,
               boxSizing: 'border-box',
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
@@ -321,14 +331,14 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
   }).join('')
 
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>打印</title>
+<html><head><meta charset="utf-8"><title></title>
 <style>
-@page { size: ${w}mm ${h}mm; margin: 10mm; }
-body { margin: 0; padding: 0; font-family: ${PRINT_FONT_FAMILY}; color: ${PRINT_COLORS.text}; }
-/* @page 已留 10mm 页边距，可打印区 = ${w - 20} × ${h - 20}mm；
-   纸张容器改用 100% 自适应宽度（原固定 ${w}mm 会超出可打印区导致右侧被裁），
-   高度用 min-height 让内容多时自然分页而不被截断。 */
-.print-page { width: 100%; min-height: ${h - 20}mm; padding: 0; box-sizing: border-box; display: flex; flex-direction: column; }
+/* margin: 0 → 浏览器页眉页脚（日期 / "打印" / about:blank / 页码）无处绘制，不会印进导出的 PDF */
+@page { size: ${w}mm ${h}mm; margin: 0; }
+html, body { margin: 0; padding: 0; font-family: ${PRINT_FONT_FAMILY}; color: ${PRINT_COLORS.text}; }
+/* 留白改由内容容器自己给：左右 ${PRINT_MARGIN_X_MM}mm、上下 ${PRINT_MARGIN_Y_MM}mm（原 @page 仅 10mm）。
+   去掉 min-height：内容高度由内容决定，不撑满整页、不产生多余空白页。 */
+.print-page { width: 100%; padding: ${PRINT_MARGIN_Y_MM}mm ${PRINT_MARGIN_X_MM}mm; box-sizing: border-box; display: flex; flex-direction: column; }
 </style></head>
 <body><div class="print-page">${fieldsHTML}</div></body></html>`
 }

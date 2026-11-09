@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 打印 PDF 去掉浏览器页眉页脚 + 两侧留白加大</title>
+<style>
+  :root { --brand:#1a56db; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6; --ok:#059669; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 28px 60px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--brand); letter-spacing:.5px; }
+  .logo span { font-size:12px; font-weight:400; color:var(--muted); margin-left:8px; letter-spacing:0; }
+  .meta { font-size:12px; color:var(--muted); }
+  h1 { font-size:25px; margin:0 0 10px; font-weight:600; }
+  h2 { font-size:17px; margin:30px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--brand); }
+  h3 { font-size:14px; margin:0 0 8px; font-weight:600; }
+  p.lead { color:#374151; margin:0 0 16px; max-width:940px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; border-radius:9px; padding:10px 15px; margin:0 0 14px; font-size:13.5px; color:#7c2d12; }
+  .callout { background:#eef4ff; border:1px solid #c7d9fb; border-radius:10px; padding:12px 17px; margin-bottom:14px; }
+  .callout strong { color:var(--brand); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .tag { display:inline-block; font-size:11px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:#f3f4f6; color:#6b7280; }
+  .tag.after { background:#d1fae5; color:var(--ok); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:#374151; border-bottom:1px solid var(--line); }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:#f3f4f6; border-radius:4px; padding:1px 5px; font-size:12px; }
+  .check { color:var(--ok); font-weight:600; }
+  .bad { color:#dc2626; font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:10px; padding:13px 16px; font-size:13px; }
+  .foot { margin-top:32px; border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--muted); }
+  /* PDF 页面示意 */
+  .pdfbox { background:#e9ebef; border-radius:8px; padding:12px; margin-top:8px; }
+  .paper { position:relative; background:#fff; border:1px solid #cfd4dc; box-shadow:0 2px 8px rgba(0,0,0,.08); aspect-ratio:210/297; font-size:7.5px; color:#374151; overflow:hidden; }
+  .chrome { position:absolute; left:2%; right:2%; height:5%; display:flex; justify-content:space-between; align-items:center; font-size:6.5px; color:#6b7280; padding:0 3px; }
+  .chrome.top { top:1.5%; border:2px solid #ef4444; border-radius:2px; background:#fff5f5; }
+  .chrome.bottom { bottom:2%; }
+  .chrome.bottom span:first-child { border:2px solid #ef4444; background:#fff5f5; padding:1px 5px; border-radius:2px; }
+  .content { position:absolute; top:9%; left:4.8%; right:4.8%; bottom:9%; border-left:1px dashed #c7d9fb; border-right:1px dashed #c7d9fb; padding:0 2px; }
+  .content.wide { left:9.5%; right:9.5%; }
+  .lbar { position:absolute; top:0; bottom:0; left:0; width:4.8%; background:repeating-linear-gradient(45deg,#fef3c7,#fef3c7 2px,#fde68a 2px,#fde68a 4px); opacity:.8; }
+  .rbar { position:absolute; top:0; bottom:0; right:0; width:4.8%; background:repeating-linear-gradient(45deg,#fef3c7,#fef3c7 2px,#fde68a 2px,#fde68a 4px); opacity:.8; }
+  .content.wide .lbar, .content.wide .rbar { width:9.5%; background:repeating-linear-gradient(45deg,#d1fae5,#d1fae5 2px,#a7f3d0 2px,#a7f3d0 4px); }
+  .fake-logo { width:44px; height:9px; background:linear-gradient(90deg,#1a56db 0 55%,#ef4444 55% 100%); border-radius:1px; margin:6px 0 4px; }
+  .fake-line { height:3px; background:#e5e7eb; border-radius:2px; margin:3px 0; }
+  .fake-line.s { width:60%; }
+  .fake-table { border:1px solid #9ca3af; margin-top:7px; }
+  .fake-table div { display:flex; border-bottom:1px solid #d1d5db; }
+  .fake-table div:last-child { border-bottom:none; }
+  .fake-table i { flex:1; height:7px; border-right:1px solid #d1d5db; }
+  .fake-table i:last-child { border-right:none; }
+  .caption { font-size:11.5px; color:var(--muted); text-align:center; margin-top:7px; }
+  @media (max-width:820px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 打印 / 导出 PDF</span></div>
+    <div class="meta">2026-11-09 · 去页眉页脚 + 两侧留白加大</div>
+  </header>
+
+  <h1>PDF 上多余的两行删掉，两边再放宽一点</h1>
+  <div class="quote">刘总原话：「打印的出来的PDF文档，删除红色框线框出来的多余内容」「两端留空太少了，从视觉上再把两边留空加多一点」</div>
+  <p class="lead">红框里的 <code>2026/11/9 09:42　打印</code> 和 <code>about:blank</code>（还有右下角的 <code>1/1</code>）<strong>不是单据内容</strong>，是浏览器「另存为 PDF」时自己加的页眉和页脚。它们只画在纸张的页边距里，所以把页边距设为 0，它们就没有地方可画、自然消失；留白改由单据自己控制，顺便把左右从 <strong>10mm 放宽到 20mm</strong>。</p>
+  <div class="callout"><strong>一句话</strong>：浏览器那两行多余文字，从代码里去掉，不用您在打印时手动取消勾选；同时两侧留白翻倍，打印预览里看到的边距和最终 PDF 完全一致。</div>
+
+  <h2>1 · 改前 / 改后（PDF 页面示意）</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">改前 · 您截图里的样子</span>
+      <div class="pdfbox">
+        <div class="paper">
+          <div class="lbar"></div><div class="rbar"></div>
+          <div class="chrome top"><span>2026/11/9 09:42</span><span>打印</span></div>
+          <div class="content">
+            <div class="fake-logo"></div>
+            <div class="fake-line" style="width:70%;margin:0 auto"></div>
+            <div class="fake-line s" style="margin:2px auto"></div>
+            <div class="fake-line s" style="margin:2px auto"></div>
+            <div style="text-align:center;font-weight:700;margin:8px 0;font-size:8px">PROFORMA INVOICE</div>
+            <div class="fake-line"></div><div class="fake-line s"></div>
+            <div class="fake-table"><div><i></i><i></i><i></i><i></i><i></i><i></i></div><div><i></i><i></i><i></i><i></i><i></i><i></i></div><div><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          </div>
+          <div class="chrome bottom"><span>about:blank</span><span>1/1</span></div>
+        </div>
+      </div>
+      <div class="caption">红框 = 浏览器页眉 / 页脚；黄色斜纹 = 左右仅 10mm 留白</div>
+      <ul>
+        <li>顶部多一行日期 + 「打印」，底部多一行网址 + 页码</li>
+        <li>客户拿到的单据上出现 <code>about:blank</code>，很不专业</li>
+        <li>左右只有 10mm，视觉上挤</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag after">改后</span>
+      <div class="pdfbox">
+        <div class="paper">
+          <div class="content wide">
+            <div class="lbar"></div><div class="rbar"></div>
+            <div class="fake-logo"></div>
+            <div class="fake-line" style="width:70%;margin:0 auto"></div>
+            <div class="fake-line s" style="margin:2px auto"></div>
+            <div class="fake-line s" style="margin:2px auto"></div>
+            <div style="text-align:center;font-weight:700;margin:8px 0;font-size:8px">PROFORMA INVOICE</div>
+            <div class="fake-line"></div><div class="fake-line s"></div>
+            <div class="fake-table"><div><i></i><i></i><i></i><i></i><i></i><i></i></div><div><i></i><i></i><i></i><i></i><i></i><i></i></div><div><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">无页眉页脚；绿色斜纹 = 左右 20mm 留白（翻倍）</div>
+      <ul>
+        <li><span class="check">日期 / 打印 / about:blank / 页码全部消失</span></li>
+        <li>打印标题也置空，避免个别浏览器再印出「打印」</li>
+        <li>左右留白 10mm → <strong>20mm</strong>，上下 14mm</li>
+        <li>表格宽度自动收窄适配，不会被裁掉</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2 · 具体改了哪几个数</h2>
+  <table class="t">
+    <thead><tr><th style="width:230px">项目</th><th style="width:170px">改前</th><th>改后</th></tr></thead>
+    <tbody>
+      <tr><td class="k">@page 页边距</td><td><code>margin: 10mm</code></td><td class="check"><code>margin: 0</code> → 页眉页脚无处绘制</td></tr>
+      <tr><td class="k">左右留白</td><td>10mm</td><td class="check">20mm（由内容容器 padding 提供）</td></tr>
+      <tr><td class="k">上下留白</td><td>10mm</td><td class="check">14mm</td></tr>
+      <tr><td class="k">文档标题</td><td><code>打印</code></td><td class="check">置空</td></tr>
+      <tr><td class="k">纸张容器最小高度</td><td><code>min-height</code> 撑到整页</td><td class="check">去掉，内容高度由内容决定，不产生多余空白页</td></tr>
+      <tr><td class="k">打印预览弹层</td><td>左右 24px（与 PDF 不一致）</td><td class="check">按 1mm = 3.78px 换算，与 PDF 完全一致</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12.5px;color:var(--muted);margin:9px 0 0">左右 20mm、上下 14mm 是唯一常量，预览和导出共用同一份，不会再出现「预览看着宽、打印出来窄」。</p>
+
+  <h2>3 · 为什么这样就能删掉那两行</h2>
+  <div class="card">
+    <p style="font-size:13.5px;margin:0 0 8px">浏览器的页眉（日期、标题）和页脚（网址、页码）不是网页内容，是浏览器在<strong>纸张四周留出来的页边距</strong>里额外画的。以前我们把这圈页边距设成 10mm，正好给它留了位置，所以它印进了 PDF。</p>
+    <p style="font-size:13.5px;margin:0">现在把页边距设成 0，浏览器没有地方画，就什么都不印；单据自己再往里缩 20mm，既干净又留白充足。<strong>全程不用您在打印对话框里做任何设置。</strong></p>
+  </div>
+  <div class="note" style="margin-top:12px"><strong>一个兜底提醒</strong>：极少数浏览器如果记住了上次打印时勾选的「页眉和页脚」，可能仍会显示。真遇到的话，在打印对话框的「更多设置」里把该勾去掉即可（只需一次，浏览器会记住）。常规 Chrome / Edge 下已不会再出现。</div>
+
+  <h2>4 · 验证结果</h2>
+  <table class="t">
+    <thead><tr><th style="width:330px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">前端构建 / 后端类型检查</td><td class="check">均 EXIT 0（6.95s）</td></tr>
+      <tr><td class="k">新增真源验证 verify_print_page_margin</td><td class="check">PASS — 19 / 19（实跑生成打印 HTML）</td></tr>
+      <tr><td class="k">PI 版式 / 汇率 / 三模板一致 / 银行打印</td><td class="check">PASS — 38 / 19 / 一致 / 16</td></tr>
+      <tr><td class="k">全量回归（17 个脚本，含 6 组端到端）</td><td class="check">全部 PASS，无回归</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12.5px;color:var(--muted);margin:9px 0 0">同时保留既有铁律：内容高度由内容决定（无 <code>flex-1</code> / <code>margin-top:auto</code> 撑空白）、字体字号仍走 OA 设计 token、表格自适应不被裁切。</p>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为改前 / 改后示意，不是真实 PDF。要看到新效果需<strong>重新导出一次 PDF</strong>；页面若仍是旧版，请按 Ctrl + F5（或 Ctrl + Shift + R）强制刷新。</div>
+
+</div>
+</body>
+</html>
