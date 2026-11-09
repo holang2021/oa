@@ -36,6 +36,31 @@ interface PiForm {
   notes: string
 }
 
+/**
+ * 录入控件视觉基线（刘总 11-09「框线太小，请重新通盘设计」）
+ * 唯一真源：docs/OA_UI_Foundation_V0.1.md 第 5/6/7/11/12 节 + docs/oa-design-tokens.json
+ *   component.inputHeight=36 / inputHeightComplex=40 / tableHeaderH=40 / tableRowH=44
+ *   fontSize.body=14 / aux=13（规范：正常业务信息不得低于 13px，不得为塞内容缩小字号）
+ *   space.2=8 / space.3=12 / space.4=16；radius.sm=6 / radius.md=8
+ *   颜色对齐 --color-*：gray-300=#d1d5db(border-dark)、gray-200=#e5e7eb(border)、
+ *   gray-400=#9ca3af(text-muted)、brand-500/600=#1a56db(primary Focus)
+ * 基线状态为 Candidate，规范明确「三页验证跑通前不得全局重构、不得改全站样式」，
+ * 故**只在 PI 页落地**，绝不改 index.css 的全局 .input；其他页面不受影响。
+ * ⚠️ OA 根字号 15px，Tailwind 的 h-9 / px-3 / text-sm 会被 rem 缩放，必须写显式 px 才等于 token 值。
+ */
+const FIELD_INPUT =
+  'w-full h-[40px] px-[12px] text-[14px] leading-5 bg-white border border-gray-300 rounded-[6px] ' +
+  'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 ' +
+  'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors'
+const CELL_INPUT =
+  'w-full h-[36px] px-[8px] text-[14px] leading-5 bg-white border border-gray-300 rounded-[6px] ' +
+  'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 ' +
+  'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors'
+const CELL_INPUT_RIGHT = CELL_INPUT + ' text-right'
+const TEXTAREA_INPUT =
+  'w-full min-h-[80px] px-[12px] py-[8px] text-[14px] leading-5 bg-white border border-gray-300 rounded-[6px] resize-y ' +
+  'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors'
+
 // 商品明细空行：真实 PI 单据的一行可以是设备 / 外购 / 配件 / 运杂 / 安装 / 服务，
 // 不为每种建结构（LOCKED 总纲第7条 Commercial Item 第一性）。
 // 单位默认 pcs（刘总 11-09）：只是新行的初始值，输入框仍可自由改，不写死、不锁字段、不建枚举。
@@ -432,19 +457,19 @@ export default function ProformaInvoiceForm() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500">PI 编号（保存后自动生成）</label>
-              <input value={form.piCode} disabled className="input text-sm bg-gray-50 w-full" />
+              <input value={form.piCode} disabled className={FIELD_INPUT} />
             </div>
             <div>
               <label className="text-xs text-gray-500">PI 日期 <span className="text-red-500">*</span></label>
-              <input type="date" value={form.piDate} onChange={e => update('piDate', e.target.value)} className="input text-sm w-full" />
+              <input type="date" value={form.piDate} onChange={e => update('piDate', e.target.value)} className={FIELD_INPUT} />
             </div>
             <div>
               <label className="text-xs text-gray-500">有效期（天）</label>
-              <input type="number" value={form.validityDays} onChange={e => update('validityDays', parseInt(e.target.value) || 30)} className="input text-sm w-full" />
+              <input type="number" value={form.validityDays} onChange={e => update('validityDays', parseInt(e.target.value) || 30)} className={FIELD_INPUT} />
             </div>
             <div>
               <label className="text-xs text-gray-500">状态</label>
-              <select value={form.status} onChange={e => update('status', e.target.value)} className="input text-sm w-full">
+              <select value={form.status} onChange={e => update('status', e.target.value)} className={FIELD_INPUT}>
                 {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
               </select>
             </div>
@@ -456,7 +481,7 @@ export default function ProformaInvoiceForm() {
           <h3 className="font-medium text-sm">客户信息</h3>
           <div>
             <label className="text-xs text-gray-500">客户（外销）<span className="text-red-500">*</span></label>
-            <select value={form.customerId} onChange={e => { update('customerId', e.target.value); update('quotationId', '') }} className="input text-sm w-full">
+            <select value={form.customerId} onChange={e => { update('customerId', e.target.value); update('quotationId', '') }} className={FIELD_INPUT}>
               <option value="">请选择客户</option>
               {customers.filter(c => (c.salesType || '').toUpperCase() === 'EXTERNAL').map(c => (
                 <option key={c.id} value={c.id}>{c.companyName || c.name}</option>
@@ -470,7 +495,7 @@ export default function ProformaInvoiceForm() {
           )}
           <div>
             <label className="text-xs text-gray-500">关联报价单（须 ACCEPTED）<span className="text-gray-400">· 选填</span></label>
-            <select value={form.quotationId} onChange={e => update('quotationId', e.target.value)} className="input text-sm w-full">
+            <select value={form.quotationId} onChange={e => update('quotationId', e.target.value)} className={FIELD_INPUT}>
               <option value="">不关联（直接建 PI）</option>
               {quotes.map(q => (
                 <option key={q.id} value={q.id}>{q.code}（{q.amount?.toLocaleString?.() ?? q.amount}）</option>
@@ -484,7 +509,7 @@ export default function ProformaInvoiceForm() {
         </div>
 
         {/* 商品明细：销售直接录入单价/数量/明细（刘总 2026-11-08「产品销售单价、明细没有地方能填写」） */}
-        <div className="card lg:col-span-3 space-y-3">
+        <div className="card lg:col-span-3 space-y-[16px]">
           <div className="flex items-center gap-3 flex-wrap">
             <h3 className="font-medium text-sm">商品明细（Commercial Items）</h3>
             <span className="text-xs text-gray-400">设备 / 外购 / 配件 / 运杂 / 安装 / 服务都可直接加行，金额＝数量 × 单价自动算</span>
@@ -503,59 +528,75 @@ export default function ProformaInvoiceForm() {
               该 PI 已确认，最终交易事实已冻结，明细与金额不可再改（如需修改请先把状态改回草稿）。
             </div>
           )}
-          <div className="overflow-x-auto">
+          {/* 列多时按 UI 基线用固定列宽 + 横向滚动，绝不把输入框压扁（Foundation 第 12/17 节） */}
+          <div className="text-[13px] text-gray-400">列较多，窄屏可左右滚动查看全部列</div>
+          <div className="overflow-x-auto rounded-[8px] border border-gray-200">
             {/* 常用单位快捷选项：只是建议，input 仍可自由输入（保留修改的权力） */}
             <datalist id="pi-unit-options">
               {['pcs', 'set', 'kg', 'm', '台', '套', '件', '项'].map(u => <option key={u} value={u} />)}
             </datalist>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-500 border-b">
-                  <th className="py-2 w-10">No.</th>
-                  <th className="w-28">产品编号</th>
-                  <th className="w-32">HS Code</th>
-                  <th>DESCRIPTION OF PRODUCTS <span className="text-red-500">*</span></th>
-                  <th className="w-24 text-right">Qty</th>
-                  <th className="w-20" title="默认 pcs，可自由修改">单位</th>
-                  <th className="w-32 text-right">Unit Price</th>
-                  <th className="w-32 text-right">Total</th>
-                  <th className="w-12" />
+            {/* 列宽以 token space-2(8px) 为基数：40 / 80 / 112 均为 8 的倍数；DESCRIPTION 吃掉剩余宽度。
+                表头 40px、行 44px、表格字号 14px 全部取 oa-design-tokens.json → component / fontSize。 */}
+            <table className="w-full table-fixed text-[14px]" style={{ minWidth: 960 }}>
+              <colgroup>
+                <col style={{ width: 40 }} />
+                <col style={{ width: 112 }} />
+                <col style={{ width: 112 }} />
+                <col />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 112 }} />
+                <col style={{ width: 112 }} />
+                <col style={{ width: 40 }} />
+              </colgroup>
+              <thead className="bg-gray-50">
+                <tr className="h-[40px] border-b-2 border-gray-200 text-[13px] font-medium text-gray-500">
+                  <th className="px-[8px] text-center">No.</th>
+                  <th className="px-[8px] text-left">产品编号</th>
+                  <th className="px-[8px] text-left">HS Code</th>
+                  <th className="px-[8px] text-left">DESCRIPTION OF PRODUCTS <span className="text-red-500">*</span></th>
+                  <th className="px-[8px] text-right">Qty</th>
+                  <th className="px-[8px] text-left" title="默认 pcs，可自由修改">单位</th>
+                  <th className="px-[8px] text-right">Unit Price</th>
+                  <th className="px-[8px] text-right">Total</th>
+                  <th className="px-[8px]" />
                 </tr>
               </thead>
               <tbody>
                 {form.items.map((it, idx) => (
-                  <tr key={idx} className="border-b">
-                    <td className="py-1 text-center text-xs text-gray-400">{idx + 1}</td>
-                    <td className="py-1 pr-2">
+                  <tr key={idx} className="h-[44px] border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                    <td className="px-[8px] text-center text-[13px] text-gray-400 align-middle">{idx + 1}</td>
+                    <td className="px-[8px] py-[4px] align-middle">
                       <input value={it.productCode || ''} disabled={isFrozen}
                         onChange={e => updateItem(idx, 'productCode', e.target.value)}
-                        placeholder="型号 / 料号，留空用行号" className="input text-xs w-full" />
+                        placeholder="型号 / 料号" title="型号 / 料号，留空用行号" className={CELL_INPUT} />
                     </td>
-                    <td className="py-1 pr-2">
+                    <td className="px-[8px] py-[4px] align-middle">
                       <input value={it.hsCode} disabled={isFrozen} onChange={e => updateItem(idx, 'hsCode', e.target.value)}
-                        placeholder="8419609090" className="input text-xs w-full" />
+                        placeholder="8419609090" className={CELL_INPUT} />
                     </td>
-                    <td className="py-1 pr-2">
+                    <td className="px-[8px] py-[4px] align-middle">
                       <input value={it.name} disabled={isFrozen} onChange={e => updateItem(idx, 'name', e.target.value)}
-                        placeholder="如 Nitrogen Generator / Export Packaging / Sea freight" className="input text-xs w-full" />
+                        placeholder="如 Nitrogen Generator / Export Packaging / Sea freight" className={CELL_INPUT} />
                     </td>
-                    <td className="py-1 pr-2">
+                    <td className="px-[8px] py-[4px] align-middle">
                       <input type="number" min="0" step="any" value={it.qty || ''} disabled={isFrozen}
-                        onChange={e => updateItem(idx, 'qty', e.target.value)} className="input text-xs w-full text-right" />
+                        onChange={e => updateItem(idx, 'qty', e.target.value)} className={CELL_INPUT_RIGHT} />
                     </td>
-                    <td className="py-1 pr-2">
+                    <td className="px-[8px] py-[4px] align-middle">
                       <input value={it.unit} disabled={isFrozen} onChange={e => updateItem(idx, 'unit', e.target.value)}
-                        list="pi-unit-options" placeholder={DEFAULT_PI_UNIT} className="input text-xs w-full" />
+                        list="pi-unit-options" placeholder={DEFAULT_PI_UNIT} className={CELL_INPUT} />
                     </td>
-                    <td className="py-1 pr-2">
+                    <td className="px-[8px] py-[4px] align-middle">
                       <input type="number" min="0" step="any" value={it.price || ''} disabled={isFrozen}
-                        onChange={e => updateItem(idx, 'price', e.target.value)} placeholder="0.00" className="input text-xs w-full text-right" />
+                        onChange={e => updateItem(idx, 'price', e.target.value)} placeholder="0.00" className={CELL_INPUT_RIGHT} />
                     </td>
-                    <td className="py-1 pr-2 text-right font-medium">{money(it.amount)}</td>
-                    <td className="py-1">
+                    <td className="px-[8px] text-right text-[14px] font-medium text-gray-900 tabular-nums bg-gray-50 align-middle">{money(it.amount)}</td>
+                    <td className="px-[4px] text-center align-middle">
                       <button type="button" onClick={() => removeItem(idx)} disabled={isFrozen || form.items.length === 1}
-                        className="text-gray-400 hover:text-red-600 disabled:opacity-30" title="删除本行">
-                        <Trash2 size={14} />
+                        className="h-[32px] w-[32px] rounded-[6px] text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
+                        title="删除本行">
+                        <Trash2 size={15} />
                       </button>
                     </td>
                   </tr>
@@ -563,9 +604,10 @@ export default function ProformaInvoiceForm() {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center gap-3 flex-wrap text-xs">
-            <span className="text-gray-500">明细合计（上面各行自动加总）：<span className="font-semibold text-gray-800">{form.currency} {money(itemsTotal)}</span></span>
-            <button type="button" onClick={applyItemsTotal} disabled={isFrozen || itemsTotal <= 0} className="btn btn-outline text-xs">
+          {/* 合计区独立成条，不再与表格行贴在一起（原截图里说明文字被压住） */}
+          <div className="flex items-center gap-[16px] flex-wrap rounded-[8px] border border-gray-200 bg-gray-50 px-[16px] py-[12px] text-[13px]">
+            <span className="text-gray-500">明细合计（上面各行自动加总）：<span className="ml-[8px] text-[14px] font-semibold text-gray-900 tabular-nums">{form.currency} {money(itemsTotal)}</span></span>
+            <button type="button" onClick={applyItemsTotal} disabled={isFrozen || itemsTotal <= 0} className="btn btn-outline h-[32px] px-[12px] text-[13px]">
               按明细合计重算
             </button>
             {itemsTotal > 0 && Math.abs(itemsTotal - (Number(form.totalAmount) || 0)) > 0.009 && (
@@ -584,7 +626,7 @@ export default function ProformaInvoiceForm() {
             <div>
               <label className="text-xs text-gray-500">币种 <span className="text-red-500">*</span></label>
               {/* 币种与汇率同源：直接取系统设置「币种与汇率」，不再写死 USD/EUR/CNY/GBP */}
-              <select value={form.currency} onChange={e => update('currency', e.target.value)} className="input text-sm w-full">
+              <select value={form.currency} onChange={e => update('currency', e.target.value)} className={FIELD_INPUT}>
                 {!currencyList.some(c => c.id === form.currency) && <option value={form.currency}>{form.currency}</option>}
                 {currencyList.map(c => <option key={c.id} value={c.id}>{c.id}（{c.name}）</option>)}
               </select>
@@ -593,7 +635,7 @@ export default function ProformaInvoiceForm() {
               <label className="text-xs text-gray-500">PI 总金额（打印件 TOTAL） <span className="text-red-500">*</span></label>
               <input type="number" value={form.totalAmount || ''} disabled={isFrozen}
                 onChange={e => { update('totalAmount', parseFloat(e.target.value) || 0); setAmountManual(true) }}
-                className="input text-sm w-full" />
+                className={FIELD_INPUT} />
               <div className="text-[11px] mt-1">
                 {amountManual ? (
                   <button type="button" onClick={applyItemsTotal} disabled={isFrozen || itemsTotal <= 0}
@@ -608,7 +650,7 @@ export default function ProformaInvoiceForm() {
             <div>
               <label className="text-xs text-gray-500">系统汇率（内部）</label>
               <input value={activeCurrency ? `1 ${form.currency} = ${activeCurrency.rate} CNY` : '未配置该币种汇率'}
-                disabled className="input text-sm bg-gray-50 w-full" />
+                disabled className={FIELD_INPUT} />
             </div>
             <div>
               <label className="text-xs text-gray-500">交货期 DELIVERY DATE <span className="text-gray-400">· 选填，可自由描述</span></label>
@@ -617,7 +659,7 @@ export default function ProformaInvoiceForm() {
               <input list="pi-delivery-date" value={form.deliveryDate}
                 onChange={e => update('deliveryDate', e.target.value)}
                 placeholder="如 收到预付款后 20 天 / 20 DAYS AFTER RECEIVING THE PREPAYMENT"
-                className="input text-sm w-full" />
+                className={FIELD_INPUT} />
               <datalist id="pi-delivery-date">
                 {deliveryDateOptions.map(t => <option key={t} value={t} />)}
               </datalist>
@@ -693,7 +735,7 @@ export default function ProformaInvoiceForm() {
               <input list="pi-payment-terms" value={form.paymentTerms}
                 onChange={e => update('paymentTerms', e.target.value)}
                 placeholder="可自由输入，如 TT 20% PREPAYMENT, 80% BALANCE BEFORE SHIPMENT"
-                className="input text-sm w-full" />
+                className={FIELD_INPUT} />
               <datalist id="pi-payment-terms">
                 {paymentTermOptions.map(t => <option key={t} value={t} />)}
               </datalist>
@@ -704,7 +746,7 @@ export default function ProformaInvoiceForm() {
               <input list="pi-delivery-terms" value={form.deliveryTerms}
                 onChange={e => update('deliveryTerms', e.target.value)}
                 placeholder="可自由输入，如 CIF MIAMI"
-                className="input text-sm w-full" />
+                className={FIELD_INPUT} />
               <datalist id="pi-delivery-terms">
                 {deliveryTermOptions.map(t => <option key={t} value={t} />)}
               </datalist>
@@ -714,7 +756,7 @@ export default function ProformaInvoiceForm() {
             <label className="text-xs text-gray-500">备注 <span className="text-gray-400">（交货期也可以直接用文字写在这里，会印到 PI 的 REMARKS 行）</span></label>
             <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
               placeholder="如 ONE COMPLETE SET OF NPA15 SPARE PARTS FREE OF CHARGE，交货期：收到预付款后 20 天，海运到迈阿密约 40 天"
-              className="input text-sm w-full" rows={2} />
+              className={TEXTAREA_INPUT} rows={2} />
           </div>
         </div>
 
@@ -723,7 +765,7 @@ export default function ProformaInvoiceForm() {
           <h3 className="font-medium text-sm">回签信息</h3>
           <div>
             <label className="text-xs text-gray-500">客户回签日期</label>
-            <input type="date" value={form.signedAt} onChange={e => update('signedAt', e.target.value)} className="input text-sm w-full" />
+            <input type="date" value={form.signedAt} onChange={e => update('signedAt', e.target.value)} className={FIELD_INPUT} />
           </div>
           {form.signedAt && (
             <div className="text-xs text-green-600 bg-green-50 p-2 rounded">

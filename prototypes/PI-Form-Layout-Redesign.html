@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 录入区按 UI Foundation 重设计（改前/改后可输入对照）</title>
+<style>
+  :root {
+    --color-primary:#1a56db; --color-primary-light:#e8f0fe;
+    --color-bg:#f3f4f6; --color-surface:#fff; --color-border:#e5e7eb;
+    --color-border-dark:#d1d5db; --color-text:#111827;
+    --color-text-secondary:#6b7280; --color-text-muted:#9ca3af;
+    --color-success:#059669; --color-warning:#d97706; --color-danger:#dc2626;
+    --radius-sm:6px; --radius-md:8px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--color-bg); color:var(--color-text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+    font-size:14px; line-height:1.65; }
+  .wrap { max-width:1180px; margin:0 auto; padding:32px 28px 70px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--color-primary); }
+  .logo span { font-size:12px; font-weight:400; color:var(--color-text-muted); margin-left:8px; }
+  .meta { font-size:13px; color:var(--color-text-muted); }
+  h1 { font-size:24px; font-weight:600; margin:0 0 10px; }
+  h2 { font-size:18px; margin:32px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--color-primary); }
+  h3 { font-size:16px; margin:0 0 8px; font-weight:600; }
+  p.lead { color:#374151; margin:0 0 16px; max-width:1000px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; padding:10px 15px; margin:0 0 14px; font-size:13px; color:#7c2d12; border-radius:var(--radius-sm); }
+  .callout { background:var(--color-primary-light); border:1px solid #c7d9fb; border-radius:var(--radius-md); padding:12px 16px; margin-bottom:14px; }
+  .callout strong { color:var(--color-primary); }
+  .card { background:#fff; border:1px solid var(--color-border); border-radius:var(--radius-md); padding:16px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .tag { display:inline-block; font-size:12px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:var(--color-bg); color:var(--color-text-secondary); }
+  .tag.after { background:#d1fae5; color:var(--color-success); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--color-border); border-radius:var(--radius-md); overflow:hidden; font-size:14px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:var(--color-text-secondary); border-bottom:2px solid var(--color-border); font-size:13px; }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:var(--color-bg); border-radius:4px; padding:1px 5px; font-size:13px; }
+  .ok { color:var(--color-success); font-weight:600; }
+  .bad { color:var(--color-danger); font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:var(--radius-md); padding:12px 16px; font-size:13px; }
+  .foot { margin-top:34px; border-top:1px solid var(--color-border); padding-top:14px; font-size:13px; color:var(--color-text-muted); }
+  .src { font-size:13px; color:var(--color-text-secondary); }
+  .src b { color:var(--color-text); }
+
+  /* ── 改前示意：还原截图里被压扁的输入框 ── */
+  .demo { border:1px solid var(--color-border); border-radius:var(--radius-md); background:#fff; padding:16px; }
+  .demo table { width:100%; border-collapse:collapse; font-size:12px; }
+  .demo.old th { padding:6px 4px; font-size:12px; font-weight:400; color:var(--color-text-muted); border-bottom:1px solid var(--color-border); background:#fff; }
+  .demo.old td { padding:2px 2px; border-bottom:1px solid #f3f4f6; }
+  .demo.old input { width:100%; height:20px; padding:0 3px; font-size:12px; border:1px solid #ccc; border-radius:2px; background:#fff; }
+  .demo.old .sum { margin-top:4px; font-size:11px; color:var(--color-text-muted); }
+
+  /* ── 改后示意：严格按 token ── */
+  .demo.new { padding:0; overflow:hidden; }
+  .scroll { overflow-x:auto; }
+  .demo.new table { width:100%; min-width:960px; table-layout:fixed; border-collapse:collapse; font-size:14px; }
+  .demo.new thead { background:#f9fafb; }
+  .demo.new th { height:40px; padding:0 8px; font-size:13px; font-weight:600; color:var(--color-text-secondary); border-bottom:2px solid var(--color-border); background:#f9fafb; text-align:left; }
+  .demo.new td { height:44px; padding:4px 8px; border-bottom:1px solid var(--color-border); vertical-align:middle; }
+  .demo.new tr:last-child td { border-bottom:none; }
+  .demo.new tr:hover td { background:#f9fafb; }
+  .demo.new input { width:100%; height:36px; padding:0 8px; font-size:14px; line-height:20px;
+    border:1px solid var(--color-border-dark); border-radius:var(--radius-sm); background:#fff; color:var(--color-text); }
+  .demo.new input:focus { outline:none; border-color:var(--color-primary); box-shadow:0 0 0 2px rgba(26,86,219,.25); }
+  .demo.new input::placeholder { color:var(--color-text-muted); }
+  .demo.new input.r { text-align:right; }
+  .demo.new .total { text-align:right; font-weight:600; background:#f9fafb; font-variant-numeric:tabular-nums; }
+  .demo.new .no { text-align:center; color:var(--color-text-muted); font-size:13px; }
+  .demo.new .del { text-align:center; }
+  .demo.new .del button { height:32px; width:32px; border:1px solid var(--color-border); background:#fff;
+    border-radius:var(--radius-sm); color:var(--color-text-muted); cursor:pointer; }
+  .sumbar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:16px;
+    background:#f9fafb; border:1px solid var(--color-border); border-radius:var(--radius-md); padding:12px 16px; font-size:13px; }
+  .sumbar b { font-size:14px; font-variant-numeric:tabular-nums; }
+  .sumbar button { height:32px; padding:0 12px; font-size:13px; border:1px solid var(--color-border-dark); background:#fff;
+    border-radius:var(--radius-sm); cursor:pointer; }
+  .sumbar .hint { margin-left:auto; color:var(--color-text-muted); }
+  .tip { font-size:13px; color:var(--color-text-muted); margin:0 0 8px; }
+  @media (max-width:900px) { .grid2,.grid3 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 录入区重设计</span></div>
+    <div class="meta">2026-11-09 · 按 UI Foundation V0.1 / Design Tokens 约束</div>
+  </header>
+
+  <h1>是的，设计过：这次全部回到已有 UI 基线，不再自己拍数值</h1>
+  <div class="quote">刘总原话：「填写的文字的时候，框线太小了，请重新通盘设计」＋「我们对 OA 的 UI 进行过设计吧？这些表格宽度之类的去约束好」</div>
+  <p class="lead">查完真源后，问题比"框线小"更清楚：<strong>商品明细用的是 <code>text-xs</code>（12px）</strong>，而 <code>OA_UI_Foundation_V0.1.md</code> 第 5 节明确写着「正常业务信息不要低于 13px，不要为塞更多内容不断缩小字体」；同时页面里用的 <code>.input</code> 类<strong>在样式表里根本没定义</strong>（只有 <code>.input-field</code>），输入框退回浏览器默认样式；9 列又靠 <code>w-full</code> 自由挤压，所以在窄窗口里每个框只剩几十像素。三条都违规。</p>
+  <div class="callout"><strong>一句话</strong>：不是"把框调大一点"，而是把输入框高度、字号、表头行高、行高、间距、圆角、列宽全部改成 <code>oa-design-tokens.json</code> 里的既有值，并让验证脚本直接读 token 文件来校验——数值不再由我说了算。</div>
+
+  <h2>1 · 设计真源（确实有，且状态是 Candidate）</h2>
+  <div class="grid3">
+    <div class="card">
+      <h3>① OA_UI_Foundation_V0.1.md</h3>
+      <p class="src">2026-09-30 刘总交付的<b>权威视觉基线</b>。第 5 节字号、第 6 节间距、第 7 节圆角、第 11 节 Input、第 12 节 Table、第 17 节 Responsive。</p>
+      <p class="src">目标优先级：<b>效率 &gt; 清晰 &gt; 一致性 &gt; 品牌感 &gt; 装饰性</b>；信息密度 Medium Compact。</p>
+    </div>
+    <div class="card">
+      <h3>② oa-design-tokens.json / .css</h3>
+      <p class="src">机器可读单一事实源：<code>component</code>、<code>space</code>、<code>fontSize</code>、<code>radius</code>、<code>layout</code>。所有页面/原型一律引用，禁止各写各的数值。</p>
+      <p class="src">颜色镜像 <code>holang-admin/css/style.css</code> 的 <code>--color-*</code>，主色 <b>#1a56db</b> 唯一。</p>
+    </div>
+    <div class="card">
+      <h3>③ 一条重要纪律</h3>
+      <p class="src">基线状态 <b>Candidate，不是 Frozen</b>。接收说明：「<b>三页验证跑通前，不得全局重构、不得让 Codex 改全站样式</b>」。</p>
+      <p class="src">所以本次<b>只改 PI 表单页</b>，全局 <code>index.css</code> 的改动已撤回（diff 为空）。</p>
+    </div>
+  </div>
+
+  <h2>2 · 数值约束对照（改前 → 改后 → 出处）</h2>
+  <table class="t">
+    <thead><tr><th style="width:190px">项目</th><th style="width:170px">改前</th><th style="width:170px">改后</th><th>token 出处</th></tr></thead>
+    <tbody>
+      <tr><td class="k">复杂表单输入框高</td><td class="bad">浏览器默认 ≈20px</td><td class="ok">40px</td><td><code>component.inputHeightComplex</code></td></tr>
+      <tr><td class="k">表格内输入框高</td><td class="bad">≈20px</td><td class="ok">36px</td><td><code>component.inputHeight</code></td></tr>
+      <tr><td class="k">表头高</td><td class="bad">未约束</td><td class="ok">40px</td><td><code>component.tableHeaderH</code></td></tr>
+      <tr><td class="k">表格行高</td><td class="bad">未约束（挤）</td><td class="ok">44px</td><td><code>component.tableRowH</code></td></tr>
+      <tr><td class="k">表格字号</td><td class="bad">12px（text-xs，违规）</td><td class="ok">14px</td><td><code>fontSize.body</code>；规范第 5 节下限 13px</td></tr>
+      <tr><td class="k">辅助信息字号</td><td>12px</td><td class="ok">13px</td><td><code>fontSize.aux</code></td></tr>
+      <tr><td class="k">单元格 / 字段内边距</td><td>1–2px</td><td class="ok">8px / 12px</td><td><code>space.2</code> / <code>space.3</code>（控件内部 8–12px）</td></tr>
+      <tr><td class="k">模块 / 字段间距</td><td>≈11px</td><td class="ok">16px</td><td><code>space.4</code>（规范第 6 节）</td></tr>
+      <tr><td class="k">圆角</td><td>未约束</td><td class="ok">6px / 8px</td><td><code>radius.sm</code>(Input/Button) / <code>radius.md</code>(Panel)</td></tr>
+      <tr><td class="k">表格操作按钮</td><td>图标直点</td><td class="ok">32px</td><td><code>component.btnHeightCompact</code></td></tr>
+      <tr><td class="k">列宽</td><td class="bad">w-full 自由挤压</td><td class="ok">colgroup 固定 + 960px 最小宽 + 横滚</td><td>规范第 12 节 Horizontal Scroll、第 17 节不强制 1200px 上限</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3 · 改前（可以直接点进去试，框很扁）</h2>
+  <div class="demo old">
+    <table>
+      <thead><tr><th>No.</th><th>产品编号</th><th>HS Code</th><th>DESCRIPTION OF PRODUCTS</th><th>Qty</th><th>单位</th><th>Unit Price</th><th>Total</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><input placeholder="型号/料号"></td><td><input placeholder="8419609090"></td><td><input placeholder="如 Nitrogen Generator"></td><td><input></td><td><input value="pcs"></td><td><input></td><td>0.00</td><td>🗑</td></tr>
+        <tr><td>2</td><td><input></td><td><input></td><td><input></td><td><input></td><td><input value="pcs"></td><td><input></td><td>0.00</td><td>🗑</td></tr>
+      </tbody>
+    </table>
+    <div class="sum">明细合计（上面各行自动加总）：USD 0.00　按明细合计重算　明细随 PI 一起保存，重开编辑页仍在…… ← 贴着表格、容易被压住</div>
+  </div>
+
+  <h2>4 · 改后（可以直接点进去试，框线舒展、文字不再挤）</h2>
+  <p class="tip">列较多，窄屏可左右滚动查看全部列（规范第 12 / 17 节要求）</p>
+  <div class="demo new">
+    <div class="scroll">
+      <table>
+        <colgroup><col style="width:40px"><col style="width:112px"><col style="width:112px"><col><col style="width:80px"><col style="width:80px"><col style="width:112px"><col style="width:112px"><col style="width:40px"></colgroup>
+        <thead><tr><th style="text-align:center">No.</th><th>产品编号</th><th>HS Code</th><th>DESCRIPTION OF PRODUCTS <span style="color:#dc2626">*</span></th><th style="text-align:right">Qty</th><th>单位</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="no">1</td><td><input placeholder="型号 / 料号" title="型号 / 料号，留空用行号"></td><td><input placeholder="8419609090"></td>
+            <td><input placeholder="如 Nitrogen Generator / Export Packaging / Sea freight"></td>
+            <td><input class="r" placeholder="0"></td><td><input value="pcs"></td><td><input class="r" placeholder="0.00"></td>
+            <td class="total">0.00</td><td class="del"><button title="删除本行">🗑</button></td>
+          </tr>
+          <tr>
+            <td class="no">2</td><td><input></td><td><input></td><td><input></td>
+            <td><input class="r"></td><td><input value="pcs"></td><td><input class="r"></td>
+            <td class="total">0.00</td><td class="del"><button title="删除本行">🗑</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="sumbar">
+    <span>明细合计（上面各行自动加总）：<b>USD 0.00</b></span>
+    <button>按明细合计重算</button>
+    <span class="hint">明细随 PI 一起保存，重开编辑页仍在；导出 PDF 时直接印到单据上。</span>
+  </div>
+  <ul>
+    <li><span class="ok">输入框 36px 高、14px 字、8px 内边距</span>，填写时不再挤成一团</li>
+    <li>表头 40px 浅灰底 + 2px 分隔线，行 44px，行与行清楚分开</li>
+    <li>合计区独立成条，不再和表格行贴在一起造成文字被压</li>
+    <li>金额列右对齐、自动算的 Total 加浅灰底、操作按钮固定在最右（规范第 12 节）</li>
+    <li><strong>没有把每行做成独立大卡片</strong>——规范第 12 节明确禁止</li>
+  </ul>
+
+  <h2>5 · 列宽怎么"约束好"的</h2>
+  <table class="t">
+    <thead><tr><th style="width:230px">列</th><th style="width:130px">宽度</th><th>依据</th></tr></thead>
+    <tbody>
+      <tr><td class="k">No. / 删除</td><td>40px</td><td rowspan="4">全部是 <code>space.2 = 8px</code> 的整数倍，不出现规范第 6 节点名禁止的 17 / 19 / 27 / 31px 这类随意值；用 <code>&lt;colgroup&gt;</code> 固定，<code>table-fixed</code> 生效，<code>min-width:960px</code> 保证输入框不被压扁，窄屏由 <code>overflow-x-auto</code> 横滚。</td></tr>
+      <tr><td class="k">Qty / 单位</td><td>80px</td></tr>
+      <tr><td class="k">产品编号 / HS Code / Unit Price / Total</td><td>112px</td></tr>
+      <tr><td class="k">DESCRIPTION OF PRODUCTS</td><td>剩余（≥ 312px）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6 · 落地范围与验证</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>只改 PI 表单页</h3>
+      <ul>
+        <li>改动文件只有 <code>ProformaInvoiceForm.tsx</code></li>
+        <li><code>index.css</code> 已回退，diff 为空，<span class="ok">全站其他页面零影响</span></li>
+        <li>所有设计数值集中在页面顶部常量，注释写明 token 出处</li>
+        <li>业务绑定完全没动：单位默认 pcs、可改、金额联动、冻结、报价单带入、一键复制</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>验证方式也改成"约束式"</h3>
+      <ul>
+        <li>新增 <code>verify_pi_form_layout.mjs</code>：<strong>直接读 <code>oa-design-tokens.json</code></strong> 取值，再断言代码里的 px 与之一致</li>
+        <li>PASS — 31 / 31（含"表格内不得再出现 text-xs"、"列宽必为 8 的倍数"、"未做全站重构"）</li>
+        <li>前端 build / 后端 tsc 均 EXIT 0；全量回归无回归</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:16px"><strong>还请刘总留意一件事</strong>：UI 基线目前状态是 <strong>Candidate</strong>，文档要求「报价列表 / 报价编辑 / 客户详情」三页验证跑通后再 Freeze → 全局 CSS / Design Tokens。所以这次我严格只在 PI 页落地，没有顺手去统一全站所有 <code>.input</code>。等您决定启动三页验证，再按同一套 token 推广到全站，这样不会双源漂移。</div>
+
+  <h2>7 · 下一步做什么</h2>
+  <div class="card">
+    <ul>
+      <li><strong>推荐</strong>：打开 PI 新建页，在「商品明细」里点进任意一个框输入一段文字，确认 14px 字、36px 框、44px 行不再挤；窄窗口时左右滚动看右侧单价列。</li>
+      <li>若您觉得列宽分配还需要调整（例如 DESCRIPTION 想再宽一点），告诉我按哪一列让位，我按 8px 倍数改，不引入随意值。</li>
+      <li>是否启动「三页验证」把这套 token 推广到全站，等您拍板；在 Freeze 前我不动全局样式。</li>
+    </ul>
+  </div>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为可输入的改前/改后对照，不是生产页面。看实际页面请按 Ctrl + F5（或 Ctrl + Shift + R）强制刷新。</div>
+
+</div>
+</body>
+</html>
