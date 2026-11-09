@@ -182,7 +182,7 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
               textAlign: (align === 'right' ? 'right' : align === 'center' ? 'center' : 'left') as React.CSSProperties['textAlign'],
             })
             return (
-              <div key={idx} className="mb-3 flex-1">
+              <div key={idx} className="mb-3">
                 <div style={{ fontSize: `${PRINT_FONT_SIZES.label}px`, color: PRINT_COLORS.secondary, marginBottom: 4 }}>{field.label}</div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
@@ -196,7 +196,7 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
-                      <tr><td colSpan={cols.length || 1} style={{ ...tdStyle('center'), color: PRINT_COLORS.muted }}>暂无数据</td></tr>
+                      <tr>{cols.map((_, ci) => <td key={ci} style={tdStyle()}>&nbsp;</td>)}</tr>
                     ) : items.map((item: any, ri: number) => (
                       <tr key={ri}>
                         {showNo && <td style={tdStyle('center')}>{ri + 1}</td>}
@@ -223,7 +223,7 @@ function RenderTemplateContent({ template, data }: { template: PrintTemplate; da
           case 'footer':
             return (
               <div key={idx}
-                className={`mt-auto pt-4 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
+                className={`pt-4 ${field.align === 'center' ? 'text-center' : field.align === 'right' ? 'text-right' : ''}`}
                 style={{ fontSize: `${field.fontSize || PRINT_FONT_SIZES.small}px`, color: PRINT_COLORS.muted }}>
                 {field.content}
               </div>
@@ -284,7 +284,7 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
         const showNo = field.showRowNumber !== false
         const th = cols.map(c => `<th style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;background:${field.bordered ? PRINT_COLORS.surface : PRINT_COLORS.bg};font-weight:${field.bordered ? 700 : 600};text-align:${c.align || 'left'};">${c.content}</th>`).join('')
         const tbody = items.length === 0
-          ? `<tr><td colspan="${cols.length}" style="border:1px solid ${border};padding:12px;text-align:center;color:${PRINT_COLORS.muted};font-size:${PRINT_FONT_SIZES.table}px;">暂无数据</td></tr>`
+          ? `<tr>${cols.map(() => `<td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;">&nbsp;</td>`).join('')}</tr>`
           : items.map((item: any, i: number) => {
               const dataCells = hasTableFields
                 ? field.tableFields!.map(tf => `<td style="border:1px solid ${border};padding:5px 8px;font-size:${PRINT_FONT_SIZES.table}px;text-align:${tf.align === 'right' ? 'right' : tf.align === 'center' ? 'center' : 'left'};">${String(item[tf.key || ''] ?? '')}</td>`).join('')
@@ -295,7 +295,7 @@ function generatePrintHTML(template: PrintTemplate, data: Record<string, any>): 
         return `<div style="margin-bottom:12px;"><div style="font-size:${PRINT_FONT_SIZES.label}px;color:${PRINT_COLORS.secondary};margin-bottom:4px;">${field.label}</div><table style="width:100%;border-collapse:collapse;"><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table></div>`
       }
       case 'footer':
-        return `<div style="margin-top:auto;padding-top:16px;font-size:${field.fontSize || PRINT_FONT_SIZES.small}px;color:${PRINT_COLORS.muted};text-align:${field.align || 'left'};">${field.content}</div>`
+        return `<div style="padding-top:16px;font-size:${field.fontSize || PRINT_FONT_SIZES.small}px;color:${PRINT_COLORS.muted};text-align:${field.align || 'left'};">${field.content}</div>`
       case 'spacer':
         return `<div style="height:12px;"></div>`
       case 'qrcode':

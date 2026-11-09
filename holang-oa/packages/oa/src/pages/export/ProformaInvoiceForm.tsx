@@ -333,9 +333,8 @@ export default function ProformaInvoiceForm() {
       countryOfOrigin: 'CHINA',
       // 币种名称按单据实际币种输出（原来模板写死 "US Dollar"，选 EUR/CNY 会错）
       currencyName: activeCurrency?.nameEn || form.currency,
-      items: printableItems.length
-        ? printableItems
-        : [{ hsCode: '', name: '（尚未录入商品明细，请在表单「商品明细」中填写）', qty: '', price: '', amount: '' }],
+      // 无明细时输出空表（渲染器给一行空单元格）；内部操作提示不进客户可见的打印数据
+      items: printableItems,
       totalAmount: form.totalAmount ? `${form.currency} ${money(form.totalAmount)}` : '',
       amountInWords: '',
       transactionMethod: form.deliveryTerms || '',
