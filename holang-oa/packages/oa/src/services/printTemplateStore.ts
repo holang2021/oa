@@ -241,6 +241,8 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
     // 版式参照真实客户 CI（Allum Corporation）。红色/黄色字体标记的项 = 每次开单要填的变量（见 field.key）。
     // 固定文案（卖方抬头、签名）用 header；银行信息按币种动态输出（见 bankAccountStore），不写死美元账户。
     fields: [
+      // A4 打印区必含真实 logo（项目铁律），与 PI 模板同一张图
+      { type: 'image', src: PRINT_LOGO.src, height: PRINT_LOGO.height, align: 'left' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 14, bold: true, align: 'left' },
       { type: 'header', content: 'Address: No. 51, Jinsigang Road, Wuzhong District, Suzhou, China', fontSize: 10, bold: false, align: 'left' },
       { type: 'header', content: 'Email: marketing@holangchina.com', fontSize: 10, bold: false, align: 'left' },
@@ -256,16 +258,17 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
       { type: 'field', label: 'Invoice No.', key: 'invoiceNo' },
       { type: 'field', label: 'Date', key: 'invoiceDate' },
       { type: 'field', label: 'Country of Origin', key: 'countryOfOrigin' },
-      { type: 'header', content: 'US Dollar', key: 'currencyName', fontSize: 9, bold: false, align: 'right' },
       { type: 'spacer' },
       // 明细表：列头与渲染器的 body 对齐（No. + name + spec + qty + price + amount = 6 列）
+      // 币种符号进 Unit Price / Total 列头，与 PI 定稿口径一致（刘总 11-09「USdollar删除」）；
+      // 不再单独输出写死的 US Dollar 名称行，{currencySymbol} 由打印数据按所选币种注入。
       { type: 'table', label: 'Item Details', key: 'items', columns: [
         { type: 'text', content: 'No.', align: 'center' },
         { type: 'text', content: 'DESCRIPTION OF PRODUCTS', align: 'left' },
         { type: 'text', content: 'Spec', align: 'left' },
         { type: 'text', content: 'Qty', align: 'right' },
-        { type: 'text', content: 'Unit Price', align: 'right' },
-        { type: 'text', content: 'Total', align: 'right' },
+        { type: 'text', content: 'Unit Price ({currencySymbol})', align: 'right' },
+        { type: 'text', content: 'Total ({currencySymbol})', align: 'right' },
       ]},
       { type: 'field', label: 'Total Amount', key: 'totalAmount', align: 'right' },
       { type: 'field', label: 'Amount in Words', key: 'amountInWords' },
@@ -303,6 +306,8 @@ export const BUILTIN_TEMPLATES: PrintTemplate[] = [
     // buyerEmail/invoiceNo/invoiceDate/countryOfOrigin/items 与 CI/PI 完全复用 → 同客户 PI/CI/PL 互通。
     // 明细表用 tableFields 自定义列（HS Code / DESCRIPTION / Qty / PACKAGE / N.W / G.W）。
     fields: [
+      // A4 打印区必含真实 logo（项目铁律），与 PI / CI 模板同一张图
+      { type: 'image', src: PRINT_LOGO.src, height: PRINT_LOGO.height, align: 'left' },
       { type: 'header', content: 'Holang Tech (Suzhou) Co.,Ltd', fontSize: 14, bold: true, align: 'left' },
       { type: 'header', content: 'Address: No. 51, Jinsigang Road, Wuzhong District, Suzhou, China', fontSize: 10, bold: false, align: 'left' },
       { type: 'header', content: 'Tel: +86 4000512711  Email: marketing@holangchina.com', fontSize: 10, bold: false, align: 'left' },

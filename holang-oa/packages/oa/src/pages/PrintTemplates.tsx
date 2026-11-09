@@ -52,12 +52,14 @@ function buildSampleData(tpl: PrintTemplate): Record<string, any> {
       invoiceNo: 'HC2606038',
       invoiceDate: 'Sep 17, 2026',
       countryOfOrigin: 'CHINA',
+      // 与 PI 定稿口径一致：币种符号只进 Unit Price / Total 列头，表格内金额回到纯数字
+      currencySymbol: '$',
       currencyName: 'US Dollar',
       items: [
-        { name: '8419609090 Nitrogen Generator', spec: '', qty: 1, price: 'US$13,800.00', amount: 'US$13,800.00' },
-        { name: 'Export Packaging', spec: '', qty: 1, price: 'US$100.00', amount: 'US$100.00' },
+        { name: '8419609090 Nitrogen Generator', spec: '', qty: 1, price: '13,800.00', amount: '13,800.00' },
+        { name: 'Export Packaging', spec: '', qty: 1, price: '100.00', amount: '100.00' },
       ],
-      totalAmount: 'US$13,900.00',
+      totalAmount: '$13,900.00',
       amountInWords: 'UNITED STATES DOLLARS THIRTEEN THOUSAND NINE HUNDRED ONLY',
       transactionMethod: 'EXW SUZHOU',
       paymentTerm: 'TT 20% PREPAYMENT, 80% BALANCE BEFORE SHIPMENT',

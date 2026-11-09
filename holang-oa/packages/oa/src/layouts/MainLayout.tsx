@@ -69,6 +69,7 @@ function buildNavGroups(t: (k: string) => string, currentRole: Role | null, view
         { to: '/export/opportunities', labelKey: 'nav.opportunities', icon: Target },
         { to: '/export/quotations', labelKey: 'nav.quotations', icon: FileText },
         { to: '/export/proforma-invoices', labelKey: 'nav.proformaInvoices', icon: FileText },
+        { to: '/export/export-docs', labelKey: 'nav.exportDocs', icon: FileText },
         { to: '/export/orders', labelKey: 'nav.orders', icon: ShoppingBag },
         { to: '/export/collections', labelKey: 'nav.collections', icon: Receipt },
         { to: '/export/deliveries', labelKey: 'nav.deliveries', icon: Truck },

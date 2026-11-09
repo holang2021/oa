@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · CI / PL 开单能力落地对照</title>
+<style>
+  :root { --brand:#1a56db; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6; --ok:#059669; --danger:#dc2626; --amber:#b45309; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1240px; margin:0 auto; padding:30px 26px 64px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:22px; }
+  .logo { font-size:18px; font-weight:700; color:var(--brand); letter-spacing:.5px; }
+  .logo span { font-size:12px; font-weight:400; color:var(--muted); margin-left:8px; letter-spacing:0; }
+  .meta { font-size:12px; color:var(--muted); }
+  h1 { font-size:24px; margin:0 0 8px; font-weight:600; }
+  h2 { font-size:17px; margin:28px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--brand); }
+  p.lead { color:#374151; margin:0 0 14px; max-width:980px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; border-radius:9px; padding:10px 15px; margin:0 0 16px; font-size:13.5px; color:#7c2d12; }
+  .callout { background:#eef4ff; border:1px solid #c7d9fb; border-radius:10px; padding:12px 17px; margin-bottom:16px; }
+  .callout strong { color:var(--brand); }
+  .tag { display:inline-block; font-size:11px; padding:2px 10px; border-radius:20px; margin-bottom:10px; font-weight:600; }
+  .tag.before { background:#fee2e2; color:var(--danger); }
+  .tag.after { background:#d1fae5; color:var(--ok); }
+  .tag.note { background:#fef3c7; color:var(--amber); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .card h3 { font-size:14px; margin:0 0 12px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:13.5px; }
+  th, td { border-bottom:1px solid var(--line); padding:9px 13px; text-align:left; vertical-align:top; }
+  th { background:#f9fafb; font-weight:600; }
+  tr:last-child td { border-bottom:0; }
+  .ok { color:var(--ok); font-weight:600; }
+  .no { color:var(--danger); font-weight:600; }
+  ul { margin:6px 0 0 0; padding-left:20px; } li { margin:4px 0; }
+  code { background:#f3f4f6; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+
+  /* 数据互通流程 */
+  .flow { display:flex; align-items:stretch; gap:14px; flex-wrap:wrap; }
+  .node { flex:1 1 220px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .node.src { border-color:#a7c4fa; background:#f5f9ff; }
+  .node .t { font-weight:600; font-size:14px; color:var(--brand); margin-bottom:6px; }
+  .node .d { font-size:13px; color:#4b5563; }
+  .arrow { display:flex; align-items:center; font-size:22px; color:var(--brand); font-weight:700; }
+  .flownote { font-size:13px; color:var(--muted); margin-top:10px; }
+
+  /* 页面骨架示意 */
+  .page { background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:14px; }
+  .topgrid { display:grid; grid-template-columns:2fr 1fr; gap:16px; align-items:start; }
+  .mini { border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .mini h4 { font-size:13px; margin:0 0 10px; font-weight:600; }
+  .f2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .f3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .f5 { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .lbl { display:block; min-height:28px; font-size:12px; color:var(--muted); }
+  .inp { height:34px; border:1px solid #d1d5db; border-radius:6px; padding:0 8px; font-size:13px; color:#374151; display:flex; align-items:center; background:#fff; }
+  .inp.ph { color:#9ca3af; }
+  .full { grid-column:1/-1; margin-top:16px; }
+  .bar { background:#f9fafb; border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-size:13px; margin-top:12px; }
+  .tabs { display:flex; gap:8px; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .tab { padding:6px 14px; font-size:13px; border-bottom:2px solid transparent; color:var(--muted); }
+  .tab.on { color:var(--brand); border-bottom-color:var(--brand); font-weight:600; }
+  footer { margin-top:30px; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">HOLANG OA <span>销售 CRM · 外销单证 CI / PL</span></div>
+    <div class="meta">2026-11-09 · 增量交付 · PI 已封版，本轮不动 PI 版面</div>
+  </header>
+
+  <h1>CI（商业发票）/ PL（装箱单）：从「只有打印模板」到「系统里能开单」</h1>
+  <p class="lead">刘总：「PI 先这么的呗，继续做 CI 和 PL」。本轮把两张出货单据接进系统，并落实最早定的原则——<strong>同一个客户的 PI / CI / PL 数据互通</strong>。</p>
+
+  <div class="quote">
+    <strong>先说清现状</strong>：之前系统里 CI / PL <strong>只有打印模板和示例数据</strong>，没有录入页面、没有菜单、没有保存通道。销售想开一张 CI 或 PL，只能回到 Word / Excel 手工做——这正是本轮要补的洞。
+  </div>
+
+  <h2>改前 / 改后</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">BEFORE</span>
+      <h3>系统里开不了单</h3>
+      <ul>
+        <li>外销菜单只有「形式发票 PI」一个入口</li>
+        <li>CI / PL 只存在于「打印模板库」的样张里</li>
+        <li>客户、产品、数量要重新手打，PI 的数据带不过来</li>
+        <li>没有保存，做完就没了</li>
+        <li>CI 模板还写死一行 <code>US Dollar</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag after">AFTER</span>
+      <h3>系统里能完整开单</h3>
+      <ul>
+        <li class="ok">外销菜单新增「商业发票 / 装箱单 (CI/PL)」</li>
+        <li class="ok">CI / PL 共用一个列表页，Tab 切换（出货时两张一起开）</li>
+        <li class="ok">编辑页可录买方抬头、明细、条款 / 装箱信息</li>
+        <li class="ok">从 PI 一键带出，带出后可改、不回写 PI</li>
+        <li class="ok">能保存草稿、能预览、能导出 PDF</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>数据怎么「互通」：PI 只是起点，不是枷锁</h2>
+  <div class="card">
+    <div class="flow">
+      <div class="node src">
+        <div class="t">PI 形式发票</div>
+        <div class="d">销售已录好的客户抬头、单据头、商品名称 / HS Code / 数量 / 单价、付款条款、交货期</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="t">CI 商业发票</div>
+        <div class="d">带出抬头 + 明细 + 条款；补金额大写、EIN 税号、银行信息（按币种自动带账户）</div>
+      </div>
+      <div class="node">
+        <div class="t">PL 装箱单</div>
+        <div class="d">带出抬头 + 品名 / HS Code / 数量；补 PACKAGE、毛净重、体积、箱尺寸（PI 没有，不编造）</div>
+      </div>
+    </div>
+    <div class="flownote">
+      <strong>关键口径</strong>：带出只是「一次性拷贝当下事实」。之后三张单据各自独立保存，改 CI 不会动 PI，PI 以后改了也不会覆盖 CI / PL；
+      来源 PI 只留个编号便于追溯，不是绑定关系。这对应既定总纲「后续单据须能表达自身最终事实」。
+    </div>
+  </div>
+
+  <h2>页面长什么样（骨架示意）</h2>
+  <div class="page">
+    <div class="tabs"><span class="tab on">商业发票 CI</span><span class="tab">装箱单 PL</span></div>
+    <div class="topgrid">
+      <div class="mini">
+        <h4>基本信息</h4>
+        <div class="f2">
+          <div><span class="lbl">CI 编号</span><div class="inp ph">保存后自动生成</div></div>
+          <div><span class="lbl">CI 日期 *</span><div class="inp">2026-11-09</div></div>
+          <div><span class="lbl">币种</span><div class="inp">USD</div></div>
+          <div><span class="lbl">状态</span><div class="inp">草稿</div></div>
+        </div>
+      </div>
+      <div class="mini">
+        <h4>客户信息</h4>
+        <div><span class="lbl">客户（外销）*</span><div class="inp">Allum Corporation</div></div>
+        <div style="margin-top:12px"><span class="lbl">从 PI 带出（数据互通）</span><div class="inp">PI-2026-001　｜　[带出]</div></div>
+      </div>
+      <div class="mini full">
+        <h4>买方抬头（打印在客户单据左上方）· 整行铺开，不再挤窄列</h4>
+        <div class="f5">
+          <div><span class="lbl">Address</span><div class="inp ph">Orlando…</div></div>
+          <div><span class="lbl">ATTN</span><div class="inp ph">Alessandro</div></div>
+          <div><span class="lbl">EIN 税号</span><div class="inp ph">35-260…</div></div>
+          <div><span class="lbl">Tel.</span><div class="inp ph">407 360…</div></div>
+          <div><span class="lbl">E-mail</span><div class="inp ph">Allum@…</div></div>
+        </div>
+      </div>
+      <div class="mini full">
+        <h4>商品明细（Commercial Items）· CI 走价格列 / PL 切到 PACKAGE、N.W、G.W 列</h4>
+        <div class="bar">No. ｜ HS Code ｜ DESCRIPTION OF PRODUCTS * ｜ Spec ｜ Qty ｜ 单位 ｜ Unit Price ($) ｜ Total ($) ｜ 删</div>
+        <div class="bar" style="margin-top:6px">合计条：CI 总金额按明细自动算 + 折合人民币（仅内部参考）　·　PL 则显示 TOTAL N.W / TOTAL G.W 自动汇总</div>
+      </div>
+      <div class="mini full">
+        <h4>交易条款（CI）/ 装箱汇总（PL）</h4>
+        <div class="f3">
+          <div><span class="lbl">付款条款 *</span><div class="inp">TT 30%…</div></div>
+          <div><span class="lbl">交易条件 *</span><div class="inp">CIF MIAMI</div></div>
+          <div><span class="lbl">交货期 *</span><div class="inp">20 DAYS</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>哪些数据共用、哪些各自独有</h2>
+  <table>
+    <tr><th style="width:170px">类别</th><th>字段</th><th>说明</th></tr>
+    <tr><td><strong>三单共用</strong></td><td>To / Address / ATTN / E-mail、Invoice No.、Date、Country of Origin、商品明细</td><td>同客户不重复录入；数据键与打印模板完全对齐</td></tr>
+    <tr><td><strong>CI 独有</strong></td><td>币种、单价 / 金额、金额大写、付款条款、交易条件、交货期、EIN、银行回款信息</td><td>金额由明细自动算；人民币折算只给内部看，不进客户 PDF</td></tr>
+    <tr><td><strong>PL 独有</strong></td><td>PACKAGE、N.W / G.W、总件数、毛净重、体积、净尺寸 / 箱尺寸、包装说明</td><td>真实 PL 不显示价格；这些是装箱时产生的事实，PI 带不出就留空让销售填</td></tr>
+    <tr><td><strong>打印口径统一</strong></td><td>CI 删掉写死的 <code>US Dollar</code> 行，币种符号进 <code>Unit Price ($)</code> / <code>Total ($)</code> 列头；CI / PL 页头补真实 logo</td><td>与已定稿的 PI 保持一致；<span class="ok">字号未动</span>（等您拍板）</td></tr>
+  </table>
+
+  <h2>本轮边界（重要，别误以为已经上生产）</h2>
+  <div class="callout">
+    <strong>本轮只做「可见效果」：</strong>没有新建数据库表、没有新增后端接口、没有改全局样式。单据草稿存在<strong>本机浏览器</strong>里，
+    销售现在就能在系统里开单、预览、打印 PDF，不用回 Excel；但<strong>换电脑 / 多人共用还不行</strong>。
+    <ul>
+      <li>要真正落到服务器、多人共用，得先定持久化方案（是否建表、字段有哪些、和现有 <code>pis</code> 表什么关系），这一步需要您拍板后我再动后端。</li>
+      <li>生产服务器仍离线，前端产物和数据库补丁都还没上生产。</li>
+    </ul>
+  </div>
+
+  <h2>验证结果</h2>
+  <ul>
+    <li>前端 <code>npm run build</code>（1691 modules）<span class="ok">通过</span>；后端 <code>npx tsc --noEmit</code> <span class="ok">通过</span></li>
+    <li>新增 <code>verify_ci_pl_pages.mjs</code>：<strong>46 项全通过</strong>（实跑数据层：从 PI 带出、不回写、PL 不编造重量、打印键逐一对齐模板、草稿读写、页面与接线）</li>
+    <li>全量回归 <strong>23 个脚本 0 失败</strong>；同步更新 1 条旧断言（CI 不再保留 US Dollar 标题）</li>
+  </ul>
+
+  <footer>HOLANG OA · system-build 分支 · 对照页仅作确认用，业务真源仍是页面与 <code>exportDocStore.ts</code>。</footer>
+</div>
+</body>
+</html>

@@ -28,6 +28,8 @@ import Quotations from './pages/Quotations'
 import QuotationForm from './pages/QuotationForm'
 import ProformaInvoices from './pages/export/ProformaInvoices'
 import ProformaInvoiceForm from './pages/export/ProformaInvoiceForm'
+import ExportDocs from './pages/export/ExportDocs'
+import ExportDocForm from './pages/export/ExportDocForm'
 import OpportunityForm from './pages/OpportunityForm'
 import ApprovalEngine from './pages/ApprovalEngine'
 import ApprovalTemplates from './pages/ApprovalTemplates'
@@ -167,6 +169,10 @@ function App() {
         <Route path="/export/proforma-invoices" element={<Guard><ProformaInvoices /></Guard>} />
         <Route path="/export/proforma-invoices/new" element={<Guard><ProformaInvoiceForm /></Guard>} />
         <Route path="/export/proforma-invoices/:id/edit" element={<Guard><ProformaInvoiceForm /></Guard>} />
+        {/* CI / PL 外销单证：列表 Tab 切换；新建/编辑用 :kind 区分版式，共用同一表单组件 */}
+        <Route path="/export/export-docs" element={<Guard><ExportDocs /></Guard>} />
+        <Route path="/export/export-docs/:kind/new" element={<Guard><ExportDocForm /></Guard>} />
+        <Route path="/export/export-docs/:kind/:id/edit" element={<Guard><ExportDocForm /></Guard>} />
 
         {/* Marketing */}
         <Route path="/marketing/campaigns" element={<Guard><G config={marketingCampaignConfig} /></Guard>} />
