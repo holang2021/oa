@@ -60,6 +60,9 @@ const CELL_INPUT_RIGHT = CELL_INPUT + ' text-right'
 const TEXTAREA_INPUT =
   'w-full min-h-[80px] px-[12px] py-[8px] text-[14px] leading-5 bg-white border border-gray-300 rounded-[6px] resize-y ' +
   'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors'
+// Label 统一 40px 高（= component.inputHeightComplex，可容 2 行 13px 文字），保证同一 grid 里所有输入框顶对齐。
+// 字号 13px = fontSize.aux（原 text-[13px]=12px 低于规范下限）。block 是 min-height 生效的前提。
+const FIELD_LABEL = 'block min-h-[40px] text-[13px] leading-5 text-gray-500'
 
 // 商品明细空行：真实 PI 单据的一行可以是设备 / 外购 / 配件 / 运杂 / 安装 / 服务，
 // 不为每种建结构（LOCKED 总纲第7条 Commercial Item 第一性）。
@@ -163,7 +166,8 @@ export default function ProformaInvoiceForm() {
   // 收款账户来自后端配置；先用内置真源渲染，异步加载完成后刷新（触发按币种协同重算）
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() => getBankAccounts())
   // PI 总金额默认跟随明细合计（单一真源）；销售手工改过之后不再自动覆盖，保留可编辑权。
-  const [amountManual, setAmountManual] = useState(false)
+  // PI 总金额不再是可填字段：它由明细合计自动派生（刘总 11-09「自动算的、就是默认金额，没必要存在」）。
+  // 表单里只保留一个金额展示（明细合计条），不再重复录入、不再手工改（减工作 / 降错）。
   // 一键复制收款信息给客户（销售开 PI 时最常用；复制不受编辑权限限制）
   const [copyHint, setCopyHint] = useState<{ ok: boolean; text: string } | null>(null)
   const [copiedBank, setCopiedBank] = useState(false)
@@ -199,7 +203,7 @@ export default function ProformaInvoiceForm() {
                   amount: Number(it.amount ?? 0) || 0,
                 }))
               : [emptyItem()]
-            const loadedTotal = loadedItems.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0)
+            // 明细读入后，总金额由下方 useEffect 按明细合计自动派生
             setForm({
               piCode: pi.piNo || '',
               customerId: pi.customerId || '',
@@ -217,8 +221,7 @@ export default function ProformaInvoiceForm() {
               signedAt: '',
               notes: parsed.notes,
             })
-            // 历史单据若「总金额 ≠ 明细合计」，说明当时是手工调整过的，进页面后不要自动覆盖。
-            setAmountManual(loadedTotal > 0 && Math.abs((pi.amount || 0) - loadedTotal) > 0.009)
+            // 明细为空的旧单据保留后端原金额（历史真事实不被清零）；有明细时由下方 useEffect 自动派生。
           }
         } else {
           const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '').slice(2)
@@ -280,22 +283,17 @@ export default function ProformaInvoiceForm() {
   // 确认前可改、确认后冻结最终交易事实（LOCKED 总纲第6条）
   const isFrozen = form.status === 'CONFIRMED'
 
-  // 明细合计是 PI 总金额的默认来源：填完明细自动带出，不用销售再抄一遍（减工作/降错）。
-  // 一旦销售手工改过总金额，就停止自动覆盖，保留「抹零 / 含未列费用」等业务口子的可编辑权。
+  // 总金额 = 明细合计，唯一来源：填完明细自动带出，销售不再重复录入、也不再手工改（刘总 11-09）。
+  // 明细为空（itemsTotal=0）时不覆盖，保护「无明细、仅有金额」的历史单据不被清零。
   useEffect(() => {
-    if (amountManual || isFrozen || itemsTotal <= 0) return
+    if (isFrozen || itemsTotal <= 0) return
     const auto = Number(itemsTotal.toFixed(2))
     if (Math.abs(auto - (Number(form.totalAmount) || 0)) > 0.009) {
       setForm(prev => ({ ...prev, totalAmount: auto }))
     }
-    // 只依赖明细合计 / 手工标志 / 冻结状态：写回 totalAmount 不会再次触发，避免循环
+    // 只依赖明细合计 / 冻结状态：写回 totalAmount 不会再次触发，避免循环
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsTotal, amountManual, isFrozen])
-
-  const applyItemsTotal = () => {
-    setAmountManual(false)
-    update('totalAmount', Number(itemsTotal.toFixed(2)))
-  }
+  }, [itemsTotal, isFrozen])
 
   const quoteItems: any[] = (() => {
     const q: any = quotes.find(q => q.id === form.quotationId) || {}
@@ -316,7 +314,6 @@ export default function ProformaInvoiceForm() {
         amount: Number((qty * price).toFixed(2)),
       }
     })
-    setAmountManual(false)
     setForm(prev => ({ ...prev, items: loaded, totalAmount: Number(loaded.reduce((s, x) => s + x.amount, 0).toFixed(2)) }))
   }
 
@@ -386,7 +383,7 @@ export default function ProformaInvoiceForm() {
   const handleSave = async () => {
     if (!form.customerId) { alert('请选择客户'); return }
     // 报价单改为选填：有些报价单尚未在系统内完成，允许先建 PI，后续再补关联（刘总 2026-11-08）
-    if (!form.totalAmount || form.totalAmount <= 0) { alert('请填写商品明细（金额会自动带出），或直接填写 PI 总金额'); return }
+    if (!form.totalAmount || form.totalAmount <= 0) { alert('请填写商品明细（数量与单价），PI 总金额会自动算出'); return }
     setSaving(true)
     try {
       const issuedAt = form.piDate ? new Date(form.piDate).toISOString() : undefined
@@ -432,7 +429,7 @@ export default function ProformaInvoiceForm() {
       {/* 导出 PDF 预览弹层：先预览，再由预览页「打印」按钮另存为 PDF */}
       {PrintPreviewComponent}
       {/* 顶部操作栏 */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-[16px]">
         <button onClick={() => navigate(-1)} className="btn btn-ghost p-2">
           <ArrowLeft size={18} />
         </button>
@@ -452,23 +449,23 @@ export default function ProformaInvoiceForm() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* 基本信息 */}
-        <div className="card lg:col-span-2 space-y-3">
+        <div className="card lg:col-span-2 space-y-[16px]">
           <h3 className="font-medium text-sm">基本信息</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-[16px]">
             <div>
-              <label className="text-xs text-gray-500">PI 编号（保存后自动生成）</label>
+              <label className={FIELD_LABEL}>PI 编号（保存后自动生成）</label>
               <input value={form.piCode} disabled className={FIELD_INPUT} />
             </div>
             <div>
-              <label className="text-xs text-gray-500">PI 日期 <span className="text-red-500">*</span></label>
+              <label className={FIELD_LABEL}>PI 日期 <span className="text-red-500">*</span></label>
               <input type="date" value={form.piDate} onChange={e => update('piDate', e.target.value)} className={FIELD_INPUT} />
             </div>
             <div>
-              <label className="text-xs text-gray-500">有效期（天）</label>
+              <label className={FIELD_LABEL}>有效期（天）</label>
               <input type="number" value={form.validityDays} onChange={e => update('validityDays', parseInt(e.target.value) || 30)} className={FIELD_INPUT} />
             </div>
             <div>
-              <label className="text-xs text-gray-500">状态</label>
+              <label className={FIELD_LABEL}>状态</label>
               <select value={form.status} onChange={e => update('status', e.target.value)} className={FIELD_INPUT}>
                 {statusOptions.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}
               </select>
@@ -477,10 +474,10 @@ export default function ProformaInvoiceForm() {
         </div>
 
         {/* 客户信息 */}
-        <div className="card space-y-3">
+        <div className="card space-y-[16px]">
           <h3 className="font-medium text-sm">客户信息</h3>
           <div>
-            <label className="text-xs text-gray-500">客户（外销）<span className="text-red-500">*</span></label>
+            <label className={FIELD_LABEL}>客户（外销）<span className="text-red-500">*</span></label>
             <select value={form.customerId} onChange={e => { update('customerId', e.target.value); update('quotationId', '') }} className={FIELD_INPUT}>
               <option value="">请选择客户</option>
               {customers.filter(c => (c.salesType || '').toUpperCase() === 'EXTERNAL').map(c => (
@@ -489,12 +486,12 @@ export default function ProformaInvoiceForm() {
             </select>
           </div>
           {selectedCustomer && (
-            <div className="text-xs text-gray-500 space-y-1">
+            <div className="text-[13px] text-gray-500 space-y-1">
               <div>客户：{selectedCustomer.companyName || selectedCustomer.name}</div>
             </div>
           )}
           <div>
-            <label className="text-xs text-gray-500">关联报价单（须 ACCEPTED）<span className="text-gray-400">· 选填</span></label>
+            <label className={FIELD_LABEL}>关联报价单（须 ACCEPTED）<span className="text-gray-400">· 选填</span></label>
             <select value={form.quotationId} onChange={e => update('quotationId', e.target.value)} className={FIELD_INPUT}>
               <option value="">不关联（直接建 PI）</option>
               {quotes.map(q => (
@@ -502,29 +499,29 @@ export default function ProformaInvoiceForm() {
               ))}
             </select>
             {form.customerId && quotes.length === 0 && (
-              <div className="text-xs text-amber-600 mt-1">该外销客户暂无「已接受」报价单，可留空直接建 PI，后续再补关联</div>
+              <div className="text-[13px] text-amber-600 mt-1">该外销客户暂无「已接受」报价单，可留空直接建 PI，后续再补关联</div>
             )}
-            <div className="text-xs text-gray-400 mt-1">关联后可点下方「从报价单带入」初始化明细，带入后仍可自由改</div>
+            <div className="text-[13px] text-gray-400 mt-1">关联后可点下方「从报价单带入」初始化明细，带入后仍可自由改</div>
           </div>
         </div>
 
         {/* 商品明细：销售直接录入单价/数量/明细（刘总 2026-11-08「产品销售单价、明细没有地方能填写」） */}
         <div className="card lg:col-span-3 space-y-[16px]">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-[16px] flex-wrap">
             <h3 className="font-medium text-sm">商品明细（Commercial Items）</h3>
-            <span className="text-xs text-gray-400">设备 / 外购 / 配件 / 运杂 / 安装 / 服务都可直接加行，金额＝数量 × 单价自动算</span>
+            <span className="text-[13px] text-gray-400">设备 / 外购 / 配件 / 运杂 / 安装 / 服务都可直接加行，金额＝数量 × 单价自动算</span>
             <div className="ml-auto flex items-center gap-2">
               <button type="button" onClick={loadFromQuote} disabled={!quoteItems.length || isFrozen}
-                className="btn btn-outline text-xs" title="从关联报价单初始化明细；带入后仍可自由修改，不强制同步">
+                className="btn btn-outline text-[13px]" title="从关联报价单初始化明细；带入后仍可自由修改，不强制同步">
                 从报价单带入
               </button>
-              <button type="button" onClick={addItem} disabled={isFrozen} className="btn btn-outline text-xs">
+              <button type="button" onClick={addItem} disabled={isFrozen} className="btn btn-outline text-[13px]">
                 <Plus size={13} className="mr-1" />新增一行
               </button>
             </div>
           </div>
           {isFrozen && (
-            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            <div className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
               该 PI 已确认，最终交易事实已冻结，明细与金额不可再改（如需修改请先把状态改回草稿）。
             </div>
           )}
@@ -605,26 +602,20 @@ export default function ProformaInvoiceForm() {
             </table>
           </div>
           {/* 合计区独立成条，不再与表格行贴在一起（原截图里说明文字被压住） */}
+          {/* 唯一金额展示：总金额由明细自动派生，不再有第二个可填的「PI 总金额」框（刘总 11-09） */}
           <div className="flex items-center gap-[16px] flex-wrap rounded-[8px] border border-gray-200 bg-gray-50 px-[16px] py-[12px] text-[13px]">
-            <span className="text-gray-500">明细合计（上面各行自动加总）：<span className="ml-[8px] text-[14px] font-semibold text-gray-900 tabular-nums">{form.currency} {money(itemsTotal)}</span></span>
-            <button type="button" onClick={applyItemsTotal} disabled={isFrozen || itemsTotal <= 0} className="btn btn-outline h-[32px] px-[12px] text-[13px]">
-              按明细合计重算
-            </button>
-            {itemsTotal > 0 && Math.abs(itemsTotal - (Number(form.totalAmount) || 0)) > 0.009 && (
-              <span className="text-amber-600">
-                已手工调整：打印件 TOTAL 按下方的「PI 总金额」{form.currency} {money(form.totalAmount)} 出
-              </span>
-            )}
-            <span className="text-gray-400 ml-auto">明细随 PI 一起保存，重开编辑页仍在；导出 PDF 时直接印到单据上。</span>
+            <span className="text-gray-500">PI 总金额（按商品明细自动算出）：<span className="ml-[8px] text-[14px] font-semibold text-gray-900 tabular-nums">{form.currency} {money(itemsTotal)}</span></span>
+            <span className="text-gray-400 ml-auto">改单价或数量，金额自动更新；保存与导出 PDF 都用这个数。</span>
           </div>
         </div>
 
-        {/* 金额与条款 */}
-        <div className="card lg:col-span-2 space-y-3">
+        {/* 金额与条款：总金额不再单独填（按明细自动派生），本区只留 3 个真正要选/要填的字段。
+            Label 统一 FIELD_LABEL(40px)，三列输入框顶对齐（刘总 11-09「没对齐」）。 */}
+        <div className="card lg:col-span-2 space-y-[16px]">
           <h3 className="font-medium text-sm">金额与贸易条款</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[16px]">
             <div>
-              <label className="text-xs text-gray-500">币种 <span className="text-red-500">*</span></label>
+              <label className={FIELD_LABEL}>币种 <span className="text-red-500">*</span></label>
               {/* 币种与汇率同源：直接取系统设置「币种与汇率」，不再写死 USD/EUR/CNY/GBP */}
               <select value={form.currency} onChange={e => update('currency', e.target.value)} className={FIELD_INPUT}>
                 {!currencyList.some(c => c.id === form.currency) && <option value={form.currency}>{form.currency}</option>}
@@ -632,33 +623,18 @@ export default function ProformaInvoiceForm() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">PI 总金额（打印件 TOTAL） <span className="text-red-500">*</span></label>
-              <input type="number" value={form.totalAmount || ''} disabled={isFrozen}
-                onChange={e => { update('totalAmount', parseFloat(e.target.value) || 0); setAmountManual(true) }}
-                className={FIELD_INPUT} />
-              <div className="text-[11px] mt-1">
-                {amountManual ? (
-                  <button type="button" onClick={applyItemsTotal} disabled={isFrozen || itemsTotal <= 0}
-                    className="text-amber-600 hover:underline disabled:opacity-40">
-                    已手工调整 · 点此恢复按明细合计
-                  </button>
-                ) : (
-                  <span className="text-gray-400">自动跟随明细合计，可直接手改</span>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">系统汇率（内部）</label>
+              <label className={FIELD_LABEL}>系统汇率（内部）</label>
               <input value={activeCurrency ? `1 ${form.currency} = ${activeCurrency.rate} CNY` : '未配置该币种汇率'}
                 disabled className={FIELD_INPUT} />
             </div>
             <div>
-              <label className="text-xs text-gray-500">交货期 DELIVERY DATE <span className="text-gray-400">· 选填，可自由描述</span></label>
+              <label className={FIELD_LABEL}>交货期 <span className="text-gray-400">· 选填</span></label>
               {/* 刘总 2026-11-08：交货期是「多少天」的相对描述，不是固定日历日期，不能用 date 框把自己写死。
                   真实 PI 单据该行就是一句话，datalist 只给常用写法建议，不限制输入。 */}
               <input list="pi-delivery-date" value={form.deliveryDate}
                 onChange={e => update('deliveryDate', e.target.value)}
                 placeholder="如 收到预付款后 20 天 / 20 DAYS AFTER RECEIVING THE PREPAYMENT"
+                title="对应打印件 DELIVERY DATE，可自由描述天数"
                 className={FIELD_INPUT} />
               <datalist id="pi-delivery-date">
                 {deliveryDateOptions.map(t => <option key={t} value={t} />)}
@@ -669,24 +645,24 @@ export default function ProformaInvoiceForm() {
           {/* 收款账户与回款路径：出口单据一律英文外币口径（CNY 走人民币外币账户） */}
           <div className={`rounded-lg border px-3 py-2.5 ${bankMissing.length ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="text-xs font-medium text-gray-700">
+              <div className="text-[13px] font-medium text-gray-700">
                 收款账户及回款路径
                 {activeBankAccount && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700">
+                  <span className="ml-2 px-1.5 py-0.5 rounded text-[13px] bg-blue-100 text-blue-700">
                     {isCnyForeignBank ? '人民币外币账户 · 出口收汇' : '外币账户 · 出口收汇'}
                   </span>
                 )}
                 <span className="ml-2 font-normal text-gray-400">按币种 {form.currency} 自动协同带出 · 打印在客户单据 · 含公司地址与电话 · 可一键复制发给客户</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[11px] ${bankMissing.length ? 'text-amber-700' : 'text-green-700'}`}>
+                <span className={`text-[13px] ${bankMissing.length ? 'text-amber-700' : 'text-green-700'}`}>
                   {bankMissing.length ? `待补充：${bankMissing.join('、')}` : '资料完整'}
                 </span>
                 <button
                   onClick={handleCopyBank}
                   disabled={bankMissing.length > 0}
                   title={bankMissing.length ? '资料未维护完整，暂不能复制给客户' : '一键复制该币种收款信息，可直接粘贴发给客户'}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] ${
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[13px] ${
                     bankMissing.length ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                       : copiedBank ? 'border-green-300 bg-green-50 text-green-700'
                         : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400 hover:text-brand-600'
@@ -698,10 +674,10 @@ export default function ProformaInvoiceForm() {
               </div>
             </div>
             {copyHint && (
-              <div className={`mt-1.5 text-[11px] ${copyHint.ok ? 'text-green-700' : 'text-amber-700'}`}>{copyHint.text}</div>
+              <div className={`mt-1.5 text-[13px] ${copyHint.ok ? 'text-green-700' : 'text-amber-700'}`}>{copyHint.text}</div>
             )}
             {activeBankAccount && !bankMissing.length ? (
-              <div className="mt-1.5 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-gray-600">
+              <div className="mt-1.5 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1 text-[13px] text-gray-600">
                 <div>Beneficiary Bank: {activeBankAccount.beneficiaryBank}</div>
                 <div>Account No.: {activeBankAccount.accountNo}</div>
                 <div>Beneficiary: {activeBankAccount.beneficiary}</div>
@@ -713,7 +689,7 @@ export default function ProformaInvoiceForm() {
                 )}
               </div>
             ) : (
-              <div className="mt-1.5 text-[11px] text-amber-700">
+              <div className="mt-1.5 text-[13px] text-amber-700">
                 该币种收款账户尚未维护完整，打印件会显示醒目提示、不会借用其他币种账号。请到「ERP·财务 → 资金账户」补齐后再发客户。
               </div>
             )}
@@ -721,16 +697,16 @@ export default function ProformaInvoiceForm() {
 
           {/* 刘总 2026-11-08：人民币参考不出现在给客户的 PI 上。内部仅留一行小字说明折算与汇率来源，
               汇率取自系统设置（后端 currencies 表 + 自动/手动更新），不再写死 7.27 / 7.85。 */}
-          <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-3 py-2 leading-5">
+          <div className="text-[13px] text-gray-500 bg-gray-50 border border-gray-100 rounded px-3 py-2 leading-5">
             内部参考（<span className="font-medium">不输出到给客户的 PI / PDF</span>）：按系统汇率约折合
             ¥{cnyReference.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}；
             {activeCurrency
               ? `采用 1 ${form.currency} = ${activeCurrency.rate} CNY${activeCurrency.lastUpdated ? `（更新于 ${activeCurrency.lastUpdated}）` : '（汇率未记录更新时间）'}，可在「系统设置 → 币种与汇率」维护。`
               : '该币种未在「系统设置 → 币种与汇率」中启用，折算按原金额显示。'}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-[16px]">
             <div>
-              <label className="text-xs text-gray-500">付款条款 <span className="text-gray-400">（可自由填写）</span></label>
+              <label className={FIELD_LABEL}>付款条款 <span className="text-gray-400">（可自由填写）</span></label>
               {/* 刘总 2026-11-08：付款条件保留可编辑权力；datalist 仅提供常用值快捷建议，不限制输入 */}
               <input list="pi-payment-terms" value={form.paymentTerms}
                 onChange={e => update('paymentTerms', e.target.value)}
@@ -741,7 +717,7 @@ export default function ProformaInvoiceForm() {
               </datalist>
             </div>
             <div>
-              <label className="text-xs text-gray-500">交易条件（Incoterms / 贸易方式）<span className="text-gray-400">（可自由填写）</span></label>
+              <label className={FIELD_LABEL}>交易条件（Incoterms） <span className="text-gray-400">· 可自由填写</span></label>
               {/* 真实 PI 单据为 TRANSACTION METHOD（如 CIF MIAMI），允许自由填写完整交易条件 */}
               <input list="pi-delivery-terms" value={form.deliveryTerms}
                 onChange={e => update('deliveryTerms', e.target.value)}
@@ -753,7 +729,7 @@ export default function ProformaInvoiceForm() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500">备注 <span className="text-gray-400">（交货期也可以直接用文字写在这里，会印到 PI 的 REMARKS 行）</span></label>
+            <label className={FIELD_LABEL}>备注 <span className="text-gray-400">（交货期也可以直接用文字写在这里，会印到 PI 的 REMARKS 行）</span></label>
             <textarea value={form.notes} onChange={e => update('notes', e.target.value)}
               placeholder="如 ONE COMPLETE SET OF NPA15 SPARE PARTS FREE OF CHARGE，交货期：收到预付款后 20 天，海运到迈阿密约 40 天"
               className={TEXTAREA_INPUT} rows={2} />
@@ -761,17 +737,17 @@ export default function ProformaInvoiceForm() {
         </div>
 
         {/* 回签信息 */}
-        <div className="card lg:col-span-1 space-y-3">
+        <div className="card lg:col-span-1 space-y-[16px]">
           <h3 className="font-medium text-sm">回签信息</h3>
           <div>
-            <label className="text-xs text-gray-500">客户回签日期</label>
+            <label className={FIELD_LABEL}>客户回签日期</label>
             <input type="date" value={form.signedAt} onChange={e => update('signedAt', e.target.value)} className={FIELD_INPUT} />
           </div>
           {form.signedAt && (
-            <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+            <div className="text-[13px] text-green-600 bg-green-50 p-2 rounded">
               ✅ 客户已于 {form.signedAt} 回签此 PI
               <div className="mt-1">
-                <button onClick={() => alert('转为订单：' + form.piCode)} className="btn btn-primary text-xs">
+                <button onClick={() => alert('转为订单：' + form.piCode)} className="btn btn-primary text-[13px]">
                   转为正式订单
                 </button>
               </div>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOLANG OA · 修对齐 + 去掉重复的「PI 总金额」输入项</title>
+<style>
+  :root { --primary:#1a56db; --primary-light:#e8f0fe; --bg:#f3f4f6; --surface:#fff;
+    --border:#e5e7eb; --border-dark:#d1d5db; --text:#111827; --secondary:#6b7280;
+    --muted:#9ca3af; --success:#059669; --danger:#dc2626; --warning:#d97706; --r-sm:6px; --r-md:8px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif; font-size:14px; line-height:1.65; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 28px 70px; }
+  header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:24px; }
+  .logo { font-size:18px; font-weight:700; color:var(--primary); }
+  .logo span { font-size:13px; font-weight:400; color:var(--muted); margin-left:8px; }
+  .meta { font-size:13px; color:var(--muted); }
+  h1 { font-size:24px; font-weight:600; margin:0 0 10px; }
+  h2 { font-size:18px; margin:32px 0 12px; font-weight:600; padding-left:10px; border-left:3px solid var(--primary); }
+  h3 { font-size:16px; margin:0 0 8px; font-weight:600; }
+  p.lead { color:#374151; margin:0 0 16px; max-width:980px; }
+  .quote { background:#fff; border:1px dashed #fdba74; border-left:4px solid #ea580c; padding:10px 15px; margin:0 0 14px; font-size:13px; color:#7c2d12; border-radius:var(--r-sm); }
+  .callout { background:var(--primary-light); border:1px solid #c7d9fb; border-radius:var(--r-md); padding:12px 16px; margin-bottom:14px; }
+  .callout strong { color:var(--primary); }
+  .card { background:#fff; border:1px solid var(--border); border-radius:var(--r-md); padding:16px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .tag { display:inline-block; font-size:12px; padding:2px 9px; border-radius:20px; margin-bottom:9px; }
+  .tag.before { background:var(--bg); color:var(--secondary); }
+  .tag.after { background:#d1fae5; color:var(--success); }
+  ul { margin:8px 0 0; padding-left:20px; } li { margin:5px 0; }
+  table.t { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; font-size:14px; }
+  th { background:#f9fafb; text-align:left; padding:9px 12px; font-weight:600; color:var(--secondary); border-bottom:2px solid var(--border); font-size:13px; }
+  td { padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.k { font-weight:600; white-space:nowrap; }
+  code { background:var(--bg); border-radius:4px; padding:1px 5px; font-size:13px; }
+  .ok { color:var(--success); font-weight:600; } .bad { color:var(--danger); font-weight:600; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#7c2d12; border-radius:var(--r-md); padding:12px 16px; font-size:13px; }
+  .foot { margin-top:34px; border-top:1px solid var(--border); padding-top:14px; font-size:13px; color:var(--muted); }
+
+  /* 表单示意 */
+  .panel { background:#fff; border:1px solid var(--border); border-radius:var(--r-md); padding:16px; }
+  .lbl { font-size:13px; line-height:20px; color:var(--secondary); }
+  .inp { height:40px; padding:0 12px; font-size:14px; border:1px solid var(--border-dark); border-radius:var(--r-sm); background:#fff; width:100%; }
+  .inp:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 2px rgba(26,86,219,.25); }
+  .inp::placeholder { color:var(--muted); }
+  .lbl.fixed { height:40px; display:block; }
+  .old-label { font-size:12px; color:var(--secondary); }
+  .old-inp { height:40px; padding:0 12px; font-size:14px; border:1px solid var(--border-dark); border-radius:var(--r-sm); background:#fff; width:100%; }
+  .hint { font-size:11px; color:var(--muted); margin-top:4px; }
+  .sumbar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:12px; background:#f9fafb;
+    border:1px solid var(--border); border-radius:var(--r-md); padding:12px 16px; font-size:13px; }
+  .sumbar b { font-size:14px; font-variant-numeric:tabular-nums; }
+  .sumbar .hint2 { margin-left:auto; color:var(--muted); }
+  .flow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; }
+  .flow .box { background:#fff; border:1px solid var(--border-dark); border-radius:var(--r-sm); padding:8px 14px; }
+  .flow .arrow { color:var(--primary); font-weight:700; }
+  @media (max-width:860px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">HOLANG <span>All in One OA · 金额区修正</span></div>
+    <div class="meta">2026-11-09 · 修对齐 + 去掉重复金额框</div>
+  </header>
+
+  <h1>两件事一起改：三列对齐，总金额只留一个自动算的数</h1>
+  <div class="quote">刘总原话：「没对齐」＋「这个本身是随机计算的金额，也是默认的金额吧，好像没什么必要存在」</div>
+  <p class="lead">「金额与贸易条款」原来有 4 列，每个字段的标题长短不一，标题一换行，下面的输入框就跟着往下掉——截图里 PI 总金额那个框明显低了一截，红色星号还被挤到单独一行。同时那个框里的金额本来就是商品明细自动算出来的，又让销售再填一遍，属于重复。现在<strong>去掉这个输入项</strong>，总金额只由明细自动派生；剩下 3 列统一标题高度，输入框齐平。</p>
+  <div class="callout"><strong>一句话</strong>：金额只填一次（在商品明细里填数量与单价），总金额自动算；表单里只留一个地方显示这个数，不再有第二个可填的框。</div>
+
+  <h2>1 · 改前 / 改后（金额区）</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag before">改前 · 4 列错位</span>
+      <div class="panel">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div><div class="old-label">币种 *</div><input class="old-inp" value="USD" readonly></div>
+          <div>
+            <div class="old-label">PI 总金额（打印件 TOTAL）</div>
+            <div style="height:22px"></div>
+            <div class="bad" style="font-size:12px">*</div>
+            <input class="old-inp" placeholder="0.00" readonly>
+            <div class="hint">自动跟随明细合计，可直接手改</div>
+          </div>
+          <div><div class="old-label">系统汇率（内部）</div><input class="old-inp" value="1 USD = 6.6908 CNY" readonly></div>
+          <div><div class="old-label">交货期 DELIVERY DATE · 选填，可自由描述</div><div style="height:20px"></div><input class="old-inp" placeholder="如 收到预付款后…" readonly></div>
+        </div>
+      </div>
+      <ul>
+        <li>标题长者折两行，短者一行 → <span class="bad">输入框不在同一水平线</span></li>
+        <li>红色 <code>*</code> 被挤到单独一行</li>
+        <li>PI 总金额是自动算的，却还要销售填一遍</li>
+        <li>旁边还有「按明细合计重算」「已手工调整」等一套多余操作</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag after">改后 · 3 列齐平</span>
+      <div class="panel">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div><label class="lbl fixed">币种 <span style="color:var(--danger)">*</span></label><input class="inp" value="USD" readonly></div>
+          <div><label class="lbl fixed">系统汇率（内部）</label><input class="inp" value="1 USD = 6.6908 CNY" readonly></div>
+          <div><label class="lbl fixed">交货期 <span style="color:var(--muted)">· 选填</span></label><input class="inp" placeholder="如 收到预付款后…" readonly></div>
+        </div>
+        <div class="sumbar">
+          <span>PI 总金额（按商品明细自动算出）：<b>USD 368.00</b></span>
+          <span class="hint2">改单价或数量，金额自动更新。</span>
+        </div>
+      </div>
+      <ul>
+        <li><span class="ok">标题统一 40px 高、13px 字</span>，三列输入框齐平</li>
+        <li>长标题缩短，辅助说明移到悬停提示，不再撑高标题</li>
+        <li><span class="ok">「PI 总金额」输入项删除</span>，只留一处金额展示</li>
+        <li>「按明细合计重算」「已手工调整」等一并去掉</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2 · 金额现在只有一条链路</h2>
+  <div class="card">
+    <div class="flow">
+      <span class="box">商品明细：数量 × 单价</span><span class="arrow">→</span>
+      <span class="box">自动合计</span><span class="arrow">→</span>
+      <span class="box"><strong>PI 总金额（只读展示）</strong></span><span class="arrow">→</span>
+      <span class="box">保存落库 amount</span><span class="arrow">＋</span>
+      <span class="box">导出 PDF 的 TOTAL</span>
+    </div>
+    <p style="font-size:13px;color:var(--secondary);margin:12px 0 0">改明细 → 总金额立刻跟着变；确认后冻结不再改；明细为空的旧单据保留原金额，不会被清零。<strong>销售全程不需要再手抄或手改一次总额。</strong></p>
+  </div>
+
+  <h2>3 · 对齐仍然按 UI 设计 token 约束</h2>
+  <table class="t">
+    <thead><tr><th style="width:210px">项目</th><th style="width:170px">改前</th><th style="width:170px">改后</th><th>token 出处</th></tr></thead>
+    <tbody>
+      <tr><td class="k">字段标题高度</td><td class="bad">随文案长短变化</td><td class="ok">统一 40px</td><td><code>component.inputHeightComplex</code></td></tr>
+      <tr><td class="k">标题字号</td><td class="bad">12px</td><td class="ok">13px</td><td><code>fontSize.aux</code>（规范下限 13px）</td></tr>
+      <tr><td class="k">字段间距</td><td>≈11px</td><td class="ok">16px</td><td><code>space.4</code></td></tr>
+      <tr><td class="k">输入框</td><td>40px</td><td class="ok">40px（不变）</td><td><code>component.inputHeightComplex</code></td></tr>
+      <tr><td class="k">列数</td><td>4 列</td><td class="ok">3 列</td><td>去掉重复字段后自然收敛</td></tr>
+      <tr><td class="k">全页最小字号</td><td class="bad">10–12px</td><td class="ok">13px</td><td>规范第 5 节「不得低于 13px」</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;color:var(--muted);margin:9px 0 0">仍然只改 PI 表单页一个文件，全局 <code>index.css</code> 不动（UI 基线 Candidate 期纪律）。</p>
+
+  <div class="note" style="margin-top:16px"><strong>有一个业务口子想请您确认</strong>：现在总金额严格等于明细合计。如果以后出现「整单抹零、整单优惠、尾差、含未列明费用」这类<strong>总额和明细合计不相等</strong>的情况，就没有地方改了（原来那个输入框能干这个）。我按您这次的判断先去掉了；真遇到这种单子，说一句我按更合适的方式加回来（例如单独一行「调整金额」并在打印件上体现），不会让销售回 Excel。</div>
+
+  <h2>4 · 验证结果</h2>
+  <table class="t">
+    <thead><tr><th style="width:340px">检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td class="k">金额规则验证（重写为新口径）</td><td class="ok">PASS — 18 / 18（含 5 个行为场景）</td></tr>
+      <tr><td class="k">UI 布局约束验证</td><td class="ok">PASS — 34 / 34（新增 label 对齐 / 最小字号 / 3 列断言）</td></tr>
+      <tr><td class="k">前端构建 / 后端类型检查</td><td class="ok">均 EXIT 0</td></tr>
+      <tr><td class="k">全量回归（19 个脚本，含 6 组端到端）</td><td class="ok">全部 PASS，无回归</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5 · 下一步做什么</h2>
+  <div class="card">
+    <ul>
+      <li><strong>推荐</strong>：Ctrl + F5 强刷 → 打开 PI 新建页，看「金额与贸易条款」三列是否齐平、星号是否回到标题里；在商品明细填数量与单价，看下方总金额是否自动跟着变。</li>
+      <li>若您确认「总额永远等于明细合计」这条业务规则，我就按此收口；若有整单优惠场景，告诉我怎么呈现，我补上。</li>
+      <li>GitHub 推送仍受代理 502 影响，离线备份包已备好；网络恢复后我会把这几轮本地提交一起推上去。</li>
+    </ul>
+  </div>
+
+  <div class="foot">HOLANG OA · system-build 分支 · 2026-11-09 · 本页为改前 / 改后对照，不是生产页面。看实际页面请按 Ctrl + F5（或 Ctrl + Shift + R）强制刷新。</div>
+
+</div>
+</body>
+</html>
