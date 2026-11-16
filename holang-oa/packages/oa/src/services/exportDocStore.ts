@@ -87,6 +87,13 @@ export interface PiSource {
   piCode?: string
   customerId?: string
   customerName?: string
+  // 客户资料兜底：后端 /pi、/pi/:id 不含客户对象，由编辑页从已加载的客户列表补进来。
+  // 只作「初始化来源」，notes 里已存的本单据最终事实优先，带出后仍可自由改。
+  buyerName?: string
+  buyerAddress?: string
+  buyerAttn?: string
+  buyerTel?: string
+  buyerEmail?: string
   amount?: number
   currency?: string
   issueDate?: string
@@ -220,11 +227,12 @@ export function initDocFromPi(kind: ExportDocKind, pi: PiSource): ExportDoc {
     sourcePiNo: pi.piNo || pi.piCode || '',
     customerId: pi.customerId || '',
     customerName: pi.customerName || '',
-    buyerName: pi.customerName || '',
-    buyerAddress: n.buyerAddress,
-    buyerAttn: n.buyerAttn,
-    buyerTel: n.buyerTel,
-    buyerEmail: n.buyerEmail,
+    // notes 里有就用本单据已存的最终事实；没有才用客户资料兜底初始化（客户资料只作来源，之后可自由改）
+    buyerName: pi.customerName || pi.buyerName || '',
+    buyerAddress: n.buyerAddress || pi.buyerAddress || '',
+    buyerAttn: n.buyerAttn || pi.buyerAttn || '',
+    buyerTel: n.buyerTel || pi.buyerTel || '',
+    buyerEmail: n.buyerEmail || pi.buyerEmail || '',
     buyerEin: '',
     docDate: today(),
     currency: pi.currency || 'USD',

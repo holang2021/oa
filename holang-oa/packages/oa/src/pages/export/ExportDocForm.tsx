@@ -132,6 +132,18 @@ export default function ExportDocForm() {
         }
       } catch { /* 详情取不到时仍可用列表基本信息初始化 */ }
     }
+    // 后端 /pi 与 /pi/:id 不返回客户名称与买方抬头（只给 customerId / notes / items）。
+    // 用本页已加载的客户资料补初始化值，避免带出后打印件 To / Address 空白；
+    // 仍是「初始化来源」，带出后可自由改、不回写客户资料（LOCKED 第 5 条）；notes 里已存的值优先。
+    const c: any = customers.find(x => x.id === (source.customerId || picked.customerId)) || {}
+    source = {
+      ...source,
+      customerName: source.customerName || c.companyName || c.name || '',
+      buyerAddress: c.address ? [c.address, c.addressDetail].filter(Boolean).join(' ').trim() : '',
+      buyerAttn: c.contactName || c.contacts?.[0]?.name || '',
+      buyerTel: c.contactPhone || c.contacts?.[0]?.phone || c.companyPhone || '',
+      buyerEmail: c.contactEmail || c.contacts?.[0]?.email || '',
+    }
     const seeded = initDocFromPi(kind, source)
     setForm(prev => ({ ...seeded, id: prev.id, kind, createdAt: prev.createdAt }))
   }
