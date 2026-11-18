@@ -49,6 +49,8 @@ export default function ExportDocForm() {
   const [piIsDemo, setPiIsDemo] = useState(false)
   const [selectedPiId, setSelectedPiId] = useState('')
   const [saving, setSaving] = useState(false)
+  // 页内提示条：不用 alert/confirm（内嵌预览面板会静默拦截弹窗，导致「带出/保存」看起来没反应）
+  const [notice, setNotice] = useState<{ type: 'error' | 'ok'; text: string } | null>(null)
 
   const isFrozen = form.status === 'ISSUED'
   const activeCurrency = useMemo(() => getCurrencyById(form.currency), [form.currency, currencyList])
@@ -70,7 +72,7 @@ export default function ExportDocForm() {
         if (alive && r.list && r.list.length) {
           setPiSources(r.list.map(p => ({
             id: p.id, piNo: p.piNo, customerId: p.customerId || '',
-            amount: p.amount, issueDate: p.issueDate,
+            amount: p.amount, issueDate: p.issueDate, currency: (p as any).currency || '',
           })))
           return
         }
@@ -114,11 +116,11 @@ export default function ExportDocForm() {
   const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, emptyItem()] }))
   const removeItem = (idx: number) => setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
 
-  /** 从 PI 一次性带出：覆盖前确认；带出后 sourcePiId 仅留痕，不建立引用关系 */
+  /** 从 PI 一次性带出：直接执行（不用 confirm 弹窗——内嵌预览会拦截弹窗导致点按钮没反应）；
+   *  带出后 sourcePiId 仅留痕，不建立引用关系。覆盖提示放在按钮 title 与提示条里。 */
   const handleImportPi = async () => {
     const picked = piSources.find(p => p.id === selectedPiId)
-    if (!picked) { alert('请先选择一张 PI'); return }
-    if (!window.confirm('从 PI 带出会覆盖当前已填内容；带出后本单据独立保存，改动不会回写 PI。继续？')) return
+    if (!picked) { setNotice({ type: 'error', text: '请先在「从 PI 带出」下拉里选择一张 PI，再点「带出」' }); return }
     let source: PiSource = picked
     if (!piIsDemo) {
       try {
@@ -146,6 +148,7 @@ export default function ExportDocForm() {
     }
     const seeded = initDocFromPi(kind, source)
     setForm(prev => ({ ...seeded, id: prev.id, kind, createdAt: prev.createdAt }))
+    setNotice({ type: 'ok', text: `已从 ${picked.piNo || picked.id} 带出（覆盖了已填内容）；本单据独立保存，改动不回写 PI。买方抬头带出后可自由改。` })
   }
 
   const handleExportPdf = () => {
@@ -158,17 +161,17 @@ export default function ExportDocForm() {
   }
 
   const handleSave = () => {
-    if (!form.customerId) { alert('请选择客户'); return }
+    if (!form.customerId) { setNotice({ type: 'error', text: '请先在「客户信息」选择客户（仅外销客户可选）' }); return }
     const hasItem = form.items.some(it => (it.name || '').trim() !== '')
-    if (!hasItem) { alert('请至少填写一行商品明细'); return }
+    if (!hasItem) { setNotice({ type: 'error', text: '请至少填写一行商品明细（品名不能为空）' }); return }
     if (isCI) {
-      if (!(form.totalAmount > 0)) { alert('请填写商品明细的数量与单价，总金额会自动算出'); return }
+      if (!(form.totalAmount > 0)) { setNotice({ type: 'error', text: '请填写商品明细的数量与单价，总金额会自动算出' }); return }
       const missing = [
         !(form.paymentTerm || '').trim() && '付款条款（PAYMENT TERM）',
         !(form.transactionMethod || '').trim() && '交易条件（TRANSACTION METHOD）',
         !(form.deliveryDate || '').trim() && '交货期（DELIVERY DATE）',
       ].filter(Boolean) as string[]
-      if (missing.length) { alert(`请填写：${missing.join('、')}`); return }
+      if (missing.length) { setNotice({ type: 'error', text: `请填写：${missing.join('、')}` }); return }
     }
     const next: ExportDoc = {
       ...form,
@@ -180,7 +183,7 @@ export default function ExportDocForm() {
     }
     saveExportDoc(next)
     setForm(next)
-    alert(`${kind} 已保存：${next.code}（草稿存于本机浏览器）`)
+    setNotice({ type: 'ok', text: `${kind} 已保存：${next.code}（草稿存于本机浏览器）` })
     nav('/export/export-docs')
   }
 
@@ -201,6 +204,18 @@ export default function ExportDocForm() {
           <FileText size={14} className="mr-1" />导出 PDF（预览）
         </button>
       </div>
+
+      {notice && (
+        <div
+          className={`text-[13px] rounded-[6px] border px-3 py-2 ${notice.type === 'error'
+            ? 'text-red-700 bg-red-50 border-red-200'
+            : 'text-green-800 bg-green-50 border-green-200'}`}
+          role="status"
+        >
+          {notice.text}
+          <button type="button" onClick={() => setNotice(null)} className="ml-2 text-gray-400 hover:text-gray-600">关闭</button>
+        </div>
+      )}
 
       {isFrozen && (
         <div className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
@@ -274,14 +289,14 @@ export default function ExportDocForm() {
                 {piSources.map(p => <option key={p.id} value={p.id}>{p.piNo || p.id}</option>)}
               </select>
               <button type="button" onClick={handleImportPi} disabled={isFrozen}
-                className="btn btn-outline text-[13px] whitespace-nowrap" title="一次性带出买方抬头、单据头、商品明细与条款；带出后可自由改，不回写 PI">
+                className="btn btn-outline text-[13px] whitespace-nowrap" title="一次性带出买方抬头、单据头、商品明细与条款，会覆盖当前已填内容；带出后可自由改，不回写 PI">
                 <Download size={13} className="mr-1" />带出
               </button>
             </div>
             <div className="text-[13px] text-gray-400 mt-1">
               {piIsDemo
                 ? '当前为示例 PI（后端未连接）：只带出基本信息，明细请在下方录入，不会编造数据。'
-                : '带出只是一次性拷贝，之后 CI/PL 独立保存，改动不回写 PI。'}
+                : '点「带出」直接覆盖当前已填内容；带出只是一次性拷贝，之后 CI/PL 独立保存，改动不回写 PI。'}
             </div>
             {form.sourcePiNo && <div className="text-[13px] text-gray-500 mt-1">来源 PI：{form.sourcePiNo}（仅留痕，不强制同步）</div>}
           </div>
