@@ -140,6 +140,9 @@ export const DEFAULT_ROLES: Role[] = [
       '/domestic/quotations',
       '/domestic/orders',
       '/domestic/collections',
+      // 外销单据（PI/CI/PL）：销售经理可审阅
+      '/export/proforma-invoices',
+      '/export/export-docs',
       '/analytics/customers',
       '/analytics/opportunities',
       '/dealer-reports',
@@ -165,6 +168,9 @@ export const DEFAULT_ROLES: Role[] = [
       '/domestic/quotations',
       '/domestic/orders',
       '/domestic/collections',
+      // 外销单据（PI/CI/PL）：销售员必须可开单（数据域仍由后端 enforceSalesTypeScope 把守）
+      '/export/proforma-invoices',
+      '/export/export-docs',
       '/dealer-reports',
       '/partners',
     ],

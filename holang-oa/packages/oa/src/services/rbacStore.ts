@@ -25,6 +25,13 @@ const ROLE_CODE_MAP: Record<string, string> = {
   ROOT: 'admin',
   SALES_MANAGER: 'sales_manager',
   SALESMANAGER: 'sales_manager',
+  // 真实销售角色（2026-10-07 模块归属铁律）：INTERNAL_SALES / EXTERNAL_SALES 是后端实际在用的角色编码，
+  // 缺失会让所有销售掉到 viewer 只读、整站不可用（2026-11-18 数字员工验收抓到）
+  INTERNAL_SALES: 'sales',
+  EXTERNAL_SALES: 'sales',
+  EXTERNAL_LEAD: 'sales_manager',
+  INTERNAL_LEAD: 'sales_manager',
+  MANAGER: 'sales_manager',
   SALES: 'sales',
   SALE: 'sales',
   FINANCE: 'finance',

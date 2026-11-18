@@ -134,10 +134,13 @@ export default function ExportDocForm() {
         }
       } catch { /* 详情取不到时仍可用列表基本信息初始化 */ }
     }
-    // 后端 /pi 与 /pi/:id 不返回客户名称与买方抬头（只给 customerId / notes / items）。
-    // 用本页已加载的客户资料补初始化值，避免带出后打印件 To / Address 空白；
-    // 仍是「初始化来源」，带出后可自由改、不回写客户资料（LOCKED 第 5 条）；notes 里已存的值优先。
-    const c: any = customers.find(x => x.id === (source.customerId || picked.customerId)) || {}
+    // 买方抬头来源（两级兜底）：
+    //   ① PI 详情自带的 customer 对象（跟单据一起返回，不受本页客户列表数据权限影响）
+    //   ② 本页已加载的客户资料（销售看自己客户时可用）
+    // notes 里已存的本单据最终事实优先（initDocFromPi 内处理）；带出后可自由改、不回写客户资料。
+    const dc: any = (source as any).customer || {}
+    const lc: any = customers.find(x => x.id === (source.customerId || picked.customerId)) || {}
+    const c: any = { ...lc, ...dc }
     source = {
       ...source,
       customerName: source.customerName || c.companyName || c.name || '',
